@@ -17,7 +17,6 @@ TypeScript monorepo for a logistics product. The project uses pnpm workspaces, T
 ```txt
 apps/
   web/      Main product app
-  docs/     Documentation app
 
 packages/
   shared/   Shared logistics types and DTOs
@@ -37,7 +36,6 @@ Useful app commands:
 
 ```sh
 pnpm --filter web dev
-pnpm --filter docs dev
 ```
 
 ## Checks
