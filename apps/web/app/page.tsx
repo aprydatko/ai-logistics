@@ -1,5 +1,6 @@
 import Image, { type ImageProps } from "next/image";
 import { Button } from "@repo/ui/button";
+import type { UserRole } from "@repo/shared";
 import styles from "./page.module.css";
 
 type Props = Omit<ImageProps, "src"> & {
@@ -17,6 +18,8 @@ const ThemeImage = (props: Props) => {
     </>
   );
 };
+
+const demoRole: UserRole = "dispatcher";
 
 export default function Home() {
   return (
@@ -63,7 +66,7 @@ export default function Home() {
             Read our docs
           </a>
         </div>
-        <Button appName="web" className={styles.secondary}>
+        <Button appName={`web-${demoRole}`} className={styles.secondary}>
           Open alert
         </Button>
       </main>
