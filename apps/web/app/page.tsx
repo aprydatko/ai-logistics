@@ -1,4 +1,6 @@
 import { Button } from "@repo/ui/components/button";
+import Link from "next/link";
+
 import styles from "./page.module.css";
 
 export default function Home() {
@@ -11,7 +13,9 @@ export default function Home() {
           A focused workspace for loads, drivers, incidents, and AI-assisted
           logistics workflows.
         </p>
-        <Button>Open dashboard</Button>
+        <Button asChild>
+          <Link href="/dashboard">Open dashboard</Link>
+        </Button>
       </section>
     </main>
   );
