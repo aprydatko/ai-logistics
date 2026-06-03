@@ -9,6 +9,8 @@ import type {
 import { CurrentUser } from "./current-user.decorator";
 import { LoginDto, RefreshTokenDto, RegisterDto } from "./dto";
 import { JwtAuthGuard } from "./jwt-auth.guard";
+import { Roles } from "./roles.decorator";
+import { RolesGuard } from "./roles.guard";
 
 @Controller("auth")
 export class AuthController {
@@ -33,5 +35,17 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   getMe(@CurrentUser() user: AuthenticatedUser): AuthenticatedUser {
     return user;
+  }
+
+  @Get("operations")
+  @Roles("admin", "dispatcher")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  getOperationsAccess(
+    @CurrentUser() user: AuthenticatedUser,
+  ): { message: string; user: AuthenticatedUser } {
+    return {
+      message: "Operations access granted",
+      user,
+    };
   }
 }
