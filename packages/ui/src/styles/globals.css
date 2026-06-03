@@ -90,6 +90,8 @@
   --danger-background: #fee2e2;
   --info: #1d4ed8;
   --info-background: #dbeafe;
+  --info-accent: #006fd1;
+  --info-soft-background: #f0f5fd;
   --neutral: #475569;
   --neutral-background: #e2e8f0;
   --ai: #3730a3;
@@ -187,6 +189,8 @@
   --color-danger-background: var(--danger-background);
   --color-info: var(--info);
   --color-info-background: var(--info-background);
+  --color-info-accent: var(--info-accent);
+  --color-info-soft-background: var(--info-soft-background);
   --color-neutral: var(--neutral);
   --color-neutral-background: var(--neutral-background);
   --color-ai: var(--ai);
