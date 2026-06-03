@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+} from "@nestjs/common";
 
 import { AuthService } from "./auth.service";
 import type {
@@ -22,11 +30,13 @@ export class AuthController {
   }
 
   @Post("login")
+  @HttpCode(HttpStatus.OK)
   login(@Body() dto: LoginDto): Promise<LoginResponse> {
     return this.authService.login(dto);
   }
 
   @Post("refresh")
+  @HttpCode(HttpStatus.OK)
   refresh(@Body() dto: RefreshTokenDto): Promise<LoginResponse> {
     return this.authService.refresh(dto);
   }
