@@ -4,13 +4,15 @@ import {
   InternalServerErrorException,
   UnauthorizedException,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { compare, hash } from "bcrypt";
 import { eq } from "drizzle-orm";
 
+import type { Environment } from "../../config/environment";
 import { DatabaseService } from "../../db/database.service";
 import { users, type UserRecord } from "../../db/schema";
-import { LoginDto, RegisterDto } from "./dto";
+import { LoginDto, RefreshTokenDto, RegisterDto } from "./dto";
 
 const PASSWORD_SALT_ROUNDS = 12;
 
@@ -27,6 +29,7 @@ export interface PublicUser {
 
 export interface LoginResponse {
   accessToken: string;
+  refreshToken: string;
   user: PublicUser;
 }
 
@@ -34,6 +37,12 @@ interface AccessTokenPayload {
   sub: string;
   email: string;
   role: UserRecord["role"];
+  tokenType: "access";
+}
+
+interface RefreshTokenPayload {
+  sub: string;
+  tokenType: "refresh";
 }
 
 @Injectable()
@@ -41,6 +50,7 @@ export class AuthService {
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService<Environment, true>,
   ) {}
 
   async register(dto: RegisterDto): Promise<PublicUser> {
@@ -100,16 +110,78 @@ export class AuthService {
       throw new UnauthorizedException("Invalid email or password");
     }
 
-    const payload: AccessTokenPayload = {
+    const tokens = await this.createTokens(user);
+
+    return {
+      ...tokens,
+      user: this.toPublicUser(user),
+    };
+  }
+
+  async refresh(dto: RefreshTokenDto): Promise<LoginResponse> {
+    const payload = await this.verifyRefreshToken(dto.refreshToken);
+    const [user] = await this.databaseService.client
+      .select()
+      .from(users)
+      .where(eq(users.id, payload.sub))
+      .limit(1);
+
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException("Invalid refresh token");
+    }
+
+    const tokens = await this.createTokens(user);
+
+    return {
+      ...tokens,
+      user: this.toPublicUser(user),
+    };
+  }
+
+  private async createTokens(
+    user: UserRecord,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const accessPayload: AccessTokenPayload = {
       sub: user.id,
       email: user.email,
       role: user.role,
+      tokenType: "access",
+    };
+    const refreshPayload: RefreshTokenPayload = {
+      sub: user.id,
+      tokenType: "refresh",
     };
 
-    return {
-      accessToken: await this.jwtService.signAsync(payload),
-      user: this.toPublicUser(user),
-    };
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(accessPayload),
+      this.jwtService.signAsync(refreshPayload, {
+        secret: this.configService.get("JWT_REFRESH_SECRET", { infer: true }),
+        expiresIn: this.configService.get("JWT_REFRESH_EXPIRES_IN", {
+          infer: true,
+        }),
+      }),
+    ]);
+
+    return { accessToken, refreshToken };
+  }
+
+  private async verifyRefreshToken(token: string): Promise<RefreshTokenPayload> {
+    try {
+      const payload = await this.jwtService.verifyAsync<RefreshTokenPayload>(
+        token,
+        {
+          secret: this.configService.get("JWT_REFRESH_SECRET", { infer: true }),
+        },
+      );
+
+      if (payload.tokenType !== "refresh" || !payload.sub) {
+        throw new UnauthorizedException("Invalid refresh token");
+      }
+
+      return payload;
+    } catch {
+      throw new UnauthorizedException("Invalid refresh token");
+    }
   }
 
   private toPublicUser(user: UserRecord): PublicUser {

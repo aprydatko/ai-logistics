@@ -5,7 +5,7 @@ import {
   type LoginResponse,
   type PublicUser,
 } from "./auth.service";
-import { LoginDto, RegisterDto } from "./dto";
+import { LoginDto, RefreshTokenDto, RegisterDto } from "./dto";
 
 @Controller("auth")
 export class AuthController {
@@ -19,5 +19,10 @@ export class AuthController {
   @Post("login")
   login(@Body() dto: LoginDto): Promise<LoginResponse> {
     return this.authService.login(dto);
+  }
+
+  @Post("refresh")
+  refresh(@Body() dto: RefreshTokenDto): Promise<LoginResponse> {
+    return this.authService.refresh(dto);
   }
 }
