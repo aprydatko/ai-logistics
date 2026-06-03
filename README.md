@@ -8,6 +8,8 @@ TypeScript monorepo for a logistics product. The project uses pnpm workspaces, T
 - Turborepo
 - TypeScript
 - Next.js
+- NestJS
+- PostgreSQL
 - React
 - ESLint
 - Prettier
@@ -16,6 +18,7 @@ TypeScript monorepo for a logistics product. The project uses pnpm workspaces, T
 
 ```txt
 apps/
+  api/      NestJS API service
   web/      Main product app
 
 packages/
@@ -29,6 +32,7 @@ packages/
 
 ```sh
 pnpm install
+pnpm db:up
 pnpm dev
 ```
 
@@ -36,7 +40,12 @@ Useful app commands:
 
 ```sh
 pnpm --filter web dev
+pnpm dev:api
+pnpm db:down
 ```
+
+The local PostgreSQL instance listens on `localhost:5432`. Copy the API environment
+example to `apps/api/.env` before connecting the API to the database.
 
 ## Checks
 
