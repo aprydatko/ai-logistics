@@ -41,6 +41,9 @@ Useful app commands:
 ```sh
 pnpm --filter web dev
 pnpm dev:api
+pnpm db:generate
+pnpm db:migrate
+pnpm db:studio
 pnpm db:down
 ```
 
