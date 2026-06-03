@@ -5,5 +5,6 @@ export * from './types/load.js';
 export * from './types/user.js';
 
 export * from './dto/api-response.dto.js';
+export * from './dto/auth.dto.js';
 export * from './dto/driver.dto.js';
 export * from './dto/load.dto.js';

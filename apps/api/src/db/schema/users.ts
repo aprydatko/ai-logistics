@@ -23,7 +23,7 @@ export const users = pgTable(
     lastName: varchar("last_name", { length: 100 }).notNull(),
     email: varchar("email", { length: 255 }).notNull(),
     passwordHash: varchar("password_hash", { length: 255 }).notNull(),
-    role: userRoleEnum("role").notNull(),
+    role: userRoleEnum("role").default("driver").notNull(),
     isActive: boolean("is_active").default(true).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
