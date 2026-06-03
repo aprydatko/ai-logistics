@@ -12,38 +12,15 @@ import { eq } from "drizzle-orm";
 import type { Environment } from "../../config/environment";
 import { DatabaseService } from "../../db/database.service";
 import { users, type UserRecord } from "../../db/schema";
+import type {
+  AccessTokenPayload,
+  LoginResponse,
+  PublicUser,
+  RefreshTokenPayload,
+} from "./auth.types";
 import { LoginDto, RefreshTokenDto, RegisterDto } from "./dto";
 
 const PASSWORD_SALT_ROUNDS = 12;
-
-export interface PublicUser {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: UserRecord["role"];
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
-  user: PublicUser;
-}
-
-interface AccessTokenPayload {
-  sub: string;
-  email: string;
-  role: UserRecord["role"];
-  tokenType: "access";
-}
-
-interface RefreshTokenPayload {
-  sub: string;
-  tokenType: "refresh";
-}
 
 @Injectable()
 export class AuthService {
