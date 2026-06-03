@@ -7,4 +7,5 @@ export interface User extends BaseEntity {
   lastName: string;
   email: string;
   role: UserRole;
+  isActive: boolean;
 }
