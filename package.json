@@ -3,7 +3,14 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
+    "db:down": "docker compose down",
+    "db:generate": "pnpm --filter api db:generate",
+    "db:logs": "docker compose logs -f postgres",
+    "db:migrate": "pnpm --filter api db:migrate",
+    "db:studio": "pnpm --filter api db:studio",
+    "db:up": "docker compose up -d postgres",
     "dev": "turbo run dev",
+    "dev:api": "pnpm --filter api dev",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"
