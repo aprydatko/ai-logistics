@@ -2,13 +2,15 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  UnauthorizedException,
 } from "@nestjs/common";
-import { hash } from "bcrypt";
+import { JwtService } from "@nestjs/jwt";
+import { compare, hash } from "bcrypt";
 import { eq } from "drizzle-orm";
 
 import { DatabaseService } from "../../db/database.service";
 import { users, type UserRecord } from "../../db/schema";
-import { RegisterDto } from "./dto";
+import { LoginDto, RegisterDto } from "./dto";
 
 const PASSWORD_SALT_ROUNDS = 12;
 
@@ -23,9 +25,23 @@ export interface PublicUser {
   updatedAt: string;
 }
 
+export interface LoginResponse {
+  accessToken: string;
+  user: PublicUser;
+}
+
+interface AccessTokenPayload {
+  sub: string;
+  email: string;
+  role: UserRecord["role"];
+}
+
 @Injectable()
 export class AuthService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   async register(dto: RegisterDto): Promise<PublicUser> {
     const email = dto.email.trim().toLowerCase();
@@ -64,6 +80,36 @@ export class AuthService {
 
       throw error;
     }
+  }
+
+  async login(dto: LoginDto): Promise<LoginResponse> {
+    const email = dto.email.trim().toLowerCase();
+    const [user] = await this.databaseService.client
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException("Invalid email or password");
+    }
+
+    const isPasswordValid = await compare(dto.password, user.passwordHash);
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException("Invalid email or password");
+    }
+
+    const payload: AccessTokenPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    return {
+      accessToken: await this.jwtService.signAsync(payload),
+      user: this.toPublicUser(user),
+    };
   }
 
   private toPublicUser(user: UserRecord): PublicUser {

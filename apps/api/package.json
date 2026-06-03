@@ -16,6 +16,7 @@
     "@nestjs/common": "^11.1.0",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.0",
+    "@nestjs/jwt": "^11.0.2",
     "@nestjs/platform-express": "^11.1.0",
     "@repo/shared": "workspace:^",
     "bcrypt": "^6.0.0",
