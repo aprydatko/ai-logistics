@@ -12,6 +12,8 @@ import {
   FormMessage,
 } from "@repo/ui/components/form";
 import { Input } from "@repo/ui/components/input";
+import type { User } from "@repo/shared";
+import { useUserStore } from "@/stores/user-store";
 import { AlertCircle, Eye, EyeOff, LoaderCircle, LockKeyhole, Mail } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -35,10 +37,15 @@ const loginSchema = z.object({
 
 type LoginValues = z.infer<typeof loginSchema>;
 
+interface AuthUserResponse {
+  user: User;
+}
+
 const DEFAULT_ERROR = "Unable to sign in. Check your credentials and try again.";
 
 export function LoginForm(): React.JSX.Element {
   const router = useRouter();
+  const setUser = useUserStore((state) => state.setUser);
   const [showPassword, setShowPassword] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const form = useForm<LoginValues>({
@@ -66,6 +73,8 @@ export function LoginForm(): React.JSX.Element {
         return;
       }
 
+      const authResponse = (await response.json()) as AuthUserResponse;
+      setUser(authResponse.user);
       router.replace("/dashboard");
       router.refresh();
     } catch {

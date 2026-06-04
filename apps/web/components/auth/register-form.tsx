@@ -12,6 +12,8 @@ import {
   FormMessage,
 } from "@repo/ui/components/form";
 import { Input } from "@repo/ui/components/input";
+import type { User as DomainUser } from "@repo/shared";
+import { useUserStore } from "@/stores/user-store";
 import {
   AlertCircle,
   Eye,
@@ -53,10 +55,15 @@ const registerSchema = z.object({
 
 type RegisterValues = z.infer<typeof registerSchema>;
 
+interface AuthUserResponse {
+  user: DomainUser;
+}
+
 const DEFAULT_ERROR = "Unable to create your account. Check the details and try again.";
 
 export function RegisterForm(): React.JSX.Element {
   const router = useRouter();
+  const setUser = useUserStore((state) => state.setUser);
   const [showPassword, setShowPassword] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const form = useForm<RegisterValues>({
@@ -86,6 +93,8 @@ export function RegisterForm(): React.JSX.Element {
         return;
       }
 
+      const authResponse = (await response.json()) as AuthUserResponse;
+      setUser(authResponse.user);
       router.replace("/dashboard");
       router.refresh();
     } catch {
