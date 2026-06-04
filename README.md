@@ -59,6 +59,22 @@ pnpm build
 pnpm format
 ```
 
+Test commands:
+
+```sh
+pnpm --filter web test
+pnpm --filter web test:coverage
+pnpm --filter web test:e2e
+```
+
+The CI workflow runs linting, type checking, web unit tests with coverage, and
+web Playwright E2E tests. GitHub Checks show unit and E2E test results from
+JUnit reports. Pull requests also receive a web unit test coverage comment.
+When E2E tests fail, download the Playwright artifacts from the workflow run:
+
+- `playwright-report`: HTML report.
+- `playwright-test-results`: traces, screenshots, and videos for failures.
+
 ## Project Docs
 
 - `AGENTS.md`: Codex working rules.

@@ -32,5 +32,6 @@ Use this before merging or finishing a Codex change.
 ## Verification
 
 - [ ] Ran the smallest useful check: `pnpm check-types`, `pnpm lint`, or `pnpm build`.
+- [ ] Ran relevant tests, such as `pnpm --filter web test` or `pnpm --filter web test:e2e`.
 - [ ] Manually checked the affected page or flow when UI changed.
 - [ ] Added or updated tests when behavior became more complex.

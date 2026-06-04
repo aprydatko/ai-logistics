@@ -5,7 +5,7 @@
 This repository is a pnpm + Turborepo monorepo.
 
 - `apps/web`: product application.
-- `apps/docs`: documentation/internal app.
+- `apps/api`: NestJS API service.
 - `packages/shared`: shared logistics domain types and DTOs.
 - `packages/ui`: shared React components.
 - `packages/eslint-config`: shared lint rules.

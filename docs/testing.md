@@ -2,7 +2,8 @@
 
 ## Current Checks
 
-This repo currently has linting, formatting, type checking, and build scripts.
+This repo currently has linting, formatting, type checking, build scripts, web
+unit tests, web coverage, and Playwright E2E tests.
 
 - Install dependencies: `pnpm install`
 - Run dev servers: `pnpm dev`
@@ -10,18 +11,38 @@ This repo currently has linting, formatting, type checking, and build scripts.
 - Type check: `pnpm check-types`
 - Build: `pnpm build`
 - Format: `pnpm format`
+- Web unit tests: `pnpm --filter web test`
+- Web coverage: `pnpm --filter web test:coverage`
+- Web E2E tests: `pnpm --filter web test:e2e`
 
 ## What To Run
 
 - Documentation-only change: usually no test command needed.
 - Shared types or DTOs: run `pnpm check-types`.
-- UI component change: run `pnpm lint` and `pnpm check-types`.
-- App page or routing change: run `pnpm lint`, `pnpm check-types`, and test the page locally.
+- UI component change: run `pnpm lint`, `pnpm check-types`, and `pnpm --filter web test`.
+- App page, auth, or routing change: run `pnpm lint`, `pnpm check-types`, `pnpm --filter web test`, and test the page locally.
+- Critical browser flow change: run `pnpm --filter web test:e2e`.
 - Large cross-package change: run `pnpm build`.
 
-## Future Test Standard
+## CI Reports
 
-When test tooling is added, prefer focused tests around behavior:
+GitHub Actions runs:
+
+- `Lint, Type Check, and Unit Tests`: lint, type check, web unit tests with coverage.
+- `Web E2E Tests`: Playwright E2E tests after the first job succeeds.
+
+The workflow publishes JUnit-based GitHub Checks for web unit and E2E tests.
+Pull requests receive a sticky web coverage comment, and the same coverage table
+is written to the workflow step summary.
+
+When Playwright fails, download these workflow artifacts:
+
+- `playwright-report`: HTML report.
+- `playwright-test-results`: traces, screenshots, and videos for failed tests.
+
+## Test Standard
+
+Prefer focused tests around behavior:
 
 - Domain helpers: unit tests.
 - API contracts and DTO transformations: contract-style tests.
