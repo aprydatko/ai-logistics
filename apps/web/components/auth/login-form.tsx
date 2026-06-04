@@ -13,29 +13,13 @@ import {
 } from "@repo/ui/components/form";
 import { Input } from "@repo/ui/components/input";
 import type { User } from "@repo/shared";
+import { loginSchema, type LoginValues } from "@/lib/auth/login-schema";
 import { useUserStore } from "@/stores/user-store";
 import { AlertCircle, Eye, EyeOff, LoaderCircle, LockKeyhole, Mail } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
-
-const loginSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .min(1, "Email is required")
-    .email("Enter a valid email address")
-    .max(255, "Email must be 255 characters or fewer"),
-  password: z
-    .string()
-    .min(1, "Password is required")
-    .min(8, "Password must be at least 8 characters")
-    .max(72, "Password must be 72 characters or fewer"),
-});
-
-type LoginValues = z.infer<typeof loginSchema>;
 
 interface AuthUserResponse {
   user: User;
