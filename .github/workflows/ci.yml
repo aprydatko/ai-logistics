@@ -9,6 +9,10 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  checks: write
+  contents: read
+
 jobs:
   checks:
     name: Lint, Type Check, and Unit Tests
@@ -41,6 +45,14 @@ jobs:
       - name: Run web unit tests
         run: pnpm --filter web test
 
+      - name: Publish web unit test report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Web Unit Tests
+          path: apps/web/test-results/vitest-junit.xml
+          reporter: java-junit
+
   e2e:
     name: Web E2E Tests
     runs-on: ubuntu-latest
@@ -71,6 +83,14 @@ jobs:
         run: pnpm --filter web test:e2e
         env:
           CI: true
+
+      - name: Publish web E2E test report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Web E2E Tests
+          path: apps/web/test-results/playwright-junit.xml
+          reporter: java-junit
 
       - name: Upload Playwright HTML report
         if: always()

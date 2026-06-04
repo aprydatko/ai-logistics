@@ -15,7 +15,11 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     exclude: ["**/e2e/**", "**/node_modules/**", "**/.git/**"],
+    outputFile: {
+      junit: "./test-results/vitest-junit.xml",
+    },
     passWithNoTests: true,
+    reporters: process.env.CI ? ["default", "junit"] : ["default"],
     setupFiles: ["./vitest.setup.ts"],
   },
 });
