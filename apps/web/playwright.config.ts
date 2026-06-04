@@ -4,9 +4,17 @@ export default defineConfig({
   testDir: "./e2e",
   globalSetup: "./e2e/global-setup.ts",
   globalTeardown: "./e2e/global-teardown.ts",
+  reporter: [
+    ["list"],
+    ["html", { open: "never" }],
+    ["junit", { outputFile: "test-results/playwright-junit.xml" }],
+  ],
+  retries: process.env.CI ? 2 : 0,
   use: {
     baseURL: "http://127.0.0.1:3000",
+    screenshot: "only-on-failure",
     trace: "on-first-retry",
+    video: "retain-on-failure",
   },
   webServer: {
     command: "pnpm start",
