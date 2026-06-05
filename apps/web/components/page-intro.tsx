@@ -1,5 +1,3 @@
-import styles from "@/app/page.module.css";
-
 type PageIntroProps = {
   eyebrow: string;
   title: string;
@@ -12,12 +10,12 @@ export function PageIntro({
   description,
 }: PageIntroProps): React.JSX.Element {
   return (
-    <main className={styles.page}>
-      <section className={styles.hero}>
-        <p className={styles.eyebrow}>{eyebrow}</p>
-        <h1 className={styles.title}>{title}</h1>
-        <p className={styles.description}>{description}</p>
-      </section>
-    </main>
+    <section>
+      <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
+        {eyebrow}
+      </p>
+      <h1>{title}</h1>
+      <p>{description}</p>
+    </section>
   );
 }

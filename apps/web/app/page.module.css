@@ -1,19 +1,11 @@
-.page {
-  display: grid;
-  min-height: calc(100svh - 64px);
-  place-items: center;
-  padding: 32px;
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
-}
-
 .hero {
   width: min(100%, 720px);
+  padding: 28px 0;
 }
 
 .eyebrow {
   margin-bottom: 16px;
-  color: hsl(var(--muted-foreground));
+  color: var(--muted-foreground);
   font-size: 14px;
   font-weight: 600;
   text-transform: uppercase;
@@ -30,17 +22,12 @@
 .description {
   margin: 20px 0 28px;
   max-width: 560px;
-  color: hsl(var(--muted-foreground));
+  color: var(--muted-foreground);
   font-size: 18px;
   line-height: 1.6;
 }
 
 @media (max-width: 640px) {
-  .page {
-    place-items: start;
-    padding: 80px 24px 32px;
-  }
-
   .title {
     font-size: 36px;
   }
