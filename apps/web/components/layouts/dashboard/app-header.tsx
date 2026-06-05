@@ -48,7 +48,7 @@ export function AppHeader({ onOpenMobile }: AppHeaderProps): React.JSX.Element {
           variant="ghost"
         >
           <Bell className="size-6" />
-          <span className="absolute -right-1 top-0.5 grid size-4 place-items-center rounded-full bg-danger text-[0.65rem] font-normal text-white">
+          <span className="absolute -right-[5px] -top-[2px] grid size-4 place-items-center rounded-full bg-danger text-[0.65rem] font-normal leading-none text-white">
             3
           </span>
         </Button>

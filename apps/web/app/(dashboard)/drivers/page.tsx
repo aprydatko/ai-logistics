@@ -1,11 +1,5 @@
-import { PageIntro } from "@/components/page-intro";
+import { DriversTable } from '@/components/drivers/drivers-table';
 
-export default function DriversPage() {
-  return (
-    <PageIntro
-      description="Review driver status, assignments, contact details, documents, and trip history."
-      eyebrow="Fleet operations"
-      title="Drivers"
-    />
-  );
+export default function DriversPage(): React.JSX.Element {
+  return <DriversTable />;
 }
