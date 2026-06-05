@@ -65,7 +65,9 @@ export function DashboardShell({
         )}
       >
         <AppHeader onOpenMobile={() => setIsMobileOpen(true)} />
-        <main className="mx-auto w-full max-w-[112rem] p-4">{children}</main>
+        <main className="mx-auto w-full max-w-[112rem] p-4 lg:pt-5 lg:pl-6">
+          {children}
+        </main>
       </div>
     </div>
   );

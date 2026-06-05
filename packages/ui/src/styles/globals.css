@@ -216,6 +216,8 @@
   --text-display: var(--type-display);
   --text-display--line-height: var(--type-display-line-height);
   --text-display--font-weight: var(--type-display-font-weight);
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
   --text-h1: var(--type-h1);
   --text-h1--line-height: var(--type-h1-line-height);
   --text-h1--font-weight: var(--type-h1-font-weight);
