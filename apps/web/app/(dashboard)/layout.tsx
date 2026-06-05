@@ -1,14 +1,9 @@
-import { MainNavigation } from "@/components/main-navigation";
+import { DashboardShell } from '@/components/layouts/dashboard';
 
 export default function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>): React.JSX.Element {
-  return (
-    <>
-      <MainNavigation />
-      {children}
-    </>
-  );
+  return <DashboardShell>{children}</DashboardShell>;
 }
