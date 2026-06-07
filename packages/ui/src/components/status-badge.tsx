@@ -6,7 +6,7 @@ import { cn } from '@repo/ui/lib/utils';
 type StatusBadgeTone = 'success' | 'neutral' | 'info' | 'warning' | 'danger';
 type StatusBadgeSize = 'default' | 'lg' | 'sm';
 
-type StatusBadgeProps = React.ComponentProps<typeof Badge> & {
+type StatusBadgeProps = Omit<React.ComponentProps<typeof Badge>, 'size'> & {
   size?: StatusBadgeSize;
   tone?: StatusBadgeTone;
 };
