@@ -5,11 +5,23 @@ import { config, proxy } from "./proxy";
 
 const APP_URL = "https://app.example.com";
 
-const createRequest = (path: string, accessToken?: string): NextRequest => {
+const createRequest = (
+  path: string,
+  tokens: { accessToken?: string; refreshToken?: string } = {},
+): NextRequest => {
   const headers = new Headers();
+  const cookies: string[] = [];
 
-  if (accessToken) {
-    headers.set("cookie", `access_token=${accessToken}`);
+  if (tokens.accessToken) {
+    cookies.push(`access_token=${tokens.accessToken}`);
+  }
+
+  if (tokens.refreshToken) {
+    cookies.push(`refresh_token=${tokens.refreshToken}`);
+  }
+
+  if (cookies.length > 0) {
+    headers.set("cookie", cookies.join("; "));
   }
 
   return new NextRequest(`${APP_URL}${path}`, { headers });
@@ -35,21 +47,36 @@ describe("proxy", () => {
   });
 
   it("allows dashboard requests with an access token", () => {
-    const response = proxy(createRequest("/dashboard", "access-token"));
+    const response = proxy(
+      createRequest("/dashboard", { accessToken: "access-token" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("allows dashboard requests with a refresh token", () => {
+    const response = proxy(
+      createRequest("/dashboard", { refreshToken: "refresh-token" }),
+    );
 
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
   });
 
   it("redirects authenticated login requests to dashboard", () => {
-    const response = proxy(createRequest("/login", "access-token"));
+    const response = proxy(
+      createRequest("/login", { accessToken: "access-token" }),
+    );
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(`${APP_URL}/dashboard`);
   });
 
   it("redirects authenticated register requests to dashboard", () => {
-    const response = proxy(createRequest("/register", "access-token"));
+    const response = proxy(
+      createRequest("/register", { accessToken: "access-token" }),
+    );
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(`${APP_URL}/dashboard`);

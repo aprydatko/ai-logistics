@@ -1,6 +1,12 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+import {
+  clearSessionCookies,
+  refreshSession,
+  setSessionCookies,
+} from "@/lib/auth/server-session";
+
 const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:3001/api";
 
 const allowedQueryParameters = new Set([
@@ -14,13 +20,30 @@ const allowedQueryParameters = new Set([
 ]);
 
 export async function GET(request: Request): Promise<NextResponse> {
-  const accessToken = (await cookies()).get("access_token")?.value;
-
-  if (!accessToken) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
   try {
+    const cookieStore = await cookies();
+    let accessToken = cookieStore.get("access_token")?.value;
+    const refreshToken = cookieStore.get("refresh_token")?.value;
+    let refreshedSession: Awaited<ReturnType<typeof refreshSession>> = null;
+
+    if (!accessToken && refreshToken) {
+      refreshedSession = await refreshSession(refreshToken);
+      accessToken = refreshedSession?.accessToken;
+    }
+
+    if (!accessToken) {
+      const response = NextResponse.json(
+        { message: "Unauthorized" },
+        { status: 401 },
+      );
+
+      if (refreshToken) {
+        clearSessionCookies(response);
+      }
+
+      return response;
+    }
+
     const requestUrl = new URL(request.url);
     const apiUrl = new URL(`${API_BASE_URL}/drivers`);
 
@@ -30,17 +53,38 @@ export async function GET(request: Request): Promise<NextResponse> {
       }
     });
 
-    const apiResponse = await fetch(apiUrl, {
+    let apiResponse = await fetch(apiUrl, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
       cache: "no-store",
     });
+
+    if (apiResponse.status === 401 && refreshToken && !refreshedSession) {
+      refreshedSession = await refreshSession(refreshToken);
+
+      if (refreshedSession) {
+        apiResponse = await fetch(apiUrl, {
+          headers: {
+            Authorization: `Bearer ${refreshedSession.accessToken}`,
+          },
+          cache: "no-store",
+        });
+      }
+    }
+
     const body: unknown = await apiResponse.json().catch(() => ({
       message: "Invalid drivers response",
     }));
+    const response = NextResponse.json(body, { status: apiResponse.status });
 
-    return NextResponse.json(body, { status: apiResponse.status });
+    if (refreshedSession) {
+      setSessionCookies(response, refreshedSession);
+    } else if (apiResponse.status === 401 && refreshToken) {
+      clearSessionCookies(response);
+    }
+
+    return response;
   } catch {
     return NextResponse.json(
       { message: "Drivers service unavailable" },
