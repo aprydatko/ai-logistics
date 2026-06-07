@@ -6,7 +6,7 @@ import {
   LogOut,
   Menu,
   Settings,
-  UserRound,
+  UserRound
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -97,17 +97,17 @@ export function AppHeader({ onOpenMobile }: AppHeaderProps): React.JSX.Element {
           items={[
             {
               icon: UserRound,
-              label: 'Профіль',
+              label: 'Profile',
               onSelect: () => router.push('/settings#profile'),
             },
             {
               icon: Settings,
-              label: 'Налаштування',
+              label: 'Settings',
               onSelect: () => router.push('/settings'),
             },
             {
               icon: LogOut,
-              label: isLoggingOut ? 'Вихід...' : 'Вихід',
+              label: isLoggingOut ? 'Logout...' : 'Logout',
               onSelect: handleLogout,
               tone: 'danger',
             },
@@ -133,7 +133,11 @@ export function AppHeader({ onOpenMobile }: AppHeaderProps): React.JSX.Element {
                   </span>
                 ) : null}
               </span>
-              <ChevronDown className="hidden size-4 text-primary-700 sm:block" />
+              <ChevronDown
+                className={`hidden size-4 text-primary-700 transition-transform duration-200 sm:block ${
+                  isOpen ? 'rotate-180' : ''
+                }`}
+              />
             </button>
           )}
         />

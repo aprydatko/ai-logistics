@@ -20,6 +20,7 @@ import { DriversToolbar } from "../drivers-toolbar";
 import { DriverRow } from "./driver-row";
 import { DeleteDriverDialog } from "./delete-driver-dialog";
 import { DriversPagination } from "./drivers-pagination";
+import { DriversTableSkeleton } from "./drivers-table-skeleton";
 import { useDriversTable } from "./use-drivers-table";
 
 const DriversTableState = ({
@@ -118,7 +119,7 @@ export const DriversTable = (): React.JSX.Element => {
               </TableHeader>
               <TableBody>
                 {table.driversQuery.isPending ? (
-                  <DriversTableState>Loading drivers...</DriversTableState>
+                  <DriversTableSkeleton />
                 ) : null}
                 {table.driversQuery.isError ? (
                   <DriversTableState>

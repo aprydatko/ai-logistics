@@ -1,25 +1,25 @@
-"use client";
+'use client';
 
-import { LoaderCircle } from "lucide-react";
-import type { UseFormReturn } from "react-hook-form";
+import { LoaderCircle } from 'lucide-react';
+import type { UseFormReturn } from 'react-hook-form';
 
-import { Button } from "@repo/ui/components/button";
-import { Checkbox } from "@repo/ui/components/checkbox";
-import { DialogClose } from "@repo/ui/components/dialog";
+import type { DriverFormValues } from '@/lib/drivers/driver-form-schema';
+import { Button } from '@repo/ui/components/button';
+import { Checkbox } from '@repo/ui/components/checkbox';
+import { DialogClose } from '@repo/ui/components/dialog';
 import {
   FormControl,
   FormField,
   FormItem,
   FormLabel,
-} from "@repo/ui/components/form";
+} from '@repo/ui/components/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@repo/ui/components/select";
-import type { DriverFormValues } from "@/lib/drivers/driver-form-schema";
+} from '@repo/ui/components/select';
 
 interface DialogFooterProps {
   form: UseFormReturn<DriverFormValues>;
@@ -58,7 +58,7 @@ export const DialogFooter = ({
         name="status"
         render={({ field }) => (
           <Select onValueChange={field.onChange} value={field.value}>
-            <SelectTrigger className="h-9 w-36 border-0 bg-emerald-50 text-emerald-700 shadow-none">
+            <SelectTrigger className="h-8! w-36 border-0 bg-emerald-50 text-emerald-700 shadow-none">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -83,7 +83,7 @@ export const DialogFooter = ({
         type="submit"
       >
         {isPending ? <LoaderCircle className="animate-spin" /> : null}
-        {isPending ? "Saving..." : isEditing ? "Save changes" : "Save driver"}
+        {isPending ? 'Saving...' : isEditing ? 'Save changes' : 'Save driver'}
       </Button>
     </div>
   </div>

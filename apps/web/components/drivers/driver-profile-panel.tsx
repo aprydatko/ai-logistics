@@ -19,7 +19,7 @@ import { SidePanel } from "@repo/ui/components/side-panel";
 import { StatusBadge } from "@repo/ui/components/status-badge";
 import { cn } from "@repo/ui/lib/utils";
 
-import { driverStatusTone } from "./mock";
+import { driverStatusTone } from "./driver-styles";
 import { DriverRow } from "./types";
 
 type DriverProfilePanelProps = {
