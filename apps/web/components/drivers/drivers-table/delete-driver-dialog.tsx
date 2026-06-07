@@ -1,22 +1,11 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { LoaderCircle, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@repo/ui/components/alert-dialog";
-import { buttonVariants } from "@repo/ui/components/button";
 import { toast } from "@repo/ui/components/toaster";
-import { cn } from "@repo/ui/lib/utils";
 
+import { ConfirmationAlertDialog } from "@/components/shared";
 import { deleteDriver } from "@/lib/drivers/driver-mutations";
 
 import type { DriverRow } from "../types";
@@ -64,40 +53,23 @@ export const DeleteDriverDialog = ({
   };
 
   return (
-    <AlertDialog
+    <ConfirmationAlertDialog
+      confirmIcon={<Trash2 />}
+      confirmLabel="Delete driver"
+      confirmVariant="destructive"
+      description={
+        <>
+          This will permanently delete {driver?.name ?? "this driver"} and
+          remove their driver profile. This action cannot be undone.
+        </>
+      }
+      disabled={!driver?.source}
+      onConfirm={handleDelete}
       onOpenChange={handleConfirmOpenChange}
       open={driver !== null}
-    >
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete driver?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This will permanently delete {driver?.name ?? "this driver"} and
-            remove their driver profile. This action cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={mutation.isPending}>
-            Cancel
-          </AlertDialogCancel>
-          <AlertDialogAction
-            className={cn(buttonVariants({ variant: "destructive" }))}
-            disabled={mutation.isPending || !driver?.source}
-            onClick={(event) => {
-              event.preventDefault();
-              handleDelete();
-            }}
-          >
-            {mutation.isPending ? (
-              <LoaderCircle className="animate-spin" />
-            ) : (
-              <Trash2 />
-            )}
-            {mutation.isPending ? "Deleting..." : "Delete driver"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+      pending={mutation.isPending}
+      pendingLabel="Deleting..."
+      title="Delete driver?"
+    />
   );
 };

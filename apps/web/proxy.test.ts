@@ -93,6 +93,10 @@ describe("proxy", () => {
   });
 
   it("matches only protected dashboard and auth routes", () => {
-    expect(config.matcher).toEqual(["/dashboard/:path*", "/login", "/register"]);
+    expect(config.matcher).toEqual([
+      "/dashboard/:path*",
+      "/login",
+      "/register",
+    ]);
   });
 });

@@ -52,10 +52,9 @@ describe("LoginForm", () => {
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Create an account" })).toHaveAttribute(
-      "href",
-      "/register",
-    );
+    expect(
+      screen.getByRole("link", { name: "Create an account" }),
+    ).toHaveAttribute("href", "/register");
   });
 
   it("shows validation messages for empty login values", async () => {
@@ -75,16 +74,25 @@ describe("LoginForm", () => {
     const currentUser = userEvent.setup();
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(Response.json({ message: "Invalid" }, { status: 401 })),
+      vi
+        .fn()
+        .mockResolvedValue(
+          Response.json({ message: "Invalid" }, { status: 401 }),
+        ),
     );
     render(React.createElement(LoginForm));
 
-    await currentUser.type(screen.getByLabelText("Email"), "alex.morgan@example.com");
+    await currentUser.type(
+      screen.getByLabelText("Email"),
+      "alex.morgan@example.com",
+    );
     await currentUser.type(screen.getByLabelText("Password"), "password123");
     await currentUser.click(screen.getByRole("button", { name: "Sign in" }));
 
     expect(
-      await screen.findByText("Unable to sign in. Check your credentials and try again."),
+      await screen.findByText(
+        "Unable to sign in. Check your credentials and try again.",
+      ),
     ).toBeInTheDocument();
     expect(router.replace).not.toHaveBeenCalled();
     expect(useUserStore.getState().user).toBeNull();
@@ -92,13 +100,14 @@ describe("LoginForm", () => {
 
   it("stores the user and redirects after a successful login", async () => {
     const currentUser = userEvent.setup();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(Response.json({ user }));
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ user }));
     vi.stubGlobal("fetch", fetchMock);
     render(React.createElement(LoginForm));
 
-    await currentUser.type(screen.getByLabelText("Email"), "alex.morgan@example.com");
+    await currentUser.type(
+      screen.getByLabelText("Email"),
+      "alex.morgan@example.com",
+    );
     await currentUser.type(screen.getByLabelText("Password"), "password123");
     await currentUser.click(screen.getByRole("button", { name: "Sign in" }));
 
@@ -136,7 +145,9 @@ describe("RegisterForm", () => {
     expect(screen.getByLabelText("Last name")).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Create account" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Create account" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
       "href",
       "/login",
@@ -149,10 +160,16 @@ describe("RegisterForm", () => {
     vi.stubGlobal("fetch", fetchMock);
     render(React.createElement(RegisterForm));
 
-    await currentUser.click(screen.getByRole("button", { name: "Create account" }));
+    await currentUser.click(
+      screen.getByRole("button", { name: "Create account" }),
+    );
 
-    expect(await screen.findByText("First name is required")).toBeInTheDocument();
-    expect(await screen.findByText("Last name is required")).toBeInTheDocument();
+    expect(
+      await screen.findByText("First name is required"),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText("Last name is required"),
+    ).toBeInTheDocument();
     expect(await screen.findByText("Email is required")).toBeInTheDocument();
     expect(await screen.findByText("Password is required")).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
@@ -162,18 +179,29 @@ describe("RegisterForm", () => {
     const currentUser = userEvent.setup();
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(Response.json({ message: "Conflict" }, { status: 409 })),
+      vi
+        .fn()
+        .mockResolvedValue(
+          Response.json({ message: "Conflict" }, { status: 409 }),
+        ),
     );
     render(React.createElement(RegisterForm));
 
     await currentUser.type(screen.getByLabelText("First name"), "Alex");
     await currentUser.type(screen.getByLabelText("Last name"), "Morgan");
-    await currentUser.type(screen.getByLabelText("Email"), "alex.morgan@example.com");
+    await currentUser.type(
+      screen.getByLabelText("Email"),
+      "alex.morgan@example.com",
+    );
     await currentUser.type(screen.getByLabelText("Password"), "password123");
-    await currentUser.click(screen.getByRole("button", { name: "Create account" }));
+    await currentUser.click(
+      screen.getByRole("button", { name: "Create account" }),
+    );
 
     expect(
-      await screen.findByText("Unable to create your account. Check the details and try again."),
+      await screen.findByText(
+        "Unable to create your account. Check the details and try again.",
+      ),
     ).toBeInTheDocument();
     expect(router.replace).not.toHaveBeenCalled();
     expect(useUserStore.getState().user).toBeNull();
@@ -181,17 +209,20 @@ describe("RegisterForm", () => {
 
   it("stores the user and redirects after a successful registration", async () => {
     const currentUser = userEvent.setup();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(Response.json({ user }));
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ user }));
     vi.stubGlobal("fetch", fetchMock);
     render(React.createElement(RegisterForm));
 
     await currentUser.type(screen.getByLabelText("First name"), "Alex");
     await currentUser.type(screen.getByLabelText("Last name"), "Morgan");
-    await currentUser.type(screen.getByLabelText("Email"), "alex.morgan@example.com");
+    await currentUser.type(
+      screen.getByLabelText("Email"),
+      "alex.morgan@example.com",
+    );
     await currentUser.type(screen.getByLabelText("Password"), "password123");
-    await currentUser.click(screen.getByRole("button", { name: "Create account" }));
+    await currentUser.click(
+      screen.getByRole("button", { name: "Create account" }),
+    );
 
     await waitFor(() => {
       expect(router.replace).toHaveBeenCalledWith("/dashboard");

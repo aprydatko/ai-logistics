@@ -4,7 +4,8 @@ import { RegisterForm } from "@/components/auth/register-form";
 
 export const metadata: Metadata = {
   title: "Register | AI Logistics",
-  description: "Create an AI Logistics account and enter the operations workspace.",
+  description:
+    "Create an AI Logistics account and enter the operations workspace.",
 };
 
 export default function RegisterPage(): React.JSX.Element {

@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { ChevronsLeft, ChevronsRight } from "lucide-react";
+import { usePathname } from "next/navigation";
 
-import { Button } from '@repo/ui/components/button';
-import { cn } from '@repo/ui/lib/utils';
+import { Button } from "@repo/ui/components/button";
+import { cn } from "@repo/ui/lib/utils";
 
-import { getSidebarWidgets } from './sidebar-widgets';
+import { getSidebarWidgets } from "./sidebar-widgets";
 
 type SidebarFooterProps = {
   isCollapsed: boolean;
@@ -23,16 +23,16 @@ export function SidebarFooter({
     <footer className="mt-auto">
       {shouldRenderSidebarWidgets ? <SidebarWidgetSlot /> : null}
 
-      <div className={cn('border-t px-5 py-5', isCollapsed && 'px-3')}>
+      <div className={cn("border-t px-5 py-5", isCollapsed && "px-3")}>
         <Button
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className={cn(isCollapsed && 'justify-center px-0')}
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className={cn(isCollapsed && "justify-center px-0")}
           onClick={onToggleCollapse}
           type="button"
           variant="ghost"
         >
           {isCollapsed ? <ChevronsRight /> : <ChevronsLeft />}
-          <span className={cn('text-xs', isCollapsed && 'sr-only')}>
+          <span className={cn("text-xs", isCollapsed && "sr-only")}>
             Collapse
           </span>
         </Button>

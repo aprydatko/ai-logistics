@@ -68,7 +68,9 @@ describe("registerSchema", () => {
     });
 
     expect(result.success).toBe(false);
-    expect(result.error?.flatten().fieldErrors.email).toContain("Email is required");
+    expect(result.error?.flatten().fieldErrors.email).toContain(
+      "Email is required",
+    );
   });
 
   it("requires a valid email format", () => {

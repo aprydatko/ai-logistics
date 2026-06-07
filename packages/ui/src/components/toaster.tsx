@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  CircleCheck,
-  CircleX,
-  Info,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { CircleCheck, CircleX, Info, X, type LucideIcon } from "lucide-react";
 import { Toast as ToastPrimitive } from "radix-ui";
 import * as React from "react";
 
@@ -72,23 +66,21 @@ const positionStyles: Record<ToastPosition, string> = {
   "top-right": "top-0 right-0",
 };
 
-const variantStyles: Record<
-  ToastVariant,
-  { icon: LucideIcon; root: string }
-> = {
-  error: {
-    icon: CircleX,
-    root: "border-danger/30 bg-danger-background text-danger",
-  },
-  info: {
-    icon: Info,
-    root: "border-info/30 bg-info-background text-info",
-  },
-  success: {
-    icon: CircleCheck,
-    root: "border-success/30 bg-success-background text-success",
-  },
-};
+const variantStyles: Record<ToastVariant, { icon: LucideIcon; root: string }> =
+  {
+    error: {
+      icon: CircleX,
+      root: "border-danger/30 bg-danger-background text-danger",
+    },
+    info: {
+      icon: Info,
+      root: "border-info/30 bg-info-background text-info",
+    },
+    success: {
+      icon: CircleCheck,
+      root: "border-success/30 bg-success-background text-success",
+    },
+  };
 
 type ToasterProps = {
   duration?: number;

@@ -20,6 +20,7 @@ import { DriversToolbar } from "../drivers-toolbar";
 import { DriverRow } from "./driver-row";
 import { DeleteDriverDialog } from "./delete-driver-dialog";
 import { DriversPagination } from "./drivers-pagination";
+import { DriversTableSkeleton } from "./drivers-table-skeleton";
 import { useDriversTable } from "./use-drivers-table";
 
 const DriversTableState = ({
@@ -117,9 +118,7 @@ export const DriversTable = (): React.JSX.Element => {
                 </tr>
               </TableHeader>
               <TableBody>
-                {table.driversQuery.isPending ? (
-                  <DriversTableState>Loading drivers...</DriversTableState>
-                ) : null}
+                {table.driversQuery.isPending ? <DriversTableSkeleton /> : null}
                 {table.driversQuery.isError ? (
                   <DriversTableState>
                     Unable to load drivers. Please try again.
@@ -150,11 +149,8 @@ export const DriversTable = (): React.JSX.Element => {
             onPageSizeChange={(limit) => {
               table.updateFilters({ limit });
             }}
-            totalItems={table.driversQuery.data?.pagination.total ?? 0}
-            totalPages={Math.max(
-              1,
-              table.driversQuery.data?.pagination.totalPages ?? 1,
-            )}
+            totalItems={table.pagination?.total ?? 0}
+            totalPages={Math.max(1, table.pagination?.totalPages ?? 1)}
           />
         </DataTable>
       </div>

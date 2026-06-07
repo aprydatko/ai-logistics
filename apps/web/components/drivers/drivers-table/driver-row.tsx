@@ -8,7 +8,7 @@ import { StatusBadge } from "@repo/ui/components/status-badge";
 import { TableCell, TableRow } from "@repo/ui/components/table";
 import { cn } from "@repo/ui/lib/utils";
 
-import { driverStatusTone, truckStateStyles } from "../mock";
+import { driverStatusTone, truckStateStyles } from "../driver-styles";
 import type { DriverRow as DriverRowData } from "../types";
 
 interface DriverRowProps {

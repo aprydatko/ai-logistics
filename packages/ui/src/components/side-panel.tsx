@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { X } from 'lucide-react';
-import * as React from 'react';
+import { X } from "lucide-react";
+import * as React from "react";
 
-import { cn } from '@repo/ui/lib/utils';
+import { cn } from "@repo/ui/lib/utils";
 
-import { Button } from './button';
+import { Button } from "./button";
 
-type SidePanelProps = React.ComponentProps<'aside'> & {
+type SidePanelProps = React.ComponentProps<"aside"> & {
   isOpen: boolean;
-  mode?: 'fixed' | 'inline';
+  mode?: "fixed" | "inline";
   onClose: () => void;
   title: string;
 };
@@ -18,7 +18,7 @@ export function SidePanel({
   children,
   className,
   isOpen,
-  mode = 'fixed',
+  mode = "fixed",
   onClose,
   title,
   ...props
@@ -29,15 +29,15 @@ export function SidePanel({
     }
 
     const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         onClose();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, onClose]);
 
@@ -49,11 +49,11 @@ export function SidePanel({
     <aside
       aria-label={title}
       className={cn(
-        'flex w-[min(35rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-lg border border-border bg-card',
-        mode === 'fixed'
-          ? 'fixed top-3 right-3 bottom-3 z-50 shadow-xl'
-          : 'min-h-0 shrink-0 shadow-sm',
-        className
+        "flex w-[min(35rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-lg border border-border bg-card",
+        mode === "fixed"
+          ? "fixed top-3 right-3 bottom-3 z-50 shadow-xl"
+          : "min-h-0 shrink-0 shadow-sm",
+        className,
       )}
       {...props}
     >

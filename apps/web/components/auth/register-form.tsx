@@ -36,7 +36,8 @@ interface AuthUserResponse {
   user: DomainUser;
 }
 
-const DEFAULT_ERROR = "Unable to create your account. Check the details and try again.";
+const DEFAULT_ERROR =
+  "Unable to create your account. Check the details and try again.";
 
 export function RegisterForm(): React.JSX.Element {
   const router = useRouter();
@@ -75,13 +76,19 @@ export function RegisterForm(): React.JSX.Element {
       router.replace("/dashboard");
       router.refresh();
     } catch {
-      setSubmitError("The authentication service is unavailable. Try again shortly.");
+      setSubmitError(
+        "The authentication service is unavailable. Try again shortly.",
+      );
     }
   };
 
   return (
     <Form {...form}>
-      <form className="grid gap-5" onSubmit={form.handleSubmit(onSubmit)} noValidate>
+      <form
+        className="grid gap-5"
+        onSubmit={form.handleSubmit(onSubmit)}
+        noValidate
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField
             control={form.control}
@@ -228,7 +235,10 @@ export function RegisterForm(): React.JSX.Element {
 
         <p className="text-center text-sm text-ink-500">
           Already have an account?{" "}
-          <Link className="font-semibold text-primary hover:underline" href="/login">
+          <Link
+            className="font-semibold text-primary hover:underline"
+            href="/login"
+          >
             Sign in
           </Link>
         </p>

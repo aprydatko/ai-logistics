@@ -1,24 +1,24 @@
-import { Badge } from '@repo/ui/components/badge';
-import { Button } from '@repo/ui/components/button';
+import { Badge } from "@repo/ui/components/badge";
+import { Button } from "@repo/ui/components/button";
 
 const activities = [
   {
-    description: 'Chicago, IL -> Detroit, MI',
-    label: 'Event',
-    time: '10:24',
-    title: 'Load #LO-78291 status changed to In Transit',
+    description: "Chicago, IL -> Detroit, MI",
+    label: "Event",
+    time: "10:24",
+    title: "Load #LO-78291 status changed to In Transit",
   },
   {
-    description: 'Dallas, TX -> Houston, TX',
-    label: 'AI',
-    time: '09:57',
-    title: 'Delay risk detected for Load #LO-10456',
+    description: "Dallas, TX -> Houston, TX",
+    label: "AI",
+    time: "09:57",
+    title: "Delay risk detected for Load #LO-10456",
   },
   {
-    description: 'Driver: John Smith',
-    label: 'Document',
-    time: '09:31',
-    title: 'POD uploaded for Load #LO-78288',
+    description: "Driver: John Smith",
+    label: "Document",
+    time: "09:31",
+    title: "POD uploaded for Load #LO-78288",
   },
 ];
 

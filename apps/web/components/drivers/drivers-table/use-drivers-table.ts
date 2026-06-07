@@ -66,9 +66,10 @@ export const useDriversTable = () => {
     [debouncedSearch, filters],
   );
   const driversQuery = useQuery(driversQueryOptions(queryFilters));
+  const driversData = driversQuery.isError ? undefined : driversQuery.data;
   const drivers = React.useMemo(
-    () => (driversQuery.data?.data ?? []).map(toDriverRow),
-    [driversQuery.data],
+    () => (driversData?.data ?? []).map(toDriverRow),
+    [driversData],
   );
   const isAllSelected =
     drivers.length > 0 && selectedDriverIds.size === drivers.length;
@@ -112,6 +113,7 @@ export const useDriversTable = () => {
     filters,
     isAllSelected,
     isPartiallySelected,
+    pagination: driversData?.pagination,
     profileDriver,
     resetFilters,
     selectAll,

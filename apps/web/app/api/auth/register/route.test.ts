@@ -40,7 +40,11 @@ describe("POST /api/auth/register", () => {
 
   it("returns 400 for an invalid registration request", async () => {
     const response = await POST(
-      createJsonRequest({ ...validRegisterDto, email: "bad", password: "short" }),
+      createJsonRequest({
+        ...validRegisterDto,
+        email: "bad",
+        password: "short",
+      }),
     );
 
     await expect(response.json()).resolves.toEqual({
@@ -52,7 +56,11 @@ describe("POST /api/auth/register", () => {
   it("returns 409 when the backend reports an existing account", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(Response.json({ message: "Conflict" }, { status: 409 })),
+      vi
+        .fn()
+        .mockResolvedValue(
+          Response.json({ message: "Conflict" }, { status: 409 }),
+        ),
     );
 
     const response = await POST(createJsonRequest(validRegisterDto));
@@ -66,7 +74,11 @@ describe("POST /api/auth/register", () => {
   it("returns 502 when the backend registration request fails unexpectedly", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(Response.json({ message: "Server error" }, { status: 500 })),
+      vi
+        .fn()
+        .mockResolvedValue(
+          Response.json({ message: "Server error" }, { status: 500 }),
+        ),
     );
 
     const response = await POST(createJsonRequest(validRegisterDto));
@@ -161,6 +173,8 @@ describe("POST /api/auth/register", () => {
     expect(response.cookies.get("access_token")?.value).toBe("access-token");
     expect(response.cookies.get("access_token")?.maxAge).toBe(15 * 60);
     expect(response.cookies.get("refresh_token")?.value).toBe("refresh-token");
-    expect(response.cookies.get("refresh_token")?.maxAge).toBe(7 * 24 * 60 * 60);
+    expect(response.cookies.get("refresh_token")?.maxAge).toBe(
+      7 * 24 * 60 * 60,
+    );
   });
 });

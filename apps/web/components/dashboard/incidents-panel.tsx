@@ -1,32 +1,32 @@
-import { AlertTriangle, CircleAlert, Wrench } from 'lucide-react';
+import { AlertTriangle, CircleAlert, Wrench } from "lucide-react";
 
-import { Button } from '@repo/ui/components/button';
-import { cn } from '@repo/ui/lib/utils';
+import { Button } from "@repo/ui/components/button";
+import { cn } from "@repo/ui/lib/utils";
 
 const incidents = [
   {
-    description: 'I-94, Michigan',
+    description: "I-94, Michigan",
     icon: CircleAlert,
-    severity: 'High',
-    style: 'bg-red-50 text-danger',
-    time: '09:42',
-    title: 'Accident detected',
+    severity: "High",
+    style: "bg-red-50 text-danger",
+    time: "09:42",
+    title: "Accident detected",
   },
   {
-    description: 'Load #LO-78291',
+    description: "Load #LO-78291",
     icon: AlertTriangle,
-    severity: 'Medium',
-    style: 'bg-orange-50 text-orange-600',
-    time: '08:15',
-    title: 'Delay risk',
+    severity: "Medium",
+    style: "bg-orange-50 text-orange-600",
+    time: "08:15",
+    title: "Delay risk",
   },
   {
-    description: 'Truck TR-1042',
+    description: "Truck TR-1042",
     icon: Wrench,
-    severity: 'Low',
-    style: 'bg-blue-50 text-blue-600',
-    time: '07:58',
-    title: 'Maintenance alert',
+    severity: "Low",
+    style: "bg-blue-50 text-blue-600",
+    time: "07:58",
+    title: "Maintenance alert",
   },
 ];
 
@@ -45,8 +45,8 @@ export function IncidentsPanel(): React.JSX.Element {
             <div className="flex items-center gap-4 p-3" key={title}>
               <span
                 className={cn(
-                  'grid size-9 place-items-center rounded-lg',
-                  style
+                  "grid size-9 place-items-center rounded-lg",
+                  style,
                 )}
               >
                 <Icon className="size-4" />
@@ -63,15 +63,15 @@ export function IncidentsPanel(): React.JSX.Element {
                 <p className="leading-4 text-primary-700">{time}</p>
                 <p
                   className={cn(
-                    'mt-0.5 leading-4 font-semibold',
-                    style.split(' ')[1]
+                    "mt-0.5 leading-4 font-semibold",
+                    style.split(" ")[1],
                   )}
                 >
                   {severity}
                 </p>
               </div>
             </div>
-          )
+          ),
         )}
       </div>
     </article>

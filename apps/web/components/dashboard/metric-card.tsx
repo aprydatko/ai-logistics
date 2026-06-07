@@ -1,9 +1,9 @@
-import { ArrowUp, type LucideIcon } from 'lucide-react';
+import { ArrowUp, type LucideIcon } from "lucide-react";
 
-import { SparklineChart } from '@repo/ui/components/sparkline-chart';
-import { cn } from '@repo/ui/lib/utils';
+import { SparklineChart } from "@repo/ui/components/sparkline-chart";
+import { cn } from "@repo/ui/lib/utils";
 
-type MetricTone = 'blue' | 'cyan' | 'red' | 'teal';
+type MetricTone = "blue" | "cyan" | "red" | "teal";
 
 export type MetricCardProps = {
   chartData: number[];
@@ -11,7 +11,7 @@ export type MetricCardProps = {
   icon: LucideIcon;
   title: string;
   tone: MetricTone;
-  trend?: 'negative' | 'positive';
+  trend?: "negative" | "positive";
   value: string;
 };
 
@@ -20,24 +20,24 @@ const toneStyles: Record<
   { chart: string; icon: string; soft: string }
 > = {
   blue: {
-    chart: '#3b82f6',
-    icon: 'text-blue-600',
-    soft: 'bg-blue-50',
+    chart: "#3b82f6",
+    icon: "text-blue-600",
+    soft: "bg-blue-50",
   },
   cyan: {
-    chart: '#0891b2',
-    icon: 'text-cyan-700',
-    soft: 'bg-cyan-50',
+    chart: "#0891b2",
+    icon: "text-cyan-700",
+    soft: "bg-cyan-50",
   },
   red: {
-    chart: '#ef4444',
-    icon: 'text-danger',
-    soft: 'bg-red-50',
+    chart: "#ef4444",
+    icon: "text-danger",
+    soft: "bg-red-50",
   },
   teal: {
-    chart: '#0d9488',
-    icon: 'text-teal-700',
-    soft: 'bg-teal-50',
+    chart: "#0d9488",
+    icon: "text-teal-700",
+    soft: "bg-teal-50",
   },
 };
 
@@ -47,7 +47,7 @@ export function MetricCard({
   icon: Icon,
   title,
   tone,
-  trend = 'positive',
+  trend = "positive",
   value,
 }: MetricCardProps): React.JSX.Element {
   const styles = toneStyles[tone];
@@ -63,9 +63,9 @@ export function MetricCard({
         </div>
         <span
           className={cn(
-            'grid size-10 shrink-0 place-items-center rounded-xl',
+            "grid size-10 shrink-0 place-items-center rounded-xl",
             styles.soft,
-            styles.icon
+            styles.icon,
           )}
         >
           <Icon className="size-5" />
@@ -76,8 +76,8 @@ export function MetricCard({
         <div className="flex flex-col gap-0">
           <p
             className={cn(
-              'flex items-center gap-0.6 text-[0.7rem] font-semibold',
-              trend === 'negative' ? 'text-danger' : 'text-teal-600'
+              "flex items-center gap-0.6 text-[0.7rem] font-semibold",
+              trend === "negative" ? "text-danger" : "text-teal-600",
             )}
           >
             <ArrowUp className="size-3" />

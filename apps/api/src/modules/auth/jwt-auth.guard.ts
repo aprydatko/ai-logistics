@@ -32,9 +32,8 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      const payload = await this.jwtService.verifyAsync<AccessTokenPayload>(
-        token,
-      );
+      const payload =
+        await this.jwtService.verifyAsync<AccessTokenPayload>(token);
 
       if (payload.tokenType !== "access" || !payload.sub) {
         throw new UnauthorizedException("Invalid access token");

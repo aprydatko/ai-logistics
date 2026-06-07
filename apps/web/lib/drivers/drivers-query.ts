@@ -1,4 +1,4 @@
-import { queryOptions } from "@tanstack/react-query";
+import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import { z } from "zod";
 
 const driverSchema = z.object({
@@ -89,6 +89,7 @@ export const fetchDrivers = async (
 
 export const driversQueryOptions = (filters: DriversFilters) =>
   queryOptions({
+    placeholderData: keepPreviousData,
     queryKey: ["drivers", filters],
     queryFn: () => fetchDrivers(filters),
   });

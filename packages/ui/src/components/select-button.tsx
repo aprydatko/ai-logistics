@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import * as React from 'react';
+import * as React from "react";
 
-import { cn } from '@repo/ui/lib/utils';
+import { cn } from "@repo/ui/lib/utils";
 
 import {
   Select,
@@ -10,7 +10,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from './select';
+} from "./select";
 
 type SelectButtonOption = {
   label: string;
@@ -35,9 +35,9 @@ export function SelectButton({
     <Select {...props}>
       <SelectTrigger
         className={cn(
-          'h-11 rounded-lg border-border bg-card px-4 text-primary-700 shadow-none hover:bg-surface-50',
+          "h-11 rounded-lg border-border bg-card px-4 text-primary-700 shadow-none hover:bg-surface-50",
           className,
-          triggerClassName
+          triggerClassName,
         )}
       >
         <SelectValue placeholder={placeholder} />

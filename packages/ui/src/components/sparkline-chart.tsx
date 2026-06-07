@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { Area, AreaChart, ResponsiveContainer, Tooltip, YAxis } from 'recharts';
+import * as React from "react";
+import { Area, AreaChart, ResponsiveContainer, Tooltip, YAxis } from "recharts";
 
-import { cn } from '@repo/ui/lib/utils';
+import { cn } from "@repo/ui/lib/utils";
 
 type SparklineChartProps = {
   className?: string;
@@ -29,7 +29,7 @@ export function SparklineChart({
   return (
     <div
       aria-label={label}
-      className={cn('h-11 w-full min-w-0', className)}
+      className={cn("h-11 w-full min-w-0", className)}
       role="img"
     >
       <ResponsiveContainer
@@ -47,17 +47,17 @@ export function SparklineChart({
               <stop offset="100%" stopColor={color} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <YAxis domain={['dataMin - 3', 'dataMax + 3']} hide />
+          <YAxis domain={["dataMin - 3", "dataMax + 3"]} hide />
           <Tooltip
             contentStyle={{
-              border: '1px solid var(--border)',
-              borderRadius: '0.5rem',
-              fontSize: '0.75rem',
-              padding: '0.25rem 0.5rem',
+              border: "1px solid var(--border)",
+              borderRadius: "0.5rem",
+              fontSize: "0.75rem",
+              padding: "0.25rem 0.5rem",
             }}
             cursor={false}
             formatter={(value) => [value, valueLabel]}
-            labelFormatter={() => ''}
+            labelFormatter={() => ""}
           />
           <Area
             dataKey="value"

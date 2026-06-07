@@ -1,0 +1,40 @@
+agent: codex
+
+commands:
+  lint: "pnpm lint"
+  test: "pnpm check-types && pnpm --filter api test && pnpm --filter web test"
+  format: "pnpm format"
+
+ignore_patterns:
+  - "node_modules/**"
+  - ".turbo/**"
+  - ".next/**"
+  - "dist/**"
+  - "build/**"
+  - "coverage/**"
+  - "test-results/**"
+  - "playwright-report/**"
+  - "pnpm-lock.yaml"
+  - "*.log"
+  - ".env"
+  - ".env.*"
+  - "docker-compose.override.yml"
+
+auto_fix:
+  rebase: 3
+  review: 1
+  test: 2
+  document: 1
+  lint: 2
+  ci: 2
+
+intent:
+  enabled: true
+  threshold: 0.2
+  slack_days: 3
+  disabled_readers: []
+
+test:
+  evidence:
+    store_in_repo: false
+    dir: ".no-mistakes/evidence"

@@ -1,10 +1,10 @@
-import type { Metadata } from 'next';
+import type { Metadata } from "next";
 
-import { LoginForm } from '@/components/auth/login-form';
+import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {
-  title: 'Login | AI Logistics',
-  description: 'Sign in to the AI Logistics operations workspace.',
+  title: "Login | AI Logistics",
+  description: "Sign in to the AI Logistics operations workspace.",
 };
 
 export default function LoginPage(): React.JSX.Element {

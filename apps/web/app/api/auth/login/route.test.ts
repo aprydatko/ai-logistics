@@ -41,7 +41,9 @@ describe("POST /api/auth/login", () => {
   });
 
   it("returns 400 for an invalid login request", async () => {
-    const response = await POST(createJsonRequest({ email: "bad", password: "short" }));
+    const response = await POST(
+      createJsonRequest({ email: "bad", password: "short" }),
+    );
 
     await expect(response.json()).resolves.toEqual({
       message: "Invalid login request",
@@ -112,6 +114,8 @@ describe("POST /api/auth/login", () => {
     expect(response.cookies.get("access_token")?.value).toBe("access-token");
     expect(response.cookies.get("access_token")?.maxAge).toBe(15 * 60);
     expect(response.cookies.get("refresh_token")?.value).toBe("refresh-token");
-    expect(response.cookies.get("refresh_token")?.maxAge).toBe(7 * 24 * 60 * 60);
+    expect(response.cookies.get("refresh_token")?.maxAge).toBe(
+      7 * 24 * 60 * 60,
+    );
   });
 });

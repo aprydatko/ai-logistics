@@ -1,5 +1,5 @@
-import type { Driver } from '../types/driver.js';
-import type { Load } from '../types/load.js';
+import type { Driver } from "../types/driver.js";
+import type { Load } from "../types/load.js";
 
 export type ApiSuccess<T> = {
   success: true;

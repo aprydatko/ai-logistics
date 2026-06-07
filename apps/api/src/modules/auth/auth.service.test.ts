@@ -1,7 +1,4 @@
-import {
-  ConflictException,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { ConflictException, UnauthorizedException } from "@nestjs/common";
 import { compare, hash } from "bcrypt";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -107,7 +104,9 @@ const createService = (
   return {
     jwtService,
     service: new AuthService(
-      databaseService as unknown as ConstructorParameters<typeof AuthService>[0],
+      databaseService as unknown as ConstructorParameters<
+        typeof AuthService
+      >[0],
       jwtService as unknown as ConstructorParameters<typeof AuthService>[1],
       configService as unknown as ConstructorParameters<typeof AuthService>[2],
     ),
@@ -158,7 +157,9 @@ describe("AuthService", () => {
 
   it("rejects registration when the email already exists", async () => {
     const databaseClient = {
-      select: vi.fn().mockReturnValue(createSelectChain([{ id: userRecord.id }])),
+      select: vi
+        .fn()
+        .mockReturnValue(createSelectChain([{ id: userRecord.id }])),
       insert: vi.fn(),
     };
     const { service } = createService(databaseClient);

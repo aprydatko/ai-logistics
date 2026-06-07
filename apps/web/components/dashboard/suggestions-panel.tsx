@@ -1,20 +1,20 @@
-import { AlertTriangle, Bot } from 'lucide-react';
+import { AlertTriangle, Bot } from "lucide-react";
 
-import { Button } from '@repo/ui/components/button';
-import { cn } from '@repo/ui/lib/utils';
+import { Button } from "@repo/ui/components/button";
+import { cn } from "@repo/ui/lib/utils";
 
 const suggestions = [
   {
-    detail: 'Driver is 2h behind schedule',
+    detail: "Driver is 2h behind schedule",
     icon: Bot,
-    style: 'bg-blue-50 text-blue-600',
-    title: 'Reassign driver for Load #LD-2156',
+    style: "bg-blue-50 text-blue-600",
+    title: "Reassign driver for Load #LD-2156",
   },
   {
-    detail: 'Traffic congestion predicted',
+    detail: "Traffic congestion predicted",
     icon: AlertTriangle,
-    style: 'bg-orange-50 text-orange-600',
-    title: 'Delay risk for Load #LD-10456',
+    style: "bg-orange-50 text-orange-600",
+    title: "Delay risk for Load #LD-10456",
   },
 ];
 
@@ -34,7 +34,7 @@ export function SuggestionsPanel(): React.JSX.Element {
             key={title}
           >
             <span
-              className={cn('grid size-9 place-items-center rounded-lg', style)}
+              className={cn("grid size-9 place-items-center rounded-lg", style)}
             >
               <Icon className="size-4" />
             </span>

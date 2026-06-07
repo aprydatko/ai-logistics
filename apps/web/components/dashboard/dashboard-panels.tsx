@@ -1,17 +1,22 @@
-import { AlertTriangle, FileUp, PackagePlus, UserRoundCheck } from 'lucide-react';
+import {
+  AlertTriangle,
+  FileUp,
+  PackagePlus,
+  UserRoundCheck,
+} from "lucide-react";
 
-import { Button } from '@repo/ui/components/button';
-import { RouteMap, type RouteMapMarker } from '@repo/ui/components/route-map';
+import { Button } from "@repo/ui/components/button";
+import { RouteMap, type RouteMapMarker } from "@repo/ui/components/route-map";
 
-import { ActivityPanel } from './activity-panel';
-import { IncidentsPanel } from './incidents-panel';
-import { SuggestionsPanel } from './suggestions-panel';
+import { ActivityPanel } from "./activity-panel";
+import { IncidentsPanel } from "./incidents-panel";
+import { SuggestionsPanel } from "./suggestions-panel";
 
 const quickActions = [
-  { icon: UserRoundCheck, label: 'Assign driver' },
-  { icon: PackagePlus, label: 'Create load' },
-  { icon: AlertTriangle, label: 'Report incident' },
-  { icon: FileUp, label: 'Upload document' },
+  { icon: UserRoundCheck, label: "Assign driver" },
+  { icon: PackagePlus, label: "Create load" },
+  { icon: AlertTriangle, label: "Report incident" },
+  { icon: FileUp, label: "Upload document" },
 ];
 
 const activeLoadRoute: [number, number][] = [
@@ -28,29 +33,29 @@ const activeLoadRoute: [number, number][] = [
 const activeLoadMarkers: RouteMapMarker[] = [
   {
     coordinates: [-88.218, 41.761],
-    id: 'load-78288',
-    label: 'Load LO-78288 near Aurora',
+    id: "load-78288",
+    label: "Load LO-78288 near Aurora",
   },
   {
     coordinates: [-88.015, 41.849],
-    id: 'load-78291',
-    label: 'Load LO-78291 near Downers Grove',
-    tone: 'warning',
+    id: "load-78291",
+    label: "Load LO-78291 near Downers Grove",
+    tone: "warning",
   },
   {
     coordinates: [-87.897, 41.884],
-    id: 'load-10456',
-    label: 'Load LO-10456 near Elmhurst',
+    id: "load-10456",
+    label: "Load LO-10456 near Elmhurst",
   },
   {
     coordinates: [-87.704, 41.79],
-    id: 'load-2156',
-    label: 'Load LD-2156 in Chicago',
+    id: "load-2156",
+    label: "Load LD-2156 in Chicago",
   },
   {
     coordinates: [-87.527, 41.603],
-    id: 'load-1042',
-    label: 'Load LO-1042 near Hammond',
+    id: "load-1042",
+    label: "Load LO-1042 near Hammond",
   },
 ];
 

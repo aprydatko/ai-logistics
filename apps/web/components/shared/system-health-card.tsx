@@ -1,24 +1,19 @@
-import { cn } from '@repo/ui/lib/utils';
+import { cn } from "@repo/ui/lib/utils";
 
 type SystemHealthCardProps = {
   className?: string;
 };
 
 const healthItems = [
-  { label: 'AI services', value: 'Healthy' },
-  { label: 'Data sync', value: '2 min ago' },
+  { label: "AI services", value: "Healthy" },
+  { label: "Data sync", value: "2 min ago" },
 ];
 
 export function SystemHealthCard({
   className,
 }: SystemHealthCardProps): React.JSX.Element {
   return (
-    <div
-      className={cn(
-        'border-t border-border px-5 py-5',
-        className
-      )}
-    >
+    <div className={cn("border-t border-border px-5 py-5", className)}>
       <p className="text-base font-semibold leading-6 text-ink-900">
         System health
       </p>
@@ -33,9 +28,7 @@ export function SystemHealthCard({
             key={item.label}
           >
             <span>{item.label}</span>
-            <span className="font-medium text-primary-700">
-              {item.value}
-            </span>
+            <span className="font-medium text-primary-700">{item.value}</span>
             <span className="size-3 rounded-full bg-success" />
           </div>
         ))}
