@@ -29,6 +29,13 @@
       "when": 1780828290901,
       "tag": "0003_nosy_makkari",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1780828897392,
+      "tag": "0004_freezing_doctor_strange",
+      "breakpoints": true
     }
   ]
 }

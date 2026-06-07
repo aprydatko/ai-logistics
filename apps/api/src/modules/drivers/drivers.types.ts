@@ -1,4 +1,4 @@
-import type { DriverRecord } from "../../db/schema";
+import type { DriverRecord, LoadRecord } from "../../db/schema";
 
 export type DriverListItem = Omit<
   DriverRecord,
@@ -17,4 +17,22 @@ export type DriversListResponse = {
 export type CreateDriverResponse = {
   success: true;
   data: DriverListItem;
+};
+
+export type DriverTrip = Omit<
+  LoadRecord,
+  "createdAt" | "deliveryDate" | "pickupDate" | "price" | "updatedAt"
+> & {
+  createdAt: string;
+  deliveryDate: string;
+  pickupDate: string;
+  price: number;
+  updatedAt: string;
+};
+
+export type DriverDetailsResponse = {
+  success: true;
+  data: DriverListItem & {
+    tripsHistory: DriverTrip[];
+  };
 };

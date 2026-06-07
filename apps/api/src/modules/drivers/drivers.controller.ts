@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
 
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { Roles } from "../auth/roles.decorator";
@@ -8,6 +17,7 @@ import { ListDriversQueryDto } from "./dto/list-drivers-query.dto";
 import { DriversService } from "./drivers.service";
 import type {
   CreateDriverResponse,
+  DriverDetailsResponse,
   DriversListResponse,
 } from "./drivers.types";
 
@@ -19,6 +29,13 @@ export class DriversController {
   @Get()
   findAll(@Query() query: ListDriversQueryDto): Promise<DriversListResponse> {
     return this.driversService.findAll(query);
+  }
+
+  @Get(":id")
+  findById(
+    @Param("id", new ParseUUIDPipe()) id: string,
+  ): Promise<DriverDetailsResponse> {
+    return this.driversService.findById(id);
   }
 
   @Post()

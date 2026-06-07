@@ -44,4 +44,18 @@ describe("DriversController", () => {
     await expect(controller.create(dto)).resolves.toEqual(response);
     expect(service.create).toHaveBeenCalledWith(dto);
   });
+
+  it("passes the driver id to the drivers service", async () => {
+    const response = {
+      success: true as const,
+      data: { id: "driver-id", tripsHistory: [] },
+    };
+    const service = {
+      findById: vi.fn().mockResolvedValue(response),
+    } as unknown as DriversService;
+    const controller = new DriversController(service);
+
+    await expect(controller.findById("driver-id")).resolves.toEqual(response);
+    expect(service.findById).toHaveBeenCalledWith("driver-id");
+  });
 });

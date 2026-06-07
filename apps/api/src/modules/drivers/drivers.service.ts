@@ -3,16 +3,25 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from "@nestjs/common";
-import { and, asc, eq, ilike, or, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, or, type SQL } from "drizzle-orm";
 
 import { DatabaseService } from "../../db/database.service";
-import { drivers, type DriverRecord, users } from "../../db/schema";
+import {
+  drivers,
+  type DriverRecord,
+  loads,
+  type LoadRecord,
+  users,
+} from "../../db/schema";
 import type { CreateDriverDto } from "./dto/create-driver.dto";
 import type { ListDriversQueryDto } from "./dto/list-drivers-query.dto";
 import type {
   CreateDriverResponse,
+  DriverDetailsResponse,
   DriverListItem,
+  DriverTrip,
   DriversListResponse,
 } from "./drivers.types";
 
@@ -76,6 +85,32 @@ export class DriversService {
     };
   }
 
+  async findById(id: string): Promise<DriverDetailsResponse> {
+    const [driver] = await this.databaseService.client
+      .select()
+      .from(drivers)
+      .where(eq(drivers.id, id))
+      .limit(1);
+
+    if (!driver) {
+      throw new NotFoundException("Driver was not found");
+    }
+
+    const tripsHistory = await this.databaseService.client
+      .select()
+      .from(loads)
+      .where(eq(loads.driverId, id))
+      .orderBy(desc(loads.pickupDate), desc(loads.createdAt));
+
+    return {
+      success: true,
+      data: {
+        ...this.toDriver(driver),
+        tripsHistory: tripsHistory.map((trip) => this.toDriverTrip(trip)),
+      },
+    };
+  }
+
   private buildFilters(query: ListDriversQueryDto): SQL[] {
     const filters: SQL[] = [];
 
@@ -113,6 +148,17 @@ export class DriversService {
       currentLocation: driver.currentLocation ?? undefined,
       createdAt: driver.createdAt.toISOString(),
       updatedAt: driver.updatedAt.toISOString(),
+    };
+  }
+
+  private toDriverTrip(load: LoadRecord): DriverTrip {
+    return {
+      ...load,
+      pickupDate: load.pickupDate.toISOString(),
+      deliveryDate: load.deliveryDate.toISOString(),
+      price: Number(load.price),
+      createdAt: load.createdAt.toISOString(),
+      updatedAt: load.updatedAt.toISOString(),
     };
   }
 
