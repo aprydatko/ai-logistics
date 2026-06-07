@@ -20,16 +20,16 @@ const DEFAULT_FILTERS: DriversFilters = {
 };
 
 const toDriverRow = (driver: DriversApiItem): DriverRow => ({
-  id: driver.id,
+  id: driver.driverCode,
   name: `${driver.firstName} ${driver.lastName}`,
-  avatarUrl: "",
+  avatarUrl: driver.avatarUrl ?? "",
   status:
     driver.status === "off_duty"
       ? "Off Duty"
       : driver.status === "maintenance"
         ? "Break"
         : "On Duty",
-  truck: `Truck ${driver.truckNumber}`,
+  truck: driver.truckNumber ? `Truck ${driver.truckNumber}` : "Unassigned",
   truckState:
     driver.status === "off_duty"
       ? "idle"
@@ -38,6 +38,7 @@ const toDriverRow = (driver: DriversApiItem): DriverRow => ({
         : "active",
   currentLoad: null,
   eta: { time: null },
+  source: driver,
 });
 
 export const useDriversTable = () => {

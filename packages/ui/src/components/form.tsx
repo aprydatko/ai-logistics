@@ -84,19 +84,36 @@ function useFormField(): {
 }
 
 function FormLabel({
+  children,
   className,
+  color = "black",
+  required = false,
   ...props
-}: React.ComponentProps<typeof LabelPrimitive.Root>): React.JSX.Element {
+}: React.ComponentProps<typeof LabelPrimitive.Root> & {
+  color?: "black" | "gray";
+  required?: boolean;
+}): React.JSX.Element {
   const { error, formItemId } = useFormField();
 
   return (
     <Label
       data-slot="form-label"
       data-error={Boolean(error)}
-      className={cn("data-[error=true]:text-destructive", className)}
+      className={cn(
+        color === "gray" ? "text-muted-foreground" : "text-foreground",
+        "data-[error=true]:text-destructive",
+        className,
+      )}
       htmlFor={formItemId}
       {...props}
-    />
+    >
+      {children}
+      {required ? (
+        <span aria-hidden="true" className="text-destructive">
+          *
+        </span>
+      ) : null}
+    </Label>
   );
 }
 
@@ -111,9 +128,7 @@ function FormControl({
       data-slot="form-control"
       id={formItemId}
       aria-describedby={
-        error
-          ? `${formDescriptionId} ${formMessageId}`
-          : formDescriptionId
+        error ? `${formDescriptionId} ${formMessageId}` : formDescriptionId
       }
       aria-invalid={Boolean(error)}
       {...props}

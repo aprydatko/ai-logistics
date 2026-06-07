@@ -16,6 +16,7 @@ interface DriverRowProps {
   isSelected: boolean;
   onOpenProfile: (driver: DriverRowData) => void;
   onSelectChange: (driverId: string, checked: boolean) => void;
+  onEdit: (driver: DriverRowData) => void;
 }
 
 export const DriverRow = ({
@@ -23,6 +24,7 @@ export const DriverRow = ({
   isSelected,
   onOpenProfile,
   onSelectChange,
+  onEdit,
 }: DriverRowProps): React.JSX.Element => (
   <TableRow isSelected={isSelected}>
     <TableCell className="w-8 text-center">
@@ -114,7 +116,13 @@ export const DriverRow = ({
               onOpenProfile(driver);
             },
           },
-          { icon: Pencil, label: "Edit driver" },
+          {
+            icon: Pencil,
+            label: "Edit driver",
+            onSelect: () => {
+              onEdit(driver);
+            },
+          },
           {
             icon: Trash2,
             label: "Delete driver",

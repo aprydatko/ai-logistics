@@ -20,6 +20,18 @@ export type DriversListResponse = {
   };
 };
 
+export type DriverCandidate = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+};
+
+export type DriverCandidatesResponse = {
+  success: true;
+  data: DriverCandidate[];
+};
+
 export type CreateDriverResponse = {
   success: true;
   data: DriverListItem;

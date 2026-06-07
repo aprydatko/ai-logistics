@@ -1,5 +1,7 @@
 "use client";
 
+import * as React from "react";
+
 import { Checkbox } from "@repo/ui/components/checkbox";
 import {
   DataTable,
@@ -13,6 +15,7 @@ import {
 } from "@repo/ui/components/table";
 
 import { DriverProfilePanel } from "../driver-profile-panel";
+import { DriverFormDialog } from "../driver-form-dialog";
 import { DriversToolbar } from "../drivers-toolbar";
 import { DriverRow } from "./driver-row";
 import { DriversPagination } from "./drivers-pagination";
@@ -32,12 +35,31 @@ const DriversTableState = ({
 
 export const DriversTable = (): React.JSX.Element => {
   const table = useDriversTable();
+  const [formDriver, setFormDriver] = React.useState<
+    import("@/lib/drivers/drivers-query").DriversApiItem | null
+  >(null);
+  const [isFormOpen, setIsFormOpen] = React.useState(false);
+
+  const openCreateForm = (): void => {
+    setFormDriver(null);
+    setIsFormOpen(true);
+  };
+
+  const openEditForm = (driver: import("../types").DriverRow): void => {
+    if (!driver.source) {
+      return;
+    }
+
+    setFormDriver(driver.source);
+    setIsFormOpen(true);
+  };
 
   return (
     <section className="flex h-[calc(100svh-7rem)] gap-5 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col gap-5 overflow-hidden">
         <DriversToolbar
           filters={table.filters}
+          onCreateDriver={openCreateForm}
           onActivityChange={(isActive) => {
             table.updateFilters({ isActive });
           }}
@@ -107,6 +129,7 @@ export const DriversTable = (): React.JSX.Element => {
                     driver={driver}
                     isSelected={table.selectedDriverIds.has(driver.id)}
                     key={driver.id}
+                    onEdit={openEditForm}
                     onOpenProfile={table.setProfileDriver}
                     onSelectChange={table.selectDriver}
                   />
@@ -136,6 +159,12 @@ export const DriversTable = (): React.JSX.Element => {
         onClose={() => {
           table.setProfileDriver(null);
         }}
+        onEdit={openEditForm}
+      />
+      <DriverFormDialog
+        driver={formDriver}
+        isOpen={isFormOpen}
+        onOpenChange={setIsFormOpen}
       />
     </section>
   );

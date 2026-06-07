@@ -31,6 +31,7 @@ interface DriversToolbarProps {
   onReset: () => void;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: DriversFilters["status"]) => void;
+  onCreateDriver: () => void;
 }
 
 export const DriversToolbar = ({
@@ -39,6 +40,7 @@ export const DriversToolbar = ({
   onReset,
   onSearchChange,
   onStatusChange,
+  onCreateDriver,
 }: DriversToolbarProps): React.JSX.Element => {
   const hasFilters =
     filters.search !== "" ||
@@ -95,6 +97,7 @@ export const DriversToolbar = ({
         <Button
           className="h-9 rounded-lg bg-primary-700 px-3! shadow-none hover:bg-primary-600"
           type="button"
+          onClick={onCreateDriver}
         >
           <Plus className="size-4" />
           Create driver

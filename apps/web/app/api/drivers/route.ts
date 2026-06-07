@@ -19,6 +19,71 @@ const allowedQueryParameters = new Set([
   "limit",
 ]);
 
+export async function proxyDriverMutation(
+  request: Request,
+  path: string,
+  method: "POST" | "PATCH",
+): Promise<NextResponse> {
+  try {
+    const cookieStore = await cookies();
+    let accessToken = cookieStore.get("access_token")?.value;
+    const refreshToken = cookieStore.get("refresh_token")?.value;
+    let refreshedSession: Awaited<ReturnType<typeof refreshSession>> = null;
+
+    if (!accessToken && refreshToken) {
+      refreshedSession = await refreshSession(refreshToken);
+      accessToken = refreshedSession?.accessToken;
+    }
+
+    if (!accessToken) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.text();
+    const sendRequest = (token: string): Promise<Response> =>
+      fetch(`${API_BASE_URL}/${path}`, {
+        method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body,
+        cache: "no-store",
+      });
+
+    let apiResponse = await sendRequest(accessToken);
+
+    if (apiResponse.status === 401 && refreshToken && !refreshedSession) {
+      refreshedSession = await refreshSession(refreshToken);
+      if (refreshedSession) {
+        apiResponse = await sendRequest(refreshedSession.accessToken);
+      }
+    }
+
+    const responseBody: unknown = await apiResponse.json().catch(() => ({
+      message: "Invalid drivers response",
+    }));
+    const response = NextResponse.json(responseBody, {
+      status: apiResponse.status,
+    });
+
+    if (refreshedSession) setSessionCookies(response, refreshedSession);
+    else if (apiResponse.status === 401 && refreshToken)
+      clearSessionCookies(response);
+
+    return response;
+  } catch {
+    return NextResponse.json(
+      { message: "Drivers service unavailable" },
+      { status: 503 },
+    );
+  }
+}
+
+export async function POST(request: Request): Promise<NextResponse> {
+  return proxyDriverMutation(request, "drivers", "POST");
+}
+
 export async function GET(request: Request): Promise<NextResponse> {
   try {
     const cookieStore = await cookies();

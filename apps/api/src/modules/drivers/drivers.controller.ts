@@ -21,6 +21,7 @@ import { DriversService } from "./drivers.service";
 import type {
   CreateDriverResponse,
   DeleteDriverResponse,
+  DriverCandidatesResponse,
   DriverDetailsResponse,
   DriversListResponse,
   UpdateDriverResponse,
@@ -34,6 +35,13 @@ export class DriversController {
   @Get()
   findAll(@Query() query: ListDriversQueryDto): Promise<DriversListResponse> {
     return this.driversService.findAll(query);
+  }
+
+  @Get("candidates")
+  @Roles("admin", "dispatcher")
+  @UseGuards(RolesGuard)
+  findCandidates(): Promise<DriverCandidatesResponse> {
+    return this.driversService.findCandidates();
   }
 
   @Get(":id")
