@@ -22,7 +22,8 @@ apps/
   web/      Main product app
 
 packages/
-  shared/   Shared logistics types and DTOs
+  shared/   Shared logistics types and
+  DTOs
   ui/       Shared React UI components
   eslint-config/
   typescript-config/
