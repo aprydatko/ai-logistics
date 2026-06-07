@@ -151,10 +151,10 @@ export const DriversTable = (): React.JSX.Element => {
             onPageSizeChange={(limit) => {
               table.updateFilters({ limit });
             }}
-            totalItems={table.driversQuery.data?.pagination.total ?? 0}
+            totalItems={table.pagination?.total ?? 0}
             totalPages={Math.max(
               1,
-              table.driversQuery.data?.pagination.totalPages ?? 1,
+              table.pagination?.totalPages ?? 1,
             )}
           />
         </DataTable>
