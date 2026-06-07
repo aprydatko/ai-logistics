@@ -75,4 +75,18 @@ describe("DriversController", () => {
     );
     expect(service.update).toHaveBeenCalledWith("driver-id", dto);
   });
+
+  it("passes the driver id to the delete service", async () => {
+    const response = {
+      success: true as const,
+      message: "Driver deleted",
+    };
+    const service = {
+      remove: vi.fn().mockResolvedValue(response),
+    } as unknown as DriversService;
+    const controller = new DriversController(service);
+
+    await expect(controller.remove("driver-id")).resolves.toEqual(response);
+    expect(service.remove).toHaveBeenCalledWith("driver-id");
+  });
 });

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -19,6 +20,7 @@ import { UpdateDriverDto } from "./dto/update-driver.dto";
 import { DriversService } from "./drivers.service";
 import type {
   CreateDriverResponse,
+  DeleteDriverResponse,
   DriverDetailsResponse,
   DriversListResponse,
   UpdateDriverResponse,
@@ -56,5 +58,14 @@ export class DriversController {
     @Body() dto: UpdateDriverDto,
   ): Promise<UpdateDriverResponse> {
     return this.driversService.update(id, dto);
+  }
+
+  @Delete(":id")
+  @Roles("admin")
+  @UseGuards(RolesGuard)
+  remove(
+    @Param("id", new ParseUUIDPipe()) id: string,
+  ): Promise<DeleteDriverResponse> {
+    return this.driversService.remove(id);
   }
 }

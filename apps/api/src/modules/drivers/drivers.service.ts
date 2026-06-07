@@ -20,6 +20,7 @@ import type { ListDriversQueryDto } from "./dto/list-drivers-query.dto";
 import type { UpdateDriverDto } from "./dto/update-driver.dto";
 import type {
   CreateDriverResponse,
+  DeleteDriverResponse,
   DriverDetailsResponse,
   DriverListItem,
   DriverTrip,
@@ -117,9 +118,7 @@ export class DriversService {
     id: string,
     dto: UpdateDriverDto,
   ): Promise<UpdateDriverResponse> {
-    const hasUpdates = Object.values(dto).some(
-      (value) => value !== undefined,
-    );
+    const hasUpdates = Object.values(dto).some((value) => value !== undefined);
 
     if (!hasUpdates) {
       throw new BadRequestException("At least one field must be provided");
@@ -153,6 +152,22 @@ export class DriversService {
 
       throw error;
     }
+  }
+
+  async remove(id: string): Promise<DeleteDriverResponse> {
+    const [driver] = await this.databaseService.client
+      .delete(drivers)
+      .where(eq(drivers.id, id))
+      .returning({ id: drivers.id });
+
+    if (!driver) {
+      throw new NotFoundException("Driver was not found");
+    }
+
+    return {
+      success: true,
+      message: "Driver deleted",
+    };
   }
 
   private buildFilters(query: ListDriversQueryDto): SQL[] {
