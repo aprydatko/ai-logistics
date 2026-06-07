@@ -4,6 +4,7 @@ import {
   jsonb,
   pgTable,
   timestamp,
+  uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -37,9 +38,10 @@ export const drivers = pgTable(
       .notNull(),
   },
   (table) => [
-    index("drivers_user_id_idx").on(table.userId),
+    uniqueIndex("drivers_user_id_unique").on(table.userId),
+    uniqueIndex("drivers_truck_number_unique").on(table.truckNumber),
+    uniqueIndex("drivers_trailer_number_unique").on(table.trailerNumber),
     index("drivers_is_active_idx").on(table.isActive),
-    index("drivers_truck_number_idx").on(table.truckNumber),
   ],
 );
 

@@ -1,14 +1,64 @@
-import { Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+} from "@nestjs/common";
 import { and, asc, eq, ilike, or, type SQL } from "drizzle-orm";
 
 import { DatabaseService } from "../../db/database.service";
-import { drivers, type DriverRecord } from "../../db/schema";
+import { drivers, type DriverRecord, users } from "../../db/schema";
+import type { CreateDriverDto } from "./dto/create-driver.dto";
 import type { ListDriversQueryDto } from "./dto/list-drivers-query.dto";
-import type { DriverListItem, DriversListResponse } from "./drivers.types";
+import type {
+  CreateDriverResponse,
+  DriverListItem,
+  DriversListResponse,
+} from "./drivers.types";
 
 @Injectable()
 export class DriversService {
   constructor(private readonly databaseService: DatabaseService) {}
+
+  async create(dto: CreateDriverDto): Promise<CreateDriverResponse> {
+    const [user] = await this.databaseService.client
+      .select({ id: users.id, role: users.role })
+      .from(users)
+      .where(eq(users.id, dto.userId))
+      .limit(1);
+
+    if (!user || user.role !== "driver") {
+      throw new BadRequestException("Driver user was not found");
+    }
+
+    try {
+      const [driver] = await this.databaseService.client
+        .insert(drivers)
+        .values({
+          ...dto,
+          firstName: dto.firstName.trim(),
+          lastName: dto.lastName.trim(),
+          phone: dto.phone.trim(),
+          truckNumber: dto.truckNumber.trim(),
+          trailerNumber: dto.trailerNumber.trim(),
+        })
+        .returning();
+
+      if (!driver) {
+        throw new InternalServerErrorException("Failed to create driver");
+      }
+
+      return { success: true, data: this.toDriver(driver) };
+    } catch (error: unknown) {
+      if (this.isUniqueViolation(error)) {
+        throw new ConflictException(
+          "Driver, truck number, or trailer number already exists",
+        );
+      }
+
+      throw error;
+    }
+  }
 
   async findAll(query: ListDriversQueryDto): Promise<DriversListResponse> {
     const filters = this.buildFilters(query);
@@ -64,5 +114,14 @@ export class DriversService {
       createdAt: driver.createdAt.toISOString(),
       updatedAt: driver.updatedAt.toISOString(),
     };
+  }
+
+  private isUniqueViolation(error: unknown): boolean {
+    return (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "23505"
+    );
   }
 }

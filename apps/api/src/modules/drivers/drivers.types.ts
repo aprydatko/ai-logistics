@@ -13,3 +13,8 @@ export type DriversListResponse = {
   success: true;
   data: DriverListItem[];
 };
+
+export type CreateDriverResponse = {
+  success: true;
+  data: DriverListItem;
+};
