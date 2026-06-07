@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import type { User } from '@repo/shared';
-import { useEffect, useState } from 'react';
+import type { User } from "@repo/shared";
+import { useEffect, useState } from "react";
 
-import { cn } from '@repo/ui/lib/utils';
+import { cn } from "@repo/ui/lib/utils";
 
-import { useUserStore } from '@/stores/user-store';
+import { useUserStore } from "@/stores/user-store";
 
-import { AppHeader } from './app-header';
-import { DashboardSidebar } from './dashboard-sidebar';
+import { AppHeader } from "./app-header";
+import { DashboardSidebar } from "./dashboard-sidebar";
 
 type DashboardShellProps = {
   children: React.ReactNode;
@@ -28,8 +28,8 @@ export function DashboardShell({
 
     const controller = new AbortController();
 
-    void fetch('/api/auth/me', {
-      cache: 'no-store',
+    void fetch("/api/auth/me", {
+      cache: "no-store",
       signal: controller.signal,
     })
       .then(async (response) => {
@@ -64,8 +64,8 @@ export function DashboardShell({
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-56 flex-col border-r border-border bg-card shadow-xl transition-transform duration-300 lg:hidden',
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+          "fixed inset-y-0 left-0 z-50 flex w-56 flex-col border-r border-border bg-card shadow-xl transition-transform duration-300 lg:hidden",
+          isMobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <DashboardSidebar
@@ -78,8 +78,8 @@ export function DashboardShell({
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-card transition-[width] duration-300 lg:flex',
-          isCollapsed ? 'w-16' : 'w-56'
+          "fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-card transition-[width] duration-300 lg:flex",
+          isCollapsed ? "w-16" : "w-56",
         )}
       >
         <DashboardSidebar
@@ -91,8 +91,8 @@ export function DashboardShell({
 
       <div
         className={cn(
-          'flex h-svh min-h-0 flex-col transition-[padding] duration-300',
-          isCollapsed ? 'lg:pl-16' : 'lg:pl-56'
+          "flex h-svh min-h-0 flex-col transition-[padding] duration-300",
+          isCollapsed ? "lg:pl-16" : "lg:pl-56",
         )}
       >
         <AppHeader onOpenMobile={() => setIsMobileOpen(true)} />

@@ -5,9 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { AuthenticatedUser } from "./auth.types";
 import { RolesGuard } from "./roles.guard";
 
-const createExecutionContext = (
-  user?: AuthenticatedUser,
-): ExecutionContext =>
+const createExecutionContext = (user?: AuthenticatedUser): ExecutionContext =>
   ({
     getClass: vi.fn(),
     getHandler: vi.fn(),

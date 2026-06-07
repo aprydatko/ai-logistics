@@ -15,7 +15,14 @@ import { Input } from "@repo/ui/components/input";
 import type { User } from "@repo/shared";
 import { loginSchema, type LoginValues } from "@/lib/auth/login-schema";
 import { useUserStore } from "@/stores/user-store";
-import { AlertCircle, Eye, EyeOff, LoaderCircle, LockKeyhole, Mail } from "lucide-react";
+import {
+  AlertCircle,
+  Eye,
+  EyeOff,
+  LoaderCircle,
+  LockKeyhole,
+  Mail,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -25,7 +32,8 @@ interface AuthUserResponse {
   user: User;
 }
 
-const DEFAULT_ERROR = "Unable to sign in. Check your credentials and try again.";
+const DEFAULT_ERROR =
+  "Unable to sign in. Check your credentials and try again.";
 
 export function LoginForm(): React.JSX.Element {
   const router = useRouter();
@@ -62,13 +70,19 @@ export function LoginForm(): React.JSX.Element {
       router.replace("/dashboard");
       router.refresh();
     } catch {
-      setSubmitError("The authentication service is unavailable. Try again shortly.");
+      setSubmitError(
+        "The authentication service is unavailable. Try again shortly.",
+      );
     }
   };
 
   return (
     <Form {...form}>
-      <form className="grid gap-5" onSubmit={form.handleSubmit(onSubmit)} noValidate>
+      <form
+        className="grid gap-5"
+        onSubmit={form.handleSubmit(onSubmit)}
+        noValidate
+      >
         <FormField
           control={form.control}
           name="email"
@@ -178,7 +192,10 @@ export function LoginForm(): React.JSX.Element {
 
         <p className="text-center text-sm text-ink-500">
           New to AI Logistics?{" "}
-          <Link className="font-semibold text-primary hover:underline" href="/register">
+          <Link
+            className="font-semibold text-primary hover:underline"
+            href="/register"
+          >
             Create an account
           </Link>
         </p>

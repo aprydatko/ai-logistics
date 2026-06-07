@@ -1,8 +1,8 @@
-import type { BaseEntity, ISODateString } from './common.js';
+import type { BaseEntity, ISODateString } from "./common.js";
 
-export type IncidentSeverity = 'low' | 'medium' | 'high' | 'critical';
+export type IncidentSeverity = "low" | "medium" | "high" | "critical";
 
-export type IncidentStatus = 'open' | 'investigating' | 'resolved';
+export type IncidentStatus = "open" | "investigating" | "resolved";
 
 export interface Incident extends BaseEntity {
   loadId: string;

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Bell,
@@ -6,19 +6,19 @@ import {
   LogOut,
   Menu,
   Settings,
-  UserRound
-} from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+  UserRound,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
-import { ActionMenu } from '@repo/ui/components/action-menu';
-import { Avatar, AvatarFallback } from '@repo/ui/components/avatar';
-import { Button } from '@repo/ui/components/button';
-import { SearchField } from '@repo/ui/components/search-field';
+import { ActionMenu } from "@repo/ui/components/action-menu";
+import { Avatar, AvatarFallback } from "@repo/ui/components/avatar";
+import { Button } from "@repo/ui/components/button";
+import { SearchField } from "@repo/ui/components/search-field";
 
-import { useUserStore } from '@/stores/user-store';
+import { useUserStore } from "@/stores/user-store";
 
-import { BrandLogo } from './brand-logo';
+import { BrandLogo } from "./brand-logo";
 
 type AppHeaderProps = {
   onOpenMobile: () => void;
@@ -31,10 +31,10 @@ export function AppHeader({ onOpenMobile }: AppHeaderProps): React.JSX.Element {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const fullName = user
     ? `${user.firstName} ${user.lastName}`.trim()
-    : 'User account';
+    : "User account";
   const initials = user
-    ? `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase()
-    : 'U';
+    ? `${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`.toUpperCase()
+    : "U";
 
   const handleLogout = async (): Promise<void> => {
     if (isLoggingOut) return;
@@ -42,10 +42,10 @@ export function AppHeader({ onOpenMobile }: AppHeaderProps): React.JSX.Element {
     setIsLoggingOut(true);
 
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch("/api/auth/logout", { method: "POST" });
     } finally {
       clearUser();
-      router.replace('/login');
+      router.replace("/login");
       router.refresh();
     }
   };
@@ -97,19 +97,19 @@ export function AppHeader({ onOpenMobile }: AppHeaderProps): React.JSX.Element {
           items={[
             {
               icon: UserRound,
-              label: 'Profile',
-              onSelect: () => router.push('/settings#profile'),
+              label: "Profile",
+              onSelect: () => router.push("/settings#profile"),
             },
             {
               icon: Settings,
-              label: 'Settings',
-              onSelect: () => router.push('/settings'),
+              label: "Settings",
+              onSelect: () => router.push("/settings"),
             },
             {
               icon: LogOut,
-              label: isLoggingOut ? 'Logout...' : 'Logout',
+              label: isLoggingOut ? "Logout..." : "Logout",
               onSelect: handleLogout,
-              tone: 'danger',
+              tone: "danger",
             },
           ]}
           trigger={(isOpen) => (
@@ -135,7 +135,7 @@ export function AppHeader({ onOpenMobile }: AppHeaderProps): React.JSX.Element {
               </span>
               <ChevronDown
                 className={`hidden size-4 text-primary-700 transition-transform duration-200 sm:block ${
-                  isOpen ? 'rotate-180' : ''
+                  isOpen ? "rotate-180" : ""
                 }`}
               />
             </button>

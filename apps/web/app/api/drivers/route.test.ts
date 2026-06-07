@@ -110,9 +110,11 @@ describe("GET /api/drivers", () => {
     cookieValues.set("refresh_token", "invalid-refresh-token");
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        Response.json({ message: "Unauthorized" }, { status: 401 }),
-      ),
+      vi
+        .fn()
+        .mockResolvedValue(
+          Response.json({ message: "Unauthorized" }, { status: 401 }),
+        ),
     );
 
     const response = await GET(new Request("http://localhost/api/drivers"));

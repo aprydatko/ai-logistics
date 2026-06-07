@@ -1,5 +1,5 @@
-import GitHubIcon from '@/assets/GitHubIcon';
-import { Button } from '@repo/ui/components/button';
+import GitHubIcon from "@/assets/GitHubIcon";
+import { Button } from "@repo/ui/components/button";
 import {
   ArrowLeft,
   BookOpen,
@@ -8,41 +8,41 @@ import {
   Play,
   PlayCircle,
   ShieldCheck,
-  UsersRound
-} from 'lucide-react';
-import Image from 'next/image';
-import Link from 'next/link';
+  UsersRound,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 
 const benefits = [
   {
     icon: ShieldCheck,
-    title: 'Security',
-    description: 'Enterprise-grade security and data protection.',
+    title: "Security",
+    description: "Enterprise-grade security and data protection.",
   },
   {
     icon: UsersRound,
-    title: 'Roles',
-    description: 'Role-based access and permissions for every workspace.',
+    title: "Roles",
+    description: "Role-based access and permissions for every workspace.",
   },
   {
     icon: Boxes,
-    title: 'Others',
-    description: 'Loads, incidents, documents, and AI-assisted operations.',
+    title: "Others",
+    description: "Loads, incidents, documents, and AI-assisted operations.",
   },
 ];
 
 const mobileNavItems = [
-  { href: '/', icon: Home, label: 'Home' },
-  { href: '/dashboard', icon: PlayCircle, label: 'Demo' },
+  { href: "/", icon: Home, label: "Home" },
+  { href: "/dashboard", icon: PlayCircle, label: "Demo" },
   {
-    href: 'https://github.com/aprydatko/ai-logistics',
+    href: "https://github.com/aprydatko/ai-logistics",
     icon: GitHubIcon,
-    label: 'GitHub',
+    label: "GitHub",
   },
   {
-    href: 'https://github.com/aprydatko/ai-logistics/tree/main/docs',
+    href: "https://github.com/aprydatko/ai-logistics/tree/main/docs",
     icon: BookOpen,
-    label: 'Docs',
+    label: "Docs",
   },
 ];
 
@@ -171,15 +171,15 @@ export default function AuthLayout({
             className="fixed inset-x-0 bottom-0 z-20 grid h-20 grid-cols-4 border-t border-border bg-surface-0 lg:hidden"
           >
             {mobileNavItems.map(({ href, icon: Icon, label }) => {
-              const isExternal = href.startsWith('http');
+              const isExternal = href.startsWith("http");
 
               return (
                 <Link
                   className="flex min-h-11 flex-col items-center justify-center gap-1 text-xs font-medium text-ink-500 transition-colors hover:bg-surface-50 hover:text-primary"
                   href={href}
                   key={label}
-                  rel={isExternal ? 'noreferrer' : undefined}
-                  target={isExternal ? '_blank' : undefined}
+                  rel={isExternal ? "noreferrer" : undefined}
+                  target={isExternal ? "_blank" : undefined}
                 >
                   <Icon aria-hidden="true" className="size-5" />
                   {label}

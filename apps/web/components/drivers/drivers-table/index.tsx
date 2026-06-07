@@ -118,9 +118,7 @@ export const DriversTable = (): React.JSX.Element => {
                 </tr>
               </TableHeader>
               <TableBody>
-                {table.driversQuery.isPending ? (
-                  <DriversTableSkeleton />
-                ) : null}
+                {table.driversQuery.isPending ? <DriversTableSkeleton /> : null}
                 {table.driversQuery.isError ? (
                   <DriversTableState>
                     Unable to load drivers. Please try again.
@@ -152,10 +150,7 @@ export const DriversTable = (): React.JSX.Element => {
               table.updateFilters({ limit });
             }}
             totalItems={table.pagination?.total ?? 0}
-            totalPages={Math.max(
-              1,
-              table.pagination?.totalPages ?? 1,
-            )}
+            totalPages={Math.max(1, table.pagination?.totalPages ?? 1)}
           />
         </DataTable>
       </div>

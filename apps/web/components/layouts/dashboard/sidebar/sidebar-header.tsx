@@ -1,8 +1,8 @@
-import { X } from 'lucide-react';
+import { X } from "lucide-react";
 
-import { Button } from '@repo/ui/components/button';
+import { Button } from "@repo/ui/components/button";
 
-import { BrandLogo } from '../brand-logo';
+import { BrandLogo } from "../brand-logo";
 
 type SidebarHeaderProps = {
   isCollapsed: boolean;

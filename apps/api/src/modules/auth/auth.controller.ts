@@ -50,9 +50,10 @@ export class AuthController {
   @Get("operations")
   @Roles("admin", "dispatcher")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  getOperationsAccess(
-    @CurrentUser() user: AuthenticatedUser,
-  ): { message: string; user: AuthenticatedUser } {
+  getOperationsAccess(@CurrentUser() user: AuthenticatedUser): {
+    message: string;
+    user: AuthenticatedUser;
+  } {
     return {
       message: "Operations access granted",
       user,

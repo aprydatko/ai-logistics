@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import type { Feature, LineString } from 'geojson';
-import { Truck } from 'lucide-react';
+import type { Feature, LineString } from "geojson";
+import { Truck } from "lucide-react";
 import {
   GeolocateControl,
   Layer,
@@ -9,12 +9,12 @@ import {
   Marker,
   NavigationControl,
   Source,
-} from 'react-map-gl/maplibre';
+} from "react-map-gl/maplibre";
 
-import { cn } from '@repo/ui/lib/utils';
+import { cn } from "@repo/ui/lib/utils";
 
 type Coordinates = [longitude: number, latitude: number];
-type RouteMarkerTone = 'danger' | 'success' | 'warning';
+type RouteMarkerTone = "danger" | "success" | "warning";
 
 export type RouteMapMarker = {
   coordinates: Coordinates;
@@ -32,9 +32,9 @@ type RouteMapProps = {
 };
 
 const markerToneStyles: Record<RouteMarkerTone, string> = {
-  danger: 'bg-danger',
-  success: 'bg-teal-600',
-  warning: 'bg-orange-500',
+  danger: "bg-danger",
+  success: "bg-teal-600",
+  warning: "bg-orange-500",
 };
 
 export function RouteMap({
@@ -47,18 +47,18 @@ export function RouteMap({
   const routeFeature: Feature<LineString> = {
     geometry: {
       coordinates: route,
-      type: 'LineString',
+      type: "LineString",
     },
     properties: {},
-    type: 'Feature',
+    type: "Feature",
   };
 
   return (
     <div
       aria-label="Active loads route map"
       className={cn(
-        'h-72 min-h-64 overflow-hidden rounded-xl border border-border bg-surface-100',
-        className
+        "h-72 min-h-64 overflow-hidden rounded-xl border border-border bg-surface-100",
+        className,
       )}
       role="region"
     >
@@ -78,13 +78,13 @@ export function RouteMap({
           <Layer
             id="active-load-route-line"
             layout={{
-              'line-cap': 'round',
-              'line-join': 'round',
+              "line-cap": "round",
+              "line-join": "round",
             }}
             paint={{
-              'line-color': '#0891b2',
-              'line-opacity': 0.9,
-              'line-width': 3,
+              "line-color": "#0891b2",
+              "line-opacity": 0.9,
+              "line-width": 3,
             }}
             type="line"
           />
@@ -100,8 +100,8 @@ export function RouteMap({
             <span
               aria-label={marker.label}
               className={cn(
-                'grid size-9 place-items-center rounded-full border-[3px] border-white text-white shadow-md',
-                markerToneStyles[marker.tone ?? 'success']
+                "grid size-9 place-items-center rounded-full border-[3px] border-white text-white shadow-md",
+                markerToneStyles[marker.tone ?? "success"],
               )}
               role="img"
               title={marker.label}

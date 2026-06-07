@@ -1,29 +1,29 @@
-'use client';
+"use client";
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import * as React from 'react';
-import { useForm } from 'react-hook-form';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import * as React from "react";
+import { useForm } from "react-hook-form";
 
 import {
   driverFormSchema,
   type DriverFormValues,
-} from '@/lib/drivers/driver-form-schema';
-import { saveDriver } from '@/lib/drivers/driver-mutations';
-import type { DriversApiItem } from '@/lib/drivers/drivers-query';
+} from "@/lib/drivers/driver-form-schema";
+import { saveDriver } from "@/lib/drivers/driver-mutations";
+import type { DriversApiItem } from "@/lib/drivers/drivers-query";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
-} from '@repo/ui/components/dialog';
-import { Form } from '@repo/ui/components/form';
-import { toast } from '@repo/ui/components/toaster';
+} from "@repo/ui/components/dialog";
+import { Form } from "@repo/ui/components/form";
+import { toast } from "@repo/ui/components/toaster";
 
-import { DialogFooter } from './dialog-footer';
-import { DocumentsTab } from './documents-tab';
-import { emptyDriverFormValues, toDriverFormValues } from './form-values';
-import { ProfileTab } from './profile-tab';
+import { DialogFooter } from "./dialog-footer";
+import { DocumentsTab } from "./documents-tab";
+import { emptyDriverFormValues, toDriverFormValues } from "./form-values";
+import { ProfileTab } from "./profile-tab";
 
 interface DriverFormDialogProps {
   driver: DriversApiItem | null;
@@ -31,14 +31,14 @@ interface DriverFormDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type DriverTab = 'profile' | 'documents';
+type DriverTab = "profile" | "documents";
 
 export const DriverFormDialog = ({
   driver,
   isOpen,
   onOpenChange,
 }: DriverFormDialogProps): React.JSX.Element => {
-  const [tab, setTab] = React.useState<DriverTab>('profile');
+  const [tab, setTab] = React.useState<DriverTab>("profile");
   const queryClient = useQueryClient();
   const form = useForm<DriverFormValues>({
     resolver: zodResolver(driverFormSchema),
@@ -47,20 +47,26 @@ export const DriverFormDialog = ({
   const mutation = useMutation({
     mutationFn: saveDriver,
     onError: (error) => {
-      toast.error(driver ? 'Unable to update driver' : 'Unable to create driver', {
-        description: error.message,
-      });
+      toast.error(
+        driver ? "Unable to update driver" : "Unable to create driver",
+        {
+          description: error.message,
+        },
+      );
     },
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['drivers'] }),
+        queryClient.invalidateQueries({ queryKey: ["drivers"] }),
       ]);
       onOpenChange(false);
-      toast.success(driver ? 'Driver updated successfully' : 'Driver created successfully', {
-        description: driver
-          ? `${driver.firstName} ${driver.lastName} was updated.`
-          : 'The new driver was added to the driver list.',
-      });
+      toast.success(
+        driver ? "Driver updated successfully" : "Driver created successfully",
+        {
+          description: driver
+            ? `${driver.firstName} ${driver.lastName} was updated.`
+            : "The new driver was added to the driver list.",
+        },
+      );
     },
   });
   const resetMutation = mutation.reset;
@@ -70,24 +76,24 @@ export const DriverFormDialog = ({
 
     form.reset(toDriverFormValues(driver));
     resetMutation();
-    setTab('profile');
+    setTab("profile");
   }, [driver, form, isOpen, resetMutation]);
 
   return (
     <Dialog onOpenChange={onOpenChange} open={isOpen}>
       <DialogContent className="flex h-[min(52rem,calc(100svh-2rem))] max-w-[36rem] flex-col">
         <div className="shrink-0 px-7 pt-6 pr-14">
-          <DialogTitle>{driver ? 'Edit driver' : 'Add new driver'}</DialogTitle>
+          <DialogTitle>{driver ? "Edit driver" : "Add new driver"}</DialogTitle>
           <DialogDescription className="sr-only">
             Driver profile and document information.
           </DialogDescription>
           <div className="mt-5 flex gap-8 border-b border-border">
-            {(['profile', 'documents'] as const).map((item) => (
+            {(["profile", "documents"] as const).map((item) => (
               <button
                 className={`border-b-2 px-1 pb-3 text-sm font-semibold capitalize transition ${
                   tab === item
-                    ? 'border-primary-700 text-primary-700'
-                    : 'border-transparent text-primary-700/70 hover:text-primary-700'
+                    ? "border-primary-700 text-primary-700"
+                    : "border-transparent text-primary-700/70 hover:text-primary-700"
                 }`}
                 key={item}
                 onClick={() => setTab(item)}
@@ -104,11 +110,11 @@ export const DriverFormDialog = ({
             className="flex min-h-0 flex-1 flex-col"
             noValidate
             onSubmit={form.handleSubmit((values) =>
-              mutation.mutate({ driverId: driver?.id, values })
+              mutation.mutate({ driverId: driver?.id, values }),
             )}
           >
             <div className="min-h-0 flex-1 overflow-y-auto px-7 py-5 pr-5 [scrollbar-color:var(--primary-700)_transparent] [scrollbar-gutter:stable] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:my-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-primary-700/35 [&::-webkit-scrollbar-thumb]:bg-clip-padding [&::-webkit-scrollbar-thumb:hover]:bg-primary-700/60">
-              {tab === 'documents' ? (
+              {tab === "documents" ? (
                 <DocumentsTab />
               ) : (
                 <ProfileTab
@@ -123,7 +129,7 @@ export const DriverFormDialog = ({
               form={form}
               isEditing={Boolean(driver)}
               isPending={mutation.isPending}
-              isSubmitDisabled={tab === 'documents'}
+              isSubmitDisabled={tab === "documents"}
             />
           </form>
         </Form>

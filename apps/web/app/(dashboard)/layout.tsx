@@ -1,4 +1,4 @@
-import { DashboardShell } from '@/components/layouts/dashboard';
+import { DashboardShell } from "@/components/layouts/dashboard";
 
 export default function DashboardLayout({
   children,

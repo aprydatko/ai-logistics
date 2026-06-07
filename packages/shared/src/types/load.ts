@@ -1,12 +1,12 @@
-import type { BaseEntity, ISODateString } from './common.js';
-import type { Driver } from './driver.js';
+import type { BaseEntity, ISODateString } from "./common.js";
+import type { Driver } from "./driver.js";
 
 export type LoadStatus =
-  | 'new'
-  | 'assigned'
-  | 'in_transit'
-  | 'delivered'
-  | 'cancelled';
+  | "new"
+  | "assigned"
+  | "in_transit"
+  | "delivered"
+  | "cancelled";
 
 export interface Broker {
   id: string;

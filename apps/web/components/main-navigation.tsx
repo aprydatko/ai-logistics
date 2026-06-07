@@ -29,7 +29,9 @@ export function MainNavigation() {
       <nav className={styles.nav} aria-label="Main navigation">
         {navItems.map((item) => {
           const isActive =
-            item.href === "/" ? pathname === item.href : pathname.startsWith(item.href);
+            item.href === "/"
+              ? pathname === item.href
+              : pathname.startsWith(item.href);
 
           return (
             <Link

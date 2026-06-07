@@ -1,19 +1,12 @@
-import { cn } from '@repo/ui/lib/utils';
+import { cn } from "@repo/ui/lib/utils";
 
 type PlanCardProps = {
   className?: string;
 };
 
-export function PlanCard({
-  className,
-}: PlanCardProps): React.JSX.Element {
+export function PlanCard({ className }: PlanCardProps): React.JSX.Element {
   return (
-    <div
-      className={cn(
-        'px-5 py-5',
-        className
-      )}
-    >
+    <div className={cn("px-5 py-5", className)}>
       <p className="text-base font-semibold leading-6 text-ink-900">Plan</p>
       <div className="mt-4 flex items-center justify-between gap-3">
         <span className="text-base font-semibold text-ink-900">

@@ -15,7 +15,9 @@ import { RolesGuard } from "./roles.guard";
       useFactory: (configService: ConfigService<Environment, true>) => ({
         secret: configService.get("JWT_ACCESS_SECRET", { infer: true }),
         signOptions: {
-          expiresIn: configService.get("JWT_ACCESS_EXPIRES_IN", { infer: true }),
+          expiresIn: configService.get("JWT_ACCESS_EXPIRES_IN", {
+            infer: true,
+          }),
         },
       }),
     }),

@@ -1,10 +1,6 @@
-'use client';
+"use client";
 
-import {
-  SidebarFooter,
-  SidebarHeader,
-  SidebarNavigation,
-} from './sidebar';
+import { SidebarFooter, SidebarHeader, SidebarNavigation } from "./sidebar";
 
 type DashboardSidebarProps = {
   isCollapsed: boolean;

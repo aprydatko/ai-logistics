@@ -1,1 +1,1 @@
-export { DashboardShell } from '@/components/layouts/dashboard/dashboard-shell';
+export { DashboardShell } from "@/components/layouts/dashboard/dashboard-shell";
