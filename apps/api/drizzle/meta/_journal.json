@@ -15,6 +15,13 @@
       "when": 1780484003065,
       "tag": "0001_slippery_echo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1780827038242,
+      "tag": "0002_stormy_wendell_rand",
+      "breakpoints": true
     }
   ]
 }
