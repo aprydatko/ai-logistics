@@ -18,6 +18,7 @@ import { DriverProfilePanel } from "../driver-profile-panel";
 import { DriverFormDialog } from "../driver-form-dialog";
 import { DriversToolbar } from "../drivers-toolbar";
 import { DriverRow } from "./driver-row";
+import { DeleteDriverDialog } from "./delete-driver-dialog";
 import { DriversPagination } from "./drivers-pagination";
 import { useDriversTable } from "./use-drivers-table";
 
@@ -39,6 +40,9 @@ export const DriversTable = (): React.JSX.Element => {
     import("@/lib/drivers/drivers-query").DriversApiItem | null
   >(null);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
+  const [deleteDriver, setDeleteDriver] = React.useState<
+    import("../types").DriverRow | null
+  >(null);
 
   const openCreateForm = (): void => {
     setFormDriver(null);
@@ -129,6 +133,7 @@ export const DriversTable = (): React.JSX.Element => {
                     driver={driver}
                     isSelected={table.selectedDriverIds.has(driver.id)}
                     key={driver.id}
+                    onDelete={setDeleteDriver}
                     onEdit={openEditForm}
                     onOpenProfile={table.setProfileDriver}
                     onSelectChange={table.selectDriver}
@@ -165,6 +170,12 @@ export const DriversTable = (): React.JSX.Element => {
         driver={formDriver}
         isOpen={isFormOpen}
         onOpenChange={setIsFormOpen}
+      />
+      <DeleteDriverDialog
+        driver={deleteDriver}
+        onOpenChange={(open) => {
+          if (!open) setDeleteDriver(null);
+        }}
       />
     </section>
   );

@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from '@repo/ui/components/dialog';
 import { Form } from '@repo/ui/components/form';
+import { toast } from '@repo/ui/components/toaster';
 
 import { DialogFooter } from './dialog-footer';
 import { DocumentsTab } from './documents-tab';
@@ -45,11 +46,21 @@ export const DriverFormDialog = ({
   });
   const mutation = useMutation({
     mutationFn: saveDriver,
+    onError: (error) => {
+      toast.error(driver ? 'Unable to update driver' : 'Unable to create driver', {
+        description: error.message,
+      });
+    },
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['drivers'] }),
       ]);
       onOpenChange(false);
+      toast.success(driver ? 'Driver updated successfully' : 'Driver created successfully', {
+        description: driver
+          ? `${driver.firstName} ${driver.lastName} was updated.`
+          : 'The new driver was added to the driver list.',
+      });
     },
   });
   const resetMutation = mutation.reset;

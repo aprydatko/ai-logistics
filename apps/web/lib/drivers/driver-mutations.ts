@@ -1,7 +1,10 @@
 import type { DriversApiItem } from "./drivers-query";
 import type { DriverFormValues } from "./driver-form-schema";
 
-const readError = async (response: Response): Promise<string> => {
+const readError = async (
+  response: Response,
+  fallbackMessage: string,
+): Promise<string> => {
   const body: unknown = await response.json().catch(() => null);
 
   if (
@@ -13,7 +16,7 @@ const readError = async (response: Response): Promise<string> => {
     return body.message;
   }
 
-  return "Unable to save driver";
+  return fallbackMessage;
 };
 
 export const saveDriver = async ({
@@ -39,7 +42,7 @@ export const saveDriver = async ({
   );
 
   if (!response.ok) {
-    throw new Error(await readError(response));
+    throw new Error(await readError(response, "Unable to save driver"));
   }
 
   const body: unknown = await response.json();
@@ -47,4 +50,14 @@ export const saveDriver = async ({
     body && typeof body === "object" && "data" in body ? body.data : body;
 
   return data as DriversApiItem;
+};
+
+export const deleteDriver = async (driverId: string): Promise<void> => {
+  const response = await fetch(`/api/drivers/${driverId}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "Unable to delete driver"));
+  }
 };

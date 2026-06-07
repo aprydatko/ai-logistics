@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import "@repo/ui/globals.css";
+import { Toaster } from "@repo/ui/components/toaster";
 import { QueryProvider } from "@/components/query-provider";
 import "./globals.css";
 
@@ -19,6 +20,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <QueryProvider>{children}</QueryProvider>
+        <Toaster position="bottom-right" />
       </body>
     </html>
   );
