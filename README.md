@@ -1,6 +1,6 @@
 # AI Logistics
 
-TypeScript monorepo for a logistics product. The project uses pnpm workspaces, Turborepo, Next.js, and shared packages for domain types and UI.
+TypeScript monorepo for a logistics product. The project uses pnpm workspaces, Turborepo, Next.js, and shared packages for domain types and UI. Perfect stage.
 
 ## Stack
 
