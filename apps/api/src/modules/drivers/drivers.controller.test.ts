@@ -58,4 +58,21 @@ describe("DriversController", () => {
     await expect(controller.findById("driver-id")).resolves.toEqual(response);
     expect(service.findById).toHaveBeenCalledWith("driver-id");
   });
+
+  it("passes driver updates to the drivers service", async () => {
+    const response = {
+      success: true as const,
+      data: { id: "driver-id", isActive: false },
+    };
+    const service = {
+      update: vi.fn().mockResolvedValue(response),
+    } as unknown as DriversService;
+    const controller = new DriversController(service);
+    const dto = { isActive: false };
+
+    await expect(controller.update("driver-id", dto)).resolves.toEqual(
+      response,
+    );
+    expect(service.update).toHaveBeenCalledWith("driver-id", dto);
+  });
 });

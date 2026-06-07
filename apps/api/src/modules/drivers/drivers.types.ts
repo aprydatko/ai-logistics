@@ -19,6 +19,11 @@ export type CreateDriverResponse = {
   data: DriverListItem;
 };
 
+export type UpdateDriverResponse = {
+  success: true;
+  data: DriverListItem;
+};
+
 export type DriverTrip = Omit<
   LoadRecord,
   "createdAt" | "deliveryDate" | "pickupDate" | "price" | "updatedAt"

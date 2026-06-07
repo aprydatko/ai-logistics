@@ -17,12 +17,14 @@ import {
 } from "../../db/schema";
 import type { CreateDriverDto } from "./dto/create-driver.dto";
 import type { ListDriversQueryDto } from "./dto/list-drivers-query.dto";
+import type { UpdateDriverDto } from "./dto/update-driver.dto";
 import type {
   CreateDriverResponse,
   DriverDetailsResponse,
   DriverListItem,
   DriverTrip,
   DriversListResponse,
+  UpdateDriverResponse,
 } from "./drivers.types";
 
 @Injectable()
@@ -111,6 +113,48 @@ export class DriversService {
     };
   }
 
+  async update(
+    id: string,
+    dto: UpdateDriverDto,
+  ): Promise<UpdateDriverResponse> {
+    const hasUpdates = Object.values(dto).some(
+      (value) => value !== undefined,
+    );
+
+    if (!hasUpdates) {
+      throw new BadRequestException("At least one field must be provided");
+    }
+
+    if (dto.userId) {
+      await this.assertDriverUser(dto.userId);
+    }
+
+    try {
+      const [driver] = await this.databaseService.client
+        .update(drivers)
+        .set({
+          ...dto,
+          updatedAt: new Date(),
+        })
+        .where(eq(drivers.id, id))
+        .returning();
+
+      if (!driver) {
+        throw new NotFoundException("Driver was not found");
+      }
+
+      return { success: true, data: this.toDriver(driver) };
+    } catch (error: unknown) {
+      if (this.isUniqueViolation(error)) {
+        throw new ConflictException(
+          "Driver, truck number, or trailer number already exists",
+        );
+      }
+
+      throw error;
+    }
+  }
+
   private buildFilters(query: ListDriversQueryDto): SQL[] {
     const filters: SQL[] = [];
 
@@ -160,6 +204,18 @@ export class DriversService {
       createdAt: load.createdAt.toISOString(),
       updatedAt: load.updatedAt.toISOString(),
     };
+  }
+
+  private async assertDriverUser(userId: string): Promise<void> {
+    const [user] = await this.databaseService.client
+      .select({ id: users.id, role: users.role })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user || user.role !== "driver") {
+      throw new BadRequestException("Driver user was not found");
+    }
   }
 
   private isUniqueViolation(error: unknown): boolean {

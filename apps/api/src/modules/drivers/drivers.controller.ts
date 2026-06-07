@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   ParseUUIDPipe,
   Post,
   Query,
@@ -14,11 +15,13 @@ import { Roles } from "../auth/roles.decorator";
 import { RolesGuard } from "../auth/roles.guard";
 import { CreateDriverDto } from "./dto/create-driver.dto";
 import { ListDriversQueryDto } from "./dto/list-drivers-query.dto";
+import { UpdateDriverDto } from "./dto/update-driver.dto";
 import { DriversService } from "./drivers.service";
 import type {
   CreateDriverResponse,
   DriverDetailsResponse,
   DriversListResponse,
+  UpdateDriverResponse,
 } from "./drivers.types";
 
 @Controller("drivers")
@@ -43,5 +46,15 @@ export class DriversController {
   @UseGuards(RolesGuard)
   create(@Body() dto: CreateDriverDto): Promise<CreateDriverResponse> {
     return this.driversService.create(dto);
+  }
+
+  @Patch(":id")
+  @Roles("admin", "dispatcher")
+  @UseGuards(RolesGuard)
+  update(
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateDriverDto,
+  ): Promise<UpdateDriverResponse> {
+    return this.driversService.update(id, dto);
   }
 }
