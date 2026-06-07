@@ -190,6 +190,10 @@ export class DriversService {
       filters.push(eq(drivers.isActive, query.isActive));
     }
 
+    if (query.status) {
+      filters.push(eq(drivers.status, query.status));
+    }
+
     if (query.truckNumber) {
       filters.push(ilike(drivers.truckNumber, `%${query.truckNumber}%`));
     }

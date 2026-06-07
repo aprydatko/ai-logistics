@@ -1,6 +1,7 @@
 import { Transform, Type } from "class-transformer";
 import {
   IsBoolean,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -27,6 +28,10 @@ export class ListDriversQueryDto {
     return value;
   })
   isActive?: boolean;
+
+  @IsOptional()
+  @IsIn(["available", "on_trip", "off_duty", "maintenance"])
+  status?: "available" | "on_trip" | "off_duty" | "maintenance";
 
   @IsOptional()
   @IsString()

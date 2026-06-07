@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   jsonb,
+  pgEnum,
   pgTable,
   timestamp,
   uniqueIndex,
@@ -16,6 +17,13 @@ type DriverCoordinates = {
   longitude: number;
 };
 
+export const driverStatusEnum = pgEnum("driver_status", [
+  "available",
+  "on_trip",
+  "off_duty",
+  "maintenance",
+]);
+
 export const drivers = pgTable(
   "drivers",
   {
@@ -29,6 +37,7 @@ export const drivers = pgTable(
     truckNumber: varchar("truck_number", { length: 50 }).notNull(),
     trailerNumber: varchar("trailer_number", { length: 50 }).notNull(),
     isActive: boolean("is_active").default(true).notNull(),
+    status: driverStatusEnum("status").default("available").notNull(),
     currentLocation: jsonb("current_location").$type<DriverCoordinates>(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -42,6 +51,7 @@ export const drivers = pgTable(
     uniqueIndex("drivers_truck_number_unique").on(table.truckNumber),
     uniqueIndex("drivers_trailer_number_unique").on(table.trailerNumber),
     index("drivers_is_active_idx").on(table.isActive),
+    index("drivers_status_idx").on(table.status),
   ],
 );
 

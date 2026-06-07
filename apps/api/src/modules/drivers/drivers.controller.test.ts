@@ -14,6 +14,7 @@ describe("DriversController", () => {
       search: "smith",
       isActive: true,
       truckNumber: "TR-10",
+      status: "available" as const,
       page: 2,
       limit: 10,
     };
@@ -39,6 +40,7 @@ describe("DriversController", () => {
       truckNumber: "TR-1001",
       trailerNumber: "TL-1001",
       isActive: true,
+      status: "available" as const,
     };
 
     await expect(controller.create(dto)).resolves.toEqual(response);

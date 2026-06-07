@@ -13,6 +13,7 @@ const driver: DriverRecord = {
   truckNumber: "TR-1001",
   trailerNumber: "TL-1001",
   isActive: true,
+  status: "available",
   currentLocation: null,
   createdAt: new Date("2026-06-01T10:00:00.000Z"),
   updatedAt: new Date("2026-06-02T10:00:00.000Z"),

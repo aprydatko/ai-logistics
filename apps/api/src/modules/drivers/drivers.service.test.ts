@@ -12,6 +12,7 @@ const dto = {
   truckNumber: " TR-1001 ",
   trailerNumber: " TL-1001 ",
   isActive: true,
+  status: "available" as const,
 };
 
 const driverRecord: DriverRecord = {

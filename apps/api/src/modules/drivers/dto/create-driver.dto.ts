@@ -1,6 +1,7 @@
 import { Transform } from "class-transformer";
 import {
   IsBoolean,
+  IsIn,
   IsNotEmpty,
   IsPhoneNumber,
   IsString,
@@ -46,4 +47,7 @@ export class CreateDriverDto {
 
   @IsBoolean()
   isActive!: boolean;
+
+  @IsIn(["available", "on_trip", "off_duty", "maintenance"])
+  status!: "available" | "on_trip" | "off_duty" | "maintenance";
 }

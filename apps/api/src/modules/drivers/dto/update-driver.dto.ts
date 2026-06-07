@@ -1,6 +1,7 @@
 import { Transform } from "class-transformer";
 import {
   IsBoolean,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsPhoneNumber,
@@ -54,4 +55,8 @@ export class UpdateDriverDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsIn(["available", "on_trip", "off_duty", "maintenance"])
+  status?: "available" | "on_trip" | "off_duty" | "maintenance";
 }
