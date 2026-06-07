@@ -12,6 +12,12 @@ export type DriverListItem = Omit<
 export type DriversListResponse = {
   success: true;
   data: DriverListItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 };
 
 export type CreateDriverResponse = {

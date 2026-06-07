@@ -5,7 +5,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from "@nestjs/common";
-import { and, asc, desc, eq, ilike, or, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, or, type SQL } from "drizzle-orm";
 
 import { DatabaseService } from "../../db/database.service";
 import {
@@ -74,17 +74,31 @@ export class DriversService {
 
   async findAll(query: ListDriversQueryDto): Promise<DriversListResponse> {
     const filters = this.buildFilters(query);
-    const rows = await this.databaseService.client
-      .select()
-      .from(drivers)
-      .where(filters.length > 0 ? and(...filters) : undefined)
-      .orderBy(asc(drivers.lastName), asc(drivers.firstName))
-      .limit(query.limit)
-      .offset((query.page - 1) * query.limit);
+    const where = filters.length > 0 ? and(...filters) : undefined;
+    const [rows, countRows] = await Promise.all([
+      this.databaseService.client
+        .select()
+        .from(drivers)
+        .where(where)
+        .orderBy(asc(drivers.lastName), asc(drivers.firstName))
+        .limit(query.limit)
+        .offset((query.page - 1) * query.limit),
+      this.databaseService.client
+        .select({ total: count() })
+        .from(drivers)
+        .where(where),
+    ]);
+    const total = countRows[0]?.total ?? 0;
 
     return {
       success: true,
       data: rows.map((driver) => this.toDriver(driver)),
+      pagination: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        totalPages: Math.ceil(total / query.limit),
+      },
     };
   }
 
