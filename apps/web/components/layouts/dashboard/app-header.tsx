@@ -1,9 +1,9 @@
 'use client';
 
-import { Bell, ChevronDown, Menu, Search } from 'lucide-react';
+import { Bell, ChevronDown, Menu } from 'lucide-react';
 
 import { Button } from '@repo/ui/components/button';
-import { Input } from '@repo/ui/components/input';
+import { SearchField } from '@repo/ui/components/search-field';
 
 import { BrandLogo } from './brand-logo';
 
@@ -13,7 +13,7 @@ type AppHeaderProps = {
 
 export function AppHeader({ onOpenMobile }: AppHeaderProps): React.JSX.Element {
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-border bg-card/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-card/85 sm:px-6">
+    <header className="z-20 flex h-16 shrink-0 items-center gap-4 border-b border-border bg-card/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-card/85 sm:px-6">
       <Button
         aria-label="Open navigation"
         className="lg:hidden"
@@ -29,15 +29,11 @@ export function AppHeader({ onOpenMobile }: AppHeaderProps): React.JSX.Element {
         <BrandLogo size="sm" />
       </div>
 
-      <label className="relative hidden min-w-0 flex-1 sm:block max-w-2xl">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-primary-700" />
-        <Input
-          aria-label="Search drivers"
-          className="h-9 rounded-md border-border bg-surface-50 pl-10 text-primary-700 shadow-none placeholder:text-primary-700/75"
-          placeholder="Search drivers"
-          type="search"
-        />
-      </label>
+      <SearchField
+        className="hidden min-w-0 max-w-2xl flex-1 sm:block"
+        label="Global Search"
+        placeholder="Global Search"
+      />
 
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
         <Button

@@ -1,11 +1,5 @@
-import { PageIntro } from "@/components/page-intro";
+import { DashboardOverview } from '@/components/dashboard/dashboard-overview';
 
-export default function DashboardPage() {
-  return (
-    <PageIntro
-      description="Monitor active operations, incident queues, driver availability, and AI workflow status from one workspace."
-      eyebrow="Control center"
-      title="Dashboard"
-    />
-  );
+export default function DashboardPage(): React.JSX.Element {
+  return <DashboardOverview />;
 }

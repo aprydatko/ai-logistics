@@ -5,9 +5,13 @@ import { Slot } from "radix-ui"
 import { cn } from "@repo/ui/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-1 overflow-hidden rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3",
+  "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-md border font-medium whitespace-nowrap transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none",
   {
     variants: {
+      size: {
+        default: "gap-1 px-2 py-0.5 text-xs [&>svg]:size-3",
+        sm: "gap-0.5 px-1.5 py-px text-[0.65rem] leading-4 [&>svg]:size-2.5",
+      },
       variant: {
         default:
           "border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
@@ -22,6 +26,7 @@ const badgeVariants = cva(
       },
     },
     defaultVariants: {
+      size: "default",
       variant: "default",
     },
   }
@@ -30,6 +35,7 @@ const badgeVariants = cva(
 function Badge({
   asChild = false,
   className,
+  size,
   variant,
   ...props
 }: React.ComponentProps<"span"> &
@@ -41,7 +47,7 @@ function Badge({
   return (
     <Comp
       data-slot="badge"
-      className={cn(badgeVariants({ variant, className }))}
+      className={cn(badgeVariants({ className, size, variant }))}
       {...props}
     />
   )

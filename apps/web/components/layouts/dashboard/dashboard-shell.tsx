@@ -21,7 +21,7 @@ export function DashboardShell({
   const toggleSidebar = (): void => setIsCollapsed((value) => !value);
 
   return (
-    <div className="min-h-svh bg-surface-50 text-ink-900">
+    <div className="h-svh overflow-hidden bg-surface-50 text-ink-900">
       {isMobileOpen ? (
         <button
           aria-label="Close navigation"
@@ -60,12 +60,12 @@ export function DashboardShell({
 
       <div
         className={cn(
-          'min-h-svh transition-[padding] duration-300',
+          'flex h-svh min-h-0 flex-col transition-[padding] duration-300',
           isCollapsed ? 'lg:pl-16' : 'lg:pl-56'
         )}
       >
         <AppHeader onOpenMobile={() => setIsMobileOpen(true)} />
-        <main className="mx-auto w-full max-w-[112rem] p-4 lg:pt-5 lg:pl-6">
+        <main className="mx-auto min-h-0 w-full max-w-[112rem] flex-1 overflow-y-auto p-4 lg:pt-5 lg:pl-6">
           {children}
         </main>
       </div>
