@@ -12,6 +12,24 @@ export type DriverListItem = Omit<
 export type DriversListResponse = {
   success: true;
   data: DriverListItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+export type DriverCandidate = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+};
+
+export type DriverCandidatesResponse = {
+  success: true;
+  data: DriverCandidate[];
 };
 
 export type CreateDriverResponse = {

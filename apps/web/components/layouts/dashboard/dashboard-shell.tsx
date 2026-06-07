@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import type { User } from '@repo/shared';
+import { useEffect, useState } from 'react';
 
 import { cn } from '@repo/ui/lib/utils';
+
+import { useUserStore } from '@/stores/user-store';
 
 import { AppHeader } from './app-header';
 import { DashboardSidebar } from './dashboard-sidebar';
@@ -16,6 +19,34 @@ export function DashboardShell({
 }: DashboardShellProps): React.JSX.Element {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const user = useUserStore((state) => state.user);
+  const setUser = useUserStore((state) => state.setUser);
+  const clearUser = useUserStore((state) => state.clearUser);
+
+  useEffect(() => {
+    if (user) return;
+
+    const controller = new AbortController();
+
+    void fetch('/api/auth/me', {
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          clearUser();
+          return;
+        }
+
+        const body = (await response.json()) as { user: User };
+        setUser(body.user);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) clearUser();
+      });
+
+    return () => controller.abort();
+  }, [clearUser, setUser, user]);
 
   const closeMobileNavigation = (): void => setIsMobileOpen(false);
   const toggleSidebar = (): void => setIsCollapsed((value) => !value);

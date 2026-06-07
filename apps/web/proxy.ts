@@ -6,11 +6,12 @@ const DASHBOARD_PATH_PREFIX = "/dashboard";
 export function proxy(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
   const accessToken = request.cookies.get("access_token")?.value;
+  const refreshToken = request.cookies.get("refresh_token")?.value;
   const isDashboardRoute =
     pathname === DASHBOARD_PATH_PREFIX ||
     pathname.startsWith(`${DASHBOARD_PATH_PREFIX}/`);
 
-  if (isDashboardRoute && !accessToken) {
+  if (isDashboardRoute && !accessToken && !refreshToken) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", pathname);

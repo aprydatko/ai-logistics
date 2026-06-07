@@ -5,7 +5,17 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from "@nestjs/common";
-import { and, asc, desc, eq, ilike, or, type SQL } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  isNull,
+  or,
+  type SQL,
+} from "drizzle-orm";
 
 import { DatabaseService } from "../../db/database.service";
 import {
@@ -22,6 +32,7 @@ import type {
   CreateDriverResponse,
   DeleteDriverResponse,
   DriverDetailsResponse,
+  DriverCandidatesResponse,
   DriverListItem,
   DriverTrip,
   DriversListResponse,
@@ -33,16 +44,6 @@ export class DriversService {
   constructor(private readonly databaseService: DatabaseService) {}
 
   async create(dto: CreateDriverDto): Promise<CreateDriverResponse> {
-    const [user] = await this.databaseService.client
-      .select({ id: users.id, role: users.role })
-      .from(users)
-      .where(eq(users.id, dto.userId))
-      .limit(1);
-
-    if (!user || user.role !== "driver") {
-      throw new BadRequestException("Driver user was not found");
-    }
-
     try {
       const [driver] = await this.databaseService.client
         .insert(drivers)
@@ -50,9 +51,18 @@ export class DriversService {
           ...dto,
           firstName: dto.firstName.trim(),
           lastName: dto.lastName.trim(),
+          email: dto.email.trim().toLowerCase(),
+          driverCode: dto.driverCode.trim().toUpperCase(),
           phone: dto.phone.trim(),
-          truckNumber: dto.truckNumber.trim(),
-          trailerNumber: dto.trailerNumber.trim(),
+          address: dto.address?.trim() || null,
+          emergencyContact: dto.emergencyContact?.trim() || null,
+          emergencyPhone: dto.emergencyPhone?.trim() || null,
+          licenseNumber: dto.licenseNumber.trim(),
+          licenseState: dto.licenseState.trim(),
+          licenseType: dto.licenseType.trim(),
+          notes: dto.notes?.trim() || null,
+          truckNumber: dto.truckNumber?.trim() || null,
+          trailerNumber: dto.trailerNumber?.trim() || null,
         })
         .returning();
 
@@ -64,7 +74,7 @@ export class DriversService {
     } catch (error: unknown) {
       if (this.isUniqueViolation(error)) {
         throw new ConflictException(
-          "Driver, truck number, or trailer number already exists",
+          "Driver ID, email, truck number, or trailer number already exists",
         );
       }
 
@@ -72,19 +82,55 @@ export class DriversService {
     }
   }
 
+  async findCandidates(): Promise<DriverCandidatesResponse> {
+    const candidates = await this.databaseService.client
+      .select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+      })
+      .from(users)
+      .leftJoin(drivers, eq(drivers.userId, users.id))
+      .where(
+        and(
+          eq(users.role, "driver"),
+          eq(users.isActive, true),
+          isNull(drivers.id),
+        ),
+      )
+      .orderBy(asc(users.lastName), asc(users.firstName));
+
+    return { success: true, data: candidates };
+  }
+
   async findAll(query: ListDriversQueryDto): Promise<DriversListResponse> {
     const filters = this.buildFilters(query);
-    const rows = await this.databaseService.client
-      .select()
-      .from(drivers)
-      .where(filters.length > 0 ? and(...filters) : undefined)
-      .orderBy(asc(drivers.lastName), asc(drivers.firstName))
-      .limit(query.limit)
-      .offset((query.page - 1) * query.limit);
+    const where = filters.length > 0 ? and(...filters) : undefined;
+    const [rows, countRows] = await Promise.all([
+      this.databaseService.client
+        .select()
+        .from(drivers)
+        .where(where)
+        .orderBy(asc(drivers.lastName), asc(drivers.firstName))
+        .limit(query.limit)
+        .offset((query.page - 1) * query.limit),
+      this.databaseService.client
+        .select({ total: count() })
+        .from(drivers)
+        .where(where),
+    ]);
+    const total = countRows[0]?.total ?? 0;
 
     return {
       success: true,
       data: rows.map((driver) => this.toDriver(driver)),
+      pagination: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        totalPages: Math.ceil(total / query.limit),
+      },
     };
   }
 

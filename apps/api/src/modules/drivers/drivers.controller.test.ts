@@ -4,6 +4,17 @@ import { DriversController } from "./drivers.controller";
 import type { DriversService } from "./drivers.service";
 
 describe("DriversController", () => {
+  it("returns users that can be assigned to a driver profile", async () => {
+    const response = { success: true as const, data: [] };
+    const service = {
+      findCandidates: vi.fn().mockResolvedValue(response),
+    } as unknown as DriversService;
+    const controller = new DriversController(service);
+
+    await expect(controller.findCandidates()).resolves.toEqual(response);
+    expect(service.findCandidates).toHaveBeenCalledOnce();
+  });
+
   it("passes filters to the drivers service", async () => {
     const response = { success: true as const, data: [] };
     const service = {
@@ -33,10 +44,15 @@ describe("DriversController", () => {
     } as unknown as DriversService;
     const controller = new DriversController(service);
     const dto = {
-      userId: "11111111-1111-1111-1111-111111111111",
+      driverCode: "DR-1001",
+      email: "john.smith@example.com",
       firstName: "John",
       lastName: "Smith",
       phone: "+12025550123",
+      licenseType: "CDL-A",
+      licenseNumber: "A123456789",
+      licenseExpirationDate: "2028-08-12",
+      licenseState: "Texas",
       truckNumber: "TR-1001",
       trailerNumber: "TL-1001",
       isActive: true,

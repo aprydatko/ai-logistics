@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   ChevronRight,
@@ -10,53 +10,54 @@ import {
   Route,
   Star,
   Truck,
-} from 'lucide-react';
-import type * as React from 'react';
+} from "lucide-react";
+import type * as React from "react";
 
-import { DriverAvatar } from '@repo/ui/components/avatar';
-import { Button } from '@repo/ui/components/button';
-import { SidePanel } from '@repo/ui/components/side-panel';
-import { StatusBadge } from '@repo/ui/components/status-badge';
-import { cn } from '@repo/ui/lib/utils';
+import { DriverAvatar } from "@repo/ui/components/avatar";
+import { Button } from "@repo/ui/components/button";
+import { SidePanel } from "@repo/ui/components/side-panel";
+import { StatusBadge } from "@repo/ui/components/status-badge";
+import { cn } from "@repo/ui/lib/utils";
 
-import { driverStatusTone } from './mock';
-import { DriverRow } from './types';
+import { driverStatusTone } from "./mock";
+import { DriverRow } from "./types";
 
 type DriverProfilePanelProps = {
   driver: DriverRow | null;
   isOpen: boolean;
   onClose: () => void;
+  onEdit: (driver: DriverRow) => void;
 };
 
-const profileTabs = ['Profile', 'Truck', 'Info', 'Docs', 'Trips', 'Activity'];
+const profileTabs = ["Profile", "Truck", "Info", "Docs", "Trips", "Activity"];
 
 const documents = [
-  { icon: FileBadge, name: 'Driver License', expires: 'Aug 12, 2026' },
-  { icon: ClipboardCheck, name: 'Medical Card', expires: 'Oct 1, 2025' },
-  { icon: FileText, name: 'Insurance', expires: 'Dec 31, 2025' },
+  { icon: FileBadge, name: "Driver License", expires: "Aug 12, 2026" },
+  { icon: ClipboardCheck, name: "Medical Card", expires: "Oct 1, 2025" },
+  { icon: FileText, name: "Insurance", expires: "Dec 31, 2025" },
 ];
 
 const trips = [
   {
-    route: 'Chicago, IL -> Detroit, MI',
-    status: 'On time',
-    time: 'May 28, 14:30',
-    title: 'Load #LD-78291',
-    tone: 'success',
+    route: "Chicago, IL -> Detroit, MI",
+    status: "On time",
+    time: "May 28, 14:30",
+    title: "Load #LD-78291",
+    tone: "success",
   },
   {
-    route: 'Dallas, TX -> Houston, TX',
-    status: 'Delayed',
-    time: 'May 27, 09:45',
-    title: 'Load #LD-10456',
-    tone: 'warning',
+    route: "Dallas, TX -> Houston, TX",
+    status: "Delayed",
+    time: "May 27, 09:45",
+    title: "Load #LD-10456",
+    tone: "warning",
   },
   {
-    route: 'Atlanta, GA -> Miami, FL',
-    status: 'On time',
-    time: 'May 25, 16:20',
-    title: 'Load #LD-2156',
-    tone: 'success',
+    route: "Atlanta, GA -> Miami, FL",
+    status: "On time",
+    time: "May 25, 16:20",
+    title: "Load #LD-2156",
+    tone: "success",
   },
 ] as const;
 
@@ -84,12 +85,13 @@ export function DriverProfilePanel({
   driver,
   isOpen,
   onClose,
+  onEdit,
 }: DriverProfilePanelProps): React.JSX.Element | null {
   if (!driver) {
     return null;
   }
 
-  const email = `${driver.name.toLowerCase().replaceAll(' ', '.')}@ailogistics.com`;
+  const email = `${driver.name.toLowerCase().replaceAll(" ", ".")}@ailogistics.com`;
 
   return (
     <SidePanel
@@ -133,10 +135,10 @@ export function DriverProfilePanel({
           {profileTabs.map((tab) => (
             <button
               className={cn(
-                'shrink-0 border-b-3 px-3 pb-3 text-base font-semibold transition-colors',
-                tab === 'Profile'
-                  ? 'border-primary-700 text-primary-700'
-                  : 'border-transparent text-primary-700/75 hover:text-primary-700'
+                "shrink-0 border-b-3 px-3 pb-3 text-base font-semibold transition-colors",
+                tab === "Profile"
+                  ? "border-primary-700 text-primary-700"
+                  : "border-transparent text-primary-700/75 hover:text-primary-700",
               )}
               key={tab}
               type="button"
@@ -149,7 +151,14 @@ export function DriverProfilePanel({
 
       <PanelSection
         action={
-          <Button size="sm" type="button" variant="outline">
+          <Button
+            onClick={() => {
+              onEdit(driver);
+            }}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
             <Edit3 className="size-4" />
             Edit
           </Button>
@@ -168,9 +177,11 @@ export function DriverProfilePanel({
           </div>
           <div className="rounded-md border border-border p-3">
             <p className="text-sm font-base text-primary-700">License</p>
-            <p className="mt-2 text-base font-bold text-ink-900">CDL-A</p>
+            <p className="mt-2 text-base font-bold text-ink-900">
+              {driver.source?.licenseType ?? "Not provided"}
+            </p>
             <p className="mt-1 text-sm text-primary-700">
-              Expires: Aug 12, 2026
+              Expires: {driver.source?.licenseExpirationDate ?? "Not provided"}
             </p>
           </div>
           <div className="rounded-md border border-border p-3">
@@ -242,10 +253,10 @@ export function DriverProfilePanel({
             <div className="flex items-center gap-3 py-3" key={trip.title}>
               <span
                 className={cn(
-                  'flex size-8 items-center justify-center rounded-full',
-                  trip.tone === 'warning'
-                    ? 'bg-warning-background text-warning'
-                    : 'bg-accent text-teal-600'
+                  "flex size-8 items-center justify-center rounded-full",
+                  trip.tone === "warning"
+                    ? "bg-warning-background text-warning"
+                    : "bg-accent text-teal-600",
                 )}
               >
                 <Route className="size-4" />
@@ -262,7 +273,7 @@ export function DriverProfilePanel({
                 <p className="text-xs text-primary-700">{trip.time}</p>
                 <StatusBadge
                   className="mt-2"
-                  tone={trip.tone === 'warning' ? 'warning' : 'success'}
+                  tone={trip.tone === "warning" ? "warning" : "success"}
                 >
                   {trip.status}
                 </StatusBadge>

@@ -1,14 +1,19 @@
-import { BadRequestException, ConflictException } from "@nestjs/common";
+import { ConflictException } from "@nestjs/common";
 import { describe, expect, it, vi } from "vitest";
 
 import type { DriverRecord } from "../../db/schema";
 import { DriversService } from "./drivers.service";
 
 const dto = {
-  userId: "11111111-1111-1111-1111-111111111111",
+  driverCode: " DR-1001 ",
+  email: " JOHN.SMITH@EXAMPLE.COM ",
   firstName: " John ",
   lastName: " Smith ",
   phone: " +12025550123 ",
+  licenseType: "CDL-A",
+  licenseNumber: "A123456789",
+  licenseExpirationDate: "2028-08-12",
+  licenseState: "Texas",
   truckNumber: " TR-1001 ",
   trailerNumber: " TL-1001 ",
   isActive: true,
@@ -17,10 +22,22 @@ const dto = {
 
 const driverRecord: DriverRecord = {
   id: "22222222-2222-2222-2222-222222222222",
+  userId: null,
   ...dto,
   firstName: "John",
   lastName: "Smith",
   phone: "+12025550123",
+  avatarUrl: null,
+  dateOfBirth: null,
+  address: null,
+  hireDate: null,
+  licenseType: "CDL-A",
+  licenseNumber: "A123456789",
+  licenseExpirationDate: "2028-08-12",
+  licenseState: "Texas",
+  emergencyContact: null,
+  emergencyPhone: null,
+  notes: null,
   truckNumber: "TR-1001",
   trailerNumber: "TL-1001",
   currentLocation: null,
@@ -56,10 +73,7 @@ const createService = (selectResult: unknown[], insertResult: unknown[]) => {
 
 describe("DriversService.create", () => {
   it("creates a driver with normalized values", async () => {
-    const { insertChain, service } = createService(
-      [{ id: dto.userId, role: "driver" }],
-      [driverRecord],
-    );
+    const { insertChain, service } = createService([], [driverRecord]);
 
     await expect(service.create(dto)).resolves.toEqual({
       success: true,
@@ -74,23 +88,23 @@ describe("DriversService.create", () => {
       ...dto,
       firstName: "John",
       lastName: "Smith",
+      driverCode: "DR-1001",
+      email: "john.smith@example.com",
       phone: "+12025550123",
+      address: null,
+      emergencyContact: null,
+      emergencyPhone: null,
+      licenseNumber: "A123456789",
+      licenseState: "Texas",
+      licenseType: "CDL-A",
+      notes: null,
       truckNumber: "TR-1001",
       trailerNumber: "TL-1001",
     });
   });
 
-  it("rejects a user that is not a driver", async () => {
-    const { service } = createService(
-      [{ id: dto.userId, role: "dispatcher" }],
-      [],
-    );
-
-    await expect(service.create(dto)).rejects.toThrow(BadRequestException);
-  });
-
   it("returns conflict for duplicate driver data", async () => {
-    const { service } = createService([{ id: dto.userId, role: "driver" }], []);
+    const { service } = createService([], []);
     const error = Object.assign(new Error("duplicate"), { code: "23505" });
     const insert = (
       service as unknown as {
