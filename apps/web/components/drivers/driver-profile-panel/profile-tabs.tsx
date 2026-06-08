@@ -17,7 +17,11 @@ import { StatusBadge } from "@repo/ui/components/status-badge";
 import { driverStatusTone } from "../driver-styles";
 import type { DriverRow } from "../types";
 import { EmptyTab, PanelSection } from "./panel-section";
-import { formatDate, getDocumentStatus } from "./profile-formatters";
+import {
+  formatDate,
+  formatTimestamp,
+  getDocumentStatus,
+} from "./profile-formatters";
 import type { ProfileTab } from "./profile-header";
 
 const documentIcon = {
@@ -253,7 +257,7 @@ const ActivityTab = ({
             <div>
               <p className="text-sm font-medium">{item.description}</p>
               <p className="text-xs text-primary-700">
-                {formatDate(item.createdAt)}
+                {formatTimestamp(item.createdAt)}
               </p>
             </div>
           </div>

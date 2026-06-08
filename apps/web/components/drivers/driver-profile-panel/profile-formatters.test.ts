@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { formatDate, getDocumentStatus } from "./profile-formatters";
+import {
+  formatDate,
+  formatTimestamp,
+  getDocumentStatus,
+} from "./profile-formatters";
 
 describe("profile formatters", () => {
   afterEach(() => {
@@ -9,6 +13,12 @@ describe("profile formatters", () => {
 
   it("formats date-only values as calendar dates", () => {
     expect(formatDate("2028-08-12")).toBe("Aug 12, 2028");
+  });
+
+  it("formats activity timestamps", () => {
+    expect(formatTimestamp("2026-06-07T15:20:00Z")).toMatch(
+      /^Jun 7, 2026, \d{1,2}:20 (AM|PM)$/,
+    );
   });
 
   it("keeps documents valid through their expiry date", () => {
