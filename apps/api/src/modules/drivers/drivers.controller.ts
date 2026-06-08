@@ -7,6 +7,7 @@ import {
   Patch,
   ParseUUIDPipe,
   Post,
+  Put,
   Query,
   UseGuards,
 } from "@nestjs/common";
@@ -15,16 +16,21 @@ import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { Roles } from "../auth/roles.decorator";
 import { RolesGuard } from "../auth/roles.guard";
 import { CreateDriverDto } from "./dto/create-driver.dto";
+import { CreateDriverDocumentDto } from "./dto/create-driver-document.dto";
 import { ListDriversQueryDto } from "./dto/list-drivers-query.dto";
 import { UpdateDriverDto } from "./dto/update-driver.dto";
+import { UpsertDriverVehicleDto } from "./dto/upsert-driver-vehicle.dto";
 import { DriversService } from "./drivers.service";
 import type {
   CreateDriverResponse,
+  CreateDriverDocumentResponse,
+  DeleteDriverDocumentResponse,
   DeleteDriverResponse,
   DriverCandidatesResponse,
   DriverDetailsResponse,
   DriversListResponse,
   UpdateDriverResponse,
+  UpsertDriverVehicleResponse,
 } from "./drivers.types";
 
 @Controller("drivers")
@@ -68,6 +74,36 @@ export class DriversController {
     @Body() dto: UpdateDriverDto,
   ): Promise<UpdateDriverResponse> {
     return this.driversService.update(id, dto);
+  }
+
+  @Post(":id/documents")
+  @Roles("admin", "dispatcher")
+  @UseGuards(RolesGuard)
+  addDocument(
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Body() dto: CreateDriverDocumentDto,
+  ): Promise<CreateDriverDocumentResponse> {
+    return this.driversService.addDocument(id, dto);
+  }
+
+  @Delete(":id/documents/:documentId")
+  @Roles("admin", "dispatcher")
+  @UseGuards(RolesGuard)
+  removeDocument(
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Param("documentId", new ParseUUIDPipe()) documentId: string,
+  ): Promise<DeleteDriverDocumentResponse> {
+    return this.driversService.removeDocument(id, documentId);
+  }
+
+  @Put(":id/vehicle")
+  @Roles("admin", "dispatcher")
+  @UseGuards(RolesGuard)
+  upsertVehicle(
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Body() dto: UpsertDriverVehicleDto,
+  ): Promise<UpsertDriverVehicleResponse> {
+    return this.driversService.upsertVehicle(id, dto);
   }
 
   @Delete(":id")

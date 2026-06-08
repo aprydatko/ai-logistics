@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 
@@ -10,7 +10,10 @@ import {
   type DriverFormValues,
 } from "@/lib/drivers/driver-form-schema";
 import { saveDriver } from "@/lib/drivers/driver-mutations";
-import type { DriversApiItem } from "@/lib/drivers/drivers-query";
+import {
+  driverDetailsQueryOptions,
+  type DriversApiItem,
+} from "@/lib/drivers/drivers-query";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +26,9 @@ import { toast } from "@repo/ui/components/toaster";
 import { DialogFooter } from "./dialog-footer";
 import { DocumentsTab } from "./documents-tab";
 import { emptyDriverFormValues, toDriverFormValues } from "./form-values";
+import { HistoryTab } from "./history-tab";
 import { ProfileTab } from "./profile-tab";
+import { TruckTab } from "./truck-tab";
 
 interface DriverFormDialogProps {
   driver: DriversApiItem | null;
@@ -31,15 +36,24 @@ interface DriverFormDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type DriverTab = "profile" | "documents";
+type DriverTab = "info" | "truck" | "documents" | "trips" | "activity";
+
+const tabs: Array<{ id: DriverTab; label: string }> = [
+  { id: "info", label: "Info" },
+  { id: "truck", label: "Truck" },
+  { id: "documents", label: "Docs" },
+  { id: "trips", label: "Trips" },
+  { id: "activity", label: "Activity" },
+];
 
 export const DriverFormDialog = ({
   driver,
   isOpen,
   onOpenChange,
 }: DriverFormDialogProps): React.JSX.Element => {
-  const [tab, setTab] = React.useState<DriverTab>("profile");
+  const [tab, setTab] = React.useState<DriverTab>("info");
   const queryClient = useQueryClient();
+  const detailsQuery = useQuery(driverDetailsQueryOptions(driver?.id ?? ""));
   const form = useForm<DriverFormValues>({
     resolver: zodResolver(driverFormSchema),
     defaultValues: emptyDriverFormValues,
@@ -76,7 +90,7 @@ export const DriverFormDialog = ({
 
     form.reset(toDriverFormValues(driver));
     resetMutation();
-    setTab("profile");
+    setTab("info");
   }, [driver, form, isOpen, resetMutation]);
 
   return (
@@ -87,19 +101,19 @@ export const DriverFormDialog = ({
           <DialogDescription className="sr-only">
             Driver profile and document information.
           </DialogDescription>
-          <div className="mt-5 flex gap-8 border-b border-border">
-            {(["profile", "documents"] as const).map((item) => (
+          <div className="mt-5 flex gap-5 overflow-x-auto border-b border-border">
+            {tabs.map((item) => (
               <button
                 className={`border-b-2 px-1 pb-3 text-sm font-semibold capitalize transition ${
-                  tab === item
+                  tab === item.id
                     ? "border-primary-700 text-primary-700"
                     : "border-transparent text-primary-700/70 hover:text-primary-700"
                 }`}
-                key={item}
-                onClick={() => setTab(item)}
+                key={item.id}
+                onClick={() => setTab(item.id)}
                 type="button"
               >
-                {item}
+                {item.label}
               </button>
             ))}
           </div>
@@ -114,22 +128,35 @@ export const DriverFormDialog = ({
             )}
           >
             <div className="min-h-0 flex-1 overflow-y-auto px-7 py-5 pr-5 [scrollbar-color:var(--primary-700)_transparent] [scrollbar-gutter:stable] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:my-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-primary-700/35 [&::-webkit-scrollbar-thumb]:bg-clip-padding [&::-webkit-scrollbar-thumb:hover]:bg-primary-700/60">
-              {tab === "documents" ? (
-                <DocumentsTab />
-              ) : (
+              {tab === "info" ? (
                 <ProfileTab
                   form={form}
                   mutationError={
                     mutation.isError ? mutation.error.message : null
                   }
                 />
-              )}
+              ) : null}
+              {tab === "truck" ? (
+                <TruckTab details={detailsQuery.data} driverId={driver?.id} />
+              ) : null}
+              {tab === "documents" ? (
+                <DocumentsTab
+                  details={detailsQuery.data}
+                  driverId={driver?.id}
+                />
+              ) : null}
+              {tab === "trips" ? (
+                <HistoryTab details={detailsQuery.data} type="trips" />
+              ) : null}
+              {tab === "activity" ? (
+                <HistoryTab details={detailsQuery.data} type="activity" />
+              ) : null}
             </div>
             <DialogFooter
               form={form}
               isEditing={Boolean(driver)}
               isPending={mutation.isPending}
-              isSubmitDisabled={tab === "documents"}
+              isSubmitDisabled={tab === "trips" || tab === "activity"}
             />
           </form>
         </Form>

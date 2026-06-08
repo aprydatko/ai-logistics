@@ -54,6 +54,33 @@ export type DeleteDriverResponse = {
   message: string;
 };
 
+export type DriverDocument = Omit<
+  DriverDocumentRecord,
+  "createdAt" | "updatedAt"
+> & {
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateDriverDocumentResponse = {
+  success: true;
+  data: DriverDocument;
+};
+
+export type DeleteDriverDocumentResponse = {
+  success: true;
+  message: string;
+};
+
+export type UpsertDriverVehicleResponse = {
+  success: true;
+  data: Omit<VehicleRecord, "createdAt" | "updatedAt"> & {
+    assignedAt: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+};
+
 export type DriverTrip = Omit<
   LoadRecord,
   "createdAt" | "deliveryDate" | "pickupDate" | "price" | "updatedAt"
@@ -75,12 +102,7 @@ export type DriverDetailsResponse = {
           updatedAt: string;
         })
       | null;
-    documents: Array<
-      Omit<DriverDocumentRecord, "createdAt" | "updatedAt"> & {
-        createdAt: string;
-        updatedAt: string;
-      }
-    >;
+    documents: DriverDocument[];
     tripsHistory: DriverTrip[];
     activity: Array<
       Omit<DriverActivityRecord, "createdAt"> & {

@@ -76,6 +76,7 @@ export const vehicles = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     unitNumber: varchar("unit_number", { length: 50 }).notNull(),
     type: varchar("type", { length: 50 }).default("truck").notNull(),
+    imageUrl: text("image_url"),
     make: varchar("make", { length: 100 }),
     model: varchar("model", { length: 100 }),
     year: integer("year"),

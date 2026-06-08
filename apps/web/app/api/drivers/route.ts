@@ -22,7 +22,7 @@ const allowedQueryParameters = new Set([
 export async function proxyDriverMutation(
   request: Request,
   path: string,
-  method: "GET" | "POST" | "PATCH" | "DELETE",
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
 ): Promise<NextResponse> {
   try {
     const cookieStore = await cookies();

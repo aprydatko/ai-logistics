@@ -30,10 +30,14 @@ import {
   vehicles,
 } from "../../db/schema";
 import type { CreateDriverDto } from "./dto/create-driver.dto";
+import type { CreateDriverDocumentDto } from "./dto/create-driver-document.dto";
 import type { ListDriversQueryDto } from "./dto/list-drivers-query.dto";
 import type { UpdateDriverDto } from "./dto/update-driver.dto";
+import type { UpsertDriverVehicleDto } from "./dto/upsert-driver-vehicle.dto";
 import type {
   CreateDriverResponse,
+  CreateDriverDocumentResponse,
+  DeleteDriverDocumentResponse,
   DeleteDriverResponse,
   DriverDetailsResponse,
   DriverCandidatesResponse,
@@ -41,6 +45,7 @@ import type {
   DriverTrip,
   DriversListResponse,
   UpdateDriverResponse,
+  UpsertDriverVehicleResponse,
 } from "./drivers.types";
 
 @Injectable()
@@ -257,6 +262,182 @@ export class DriversService {
     }
   }
 
+  async addDocument(
+    driverId: string,
+    dto: CreateDriverDocumentDto,
+  ): Promise<CreateDriverDocumentResponse> {
+    await this.assertDriverExists(driverId);
+    const fileSize = Buffer.byteLength(dto.content, "base64");
+
+    if (fileSize > 5 * 1024 * 1024) {
+      throw new BadRequestException("Document must be 5 MB or smaller");
+    }
+
+    const [document] = await this.databaseService.client
+      .insert(driverDocuments)
+      .values({
+        driverId,
+        type: dto.type,
+        name: dto.name.trim(),
+        documentNumber: dto.documentNumber?.trim() || null,
+        fileUrl: `data:${dto.mimeType};base64,${dto.content}`,
+        mimeType: dto.mimeType,
+        fileSize,
+        issuedAt: dto.issuedAt,
+        expiresAt: dto.expiresAt,
+      })
+      .returning();
+
+    if (!document) {
+      throw new InternalServerErrorException("Failed to save document");
+    }
+
+    await this.databaseService.client.insert(driverActivity).values({
+      driverId,
+      type: "document_added",
+      description: `Document "${document.name}" was added`,
+      metadata: { documentId: document.id, documentType: document.type },
+    });
+
+    return {
+      success: true,
+      data: {
+        ...document,
+        createdAt: document.createdAt.toISOString(),
+        updatedAt: document.updatedAt.toISOString(),
+      },
+    };
+  }
+
+  async removeDocument(
+    driverId: string,
+    documentId: string,
+  ): Promise<DeleteDriverDocumentResponse> {
+    const [document] = await this.databaseService.client
+      .delete(driverDocuments)
+      .where(
+        and(
+          eq(driverDocuments.id, documentId),
+          eq(driverDocuments.driverId, driverId),
+        ),
+      )
+      .returning({ id: driverDocuments.id });
+
+    if (!document) {
+      throw new NotFoundException("Document was not found");
+    }
+
+    return { success: true, message: "Document deleted" };
+  }
+
+  async upsertVehicle(
+    driverId: string,
+    dto: UpsertDriverVehicleDto,
+  ): Promise<UpsertDriverVehicleResponse> {
+    await this.assertDriverExists(driverId);
+
+    if (dto.imageContent) {
+      const imageSize = Buffer.byteLength(dto.imageContent, "base64");
+      if (imageSize > 2 * 1024 * 1024) {
+        throw new BadRequestException("Truck image must be 2 MB or smaller");
+      }
+    }
+
+    try {
+      return await this.databaseService.client.transaction(async (tx) => {
+        const [assignment] = await tx
+          .select({
+            vehicleId: driverVehicleAssignments.vehicleId,
+            assignedAt: driverVehicleAssignments.assignedAt,
+          })
+          .from(driverVehicleAssignments)
+          .where(
+            and(
+              eq(driverVehicleAssignments.driverId, driverId),
+              isNull(driverVehicleAssignments.unassignedAt),
+              eq(driverVehicleAssignments.isPrimary, true),
+            ),
+          )
+          .limit(1);
+        const vehicleValues = {
+          unitNumber: dto.unitNumber.trim().toUpperCase(),
+          type: dto.type.trim(),
+          make: dto.make?.trim() || null,
+          model: dto.model?.trim() || null,
+          year: dto.year,
+          licensePlate: dto.licensePlate?.trim().toUpperCase() || null,
+          odometerMiles: dto.odometerMiles,
+          status: dto.status,
+          lastServiceAt: dto.lastServiceAt,
+          ...(dto.imageContent && dto.imageMimeType
+            ? {
+                imageUrl: `data:${dto.imageMimeType};base64,${dto.imageContent}`,
+              }
+            : {}),
+          updatedAt: new Date(),
+        };
+        let vehicle;
+        const assignedAt = assignment?.assignedAt ?? new Date();
+
+        if (assignment) {
+          [vehicle] = await tx
+            .update(vehicles)
+            .set(vehicleValues)
+            .where(eq(vehicles.id, assignment.vehicleId))
+            .returning();
+        } else {
+          [vehicle] = await tx
+            .insert(vehicles)
+            .values(vehicleValues)
+            .returning();
+
+          if (vehicle) {
+            await tx.insert(driverVehicleAssignments).values({
+              driverId,
+              vehicleId: vehicle.id,
+              assignedAt,
+              isPrimary: true,
+            });
+          }
+        }
+
+        if (!vehicle) {
+          throw new InternalServerErrorException("Failed to save truck");
+        }
+
+        await tx
+          .update(drivers)
+          .set({ truckNumber: vehicle.unitNumber, updatedAt: new Date() })
+          .where(eq(drivers.id, driverId));
+        await tx.insert(driverActivity).values({
+          driverId,
+          type: assignment ? "updated" : "vehicle_assigned",
+          description: assignment
+            ? `Truck ${vehicle.unitNumber} was updated`
+            : `Truck ${vehicle.unitNumber} was assigned`,
+          metadata: { vehicleId: vehicle.id },
+        });
+
+        return {
+          success: true,
+          data: {
+            ...vehicle,
+            assignedAt: assignedAt.toISOString(),
+            createdAt: vehicle.createdAt.toISOString(),
+            updatedAt: vehicle.updatedAt.toISOString(),
+          },
+        };
+      });
+    } catch (error: unknown) {
+      if (this.isUniqueViolation(error)) {
+        throw new ConflictException(
+          "Truck number or VIN is already assigned to another vehicle",
+        );
+      }
+      throw error;
+    }
+  }
+
   async remove(id: string): Promise<DeleteDriverResponse> {
     const [driver] = await this.databaseService.client
       .delete(drivers)
@@ -339,6 +520,18 @@ export class DriversService {
 
     if (!user || user.role !== "driver") {
       throw new BadRequestException("Driver user was not found");
+    }
+  }
+
+  private async assertDriverExists(driverId: string): Promise<void> {
+    const [driver] = await this.databaseService.client
+      .select({ id: drivers.id })
+      .from(drivers)
+      .where(eq(drivers.id, driverId))
+      .limit(1);
+
+    if (!driver) {
+      throw new NotFoundException("Driver was not found");
     }
   }
 

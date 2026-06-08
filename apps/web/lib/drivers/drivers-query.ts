@@ -76,6 +76,7 @@ const vehicleSchema = z.object({
   id: z.string().uuid(),
   unitNumber: z.string(),
   type: z.string(),
+  imageUrl: z.string().nullable(),
   make: z.string().nullable(),
   model: z.string().nullable(),
   year: z.number().nullable(),
