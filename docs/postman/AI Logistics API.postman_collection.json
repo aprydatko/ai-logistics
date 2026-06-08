@@ -1,0 +1,363 @@
+{
+  "info": {
+    "_postman_id": "c05bafaa-2aac-46be-8781-bd9fd2bbf267",
+    "name": "AI Logistics API",
+    "description": "Current authentication and driver API requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "6430736"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('accessToken', body.accessToken);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"firstName\": \"Ivan\",\r\n  \"lastName\": \"Petrenko\",\r\n  \"email\": \"ivan.petrenko@example.com\",\r\n  \"password\": \"StrongPass123\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Register a new user account."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Drivers",
+      "item": [
+        {
+          "name": "List Drivers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/drivers?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drivers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Driver Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/drivers/{{driverId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drivers",
+                "{{driverId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Driver",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverCode\": \"DR-2001\",\n  \"firstName\": \"Alex\",\n  \"lastName\": \"Morgan\",\n  \"email\": \"alex.morgan@example.com\",\n  \"phone\": \"+12025550155\",\n  \"licenseType\": \"CDL-A\",\n  \"licenseNumber\": \"WA-A-200155\",\n  \"licenseExpirationDate\": \"2029-06-30\",\n  \"licenseState\": \"Washington\",\n  \"status\": \"available\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/drivers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drivers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Driver",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"on_trip\",\n  \"notes\": \"Updated from Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/drivers/{{driverId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drivers",
+                "{{driverId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Save Truck",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"unitNumber\": \"TR-1042\",\n  \"type\": \"truck\",\n  \"make\": \"Volvo\",\n  \"model\": \"VNL 860\",\n  \"year\": 2024,\n  \"licensePlate\": \"IL 8282 AB\",\n  \"odometerMiles\": 243420,\n  \"status\": \"active\",\n  \"lastServiceAt\": \"2026-05-20\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/drivers/{{driverId}}/vehicle",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drivers",
+                "{{driverId}}",
+                "vehicle"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"license\",\n  \"name\": \"license.png\",\n  \"documentNumber\": \"CDL-1042\",\n  \"mimeType\": \"image/png\",\n  \"content\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=\",\n  \"expiresAt\": \"2029-06-30\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/drivers/{{driverId}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drivers",
+                "{{driverId}}",
+                "documents"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Document",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/drivers/{{driverId}}/documents/{{documentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drivers",
+                "{{driverId}}",
+                "documents",
+                "{{documentId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Driver",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/drivers/{{driverId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drivers",
+                "{{driverId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001/api"
+    },
+    {
+      "key": "email",
+      "value": "admin@example.com"
+    },
+    {
+      "key": "password",
+      "value": "password123"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "driverId",
+      "value": "10000000-0000-4000-8000-000000000001"
+    },
+    {
+      "key": "documentId",
+      "value": "40000000-0000-4000-8000-000000000001"
+    }
+  ]
+}

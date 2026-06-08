@@ -11,7 +11,6 @@ import type { DriverRow } from "../types";
 export const profileTabs = [
   "Profile",
   "Truck",
-  "Info",
   "Docs",
   "Trips",
   "Activity",

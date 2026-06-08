@@ -30,7 +30,9 @@ const emptyVehicle: DriverVehicleInput = {
   type: "truck",
   make: "",
   model: "",
+  licensePlate: "",
   status: "active",
+  lastServiceAt: "",
 };
 
 const fileToBase64 = (file: File): Promise<string> =>
