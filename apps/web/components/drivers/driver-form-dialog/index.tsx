@@ -156,7 +156,7 @@ export const DriverFormDialog = ({
               form={form}
               isEditing={Boolean(driver)}
               isPending={mutation.isPending}
-              isSubmitDisabled={tab === "trips" || tab === "activity"}
+              isSubmitDisabled={tab !== "info"}
             />
           </form>
         </Form>

@@ -273,31 +273,40 @@ export class DriversService {
       throw new BadRequestException("Document must be 5 MB or smaller");
     }
 
-    const [document] = await this.databaseService.client
-      .insert(driverDocuments)
-      .values({
-        driverId,
-        type: dto.type,
-        name: dto.name.trim(),
-        documentNumber: dto.documentNumber?.trim() || null,
-        fileUrl: `data:${dto.mimeType};base64,${dto.content}`,
-        mimeType: dto.mimeType,
-        fileSize,
-        issuedAt: dto.issuedAt,
-        expiresAt: dto.expiresAt,
-      })
-      .returning();
+    const document = await this.databaseService.client.transaction(
+      async (tx) => {
+        const [savedDocument] = await tx
+          .insert(driverDocuments)
+          .values({
+            driverId,
+            type: dto.type,
+            name: dto.name.trim(),
+            documentNumber: dto.documentNumber?.trim() || null,
+            fileUrl: `data:${dto.mimeType};base64,${dto.content}`,
+            mimeType: dto.mimeType,
+            fileSize,
+            issuedAt: dto.issuedAt,
+            expiresAt: dto.expiresAt,
+          })
+          .returning();
 
-    if (!document) {
-      throw new InternalServerErrorException("Failed to save document");
-    }
+        if (!savedDocument) {
+          throw new InternalServerErrorException("Failed to save document");
+        }
 
-    await this.databaseService.client.insert(driverActivity).values({
-      driverId,
-      type: "document_added",
-      description: `Document "${document.name}" was added`,
-      metadata: { documentId: document.id, documentType: document.type },
-    });
+        await tx.insert(driverActivity).values({
+          driverId,
+          type: "document_added",
+          description: `Document "${savedDocument.name}" was added`,
+          metadata: {
+            documentId: savedDocument.id,
+            documentType: savedDocument.type,
+          },
+        });
+
+        return savedDocument;
+      },
+    );
 
     return {
       success: true,
