@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
@@ -118,6 +119,12 @@ export const driverVehicleAssignments = pgTable(
   (table) => [
     index("driver_vehicle_assignments_driver_id_idx").on(table.driverId),
     index("driver_vehicle_assignments_vehicle_id_idx").on(table.vehicleId),
+    uniqueIndex("driver_vehicle_assignments_active_primary_driver_unique")
+      .on(table.driverId)
+      .where(sql`${table.unassignedAt} is null and ${table.isPrimary} = true`),
+    uniqueIndex("driver_vehicle_assignments_active_primary_vehicle_unique")
+      .on(table.vehicleId)
+      .where(sql`${table.unassignedAt} is null and ${table.isPrimary} = true`),
   ],
 );
 
