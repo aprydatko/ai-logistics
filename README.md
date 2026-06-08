@@ -22,8 +22,7 @@ apps/
   web/      Main product app
 
 packages/
-  shared/   Shared logistics types and
-  DTOs
+  shared/   Shared logistics types and DTOs
   ui/       Shared React UI components
   eslint-config/
   typescript-config/
@@ -81,5 +80,6 @@ When E2E tests fail, download the Playwright artifacts from the workflow run:
 - `AGENTS.md`: Codex working rules.
 - `docs/architecture.md`: repository structure and dependency direction.
 - `docs/coding-standards.md`: core coding standards.
+- `docs/drivers.md`: driver profiles, API details, and demo data.
 - `docs/testing.md`: verification guidance.
 - `docs/review-checklist.md`: review checklist.
