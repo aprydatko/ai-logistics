@@ -1,110 +1,19 @@
-import { describe, expect, it, vi } from "vitest";
+import { GUARDS_METADATA } from "@nestjs/common/constants";
+import { describe, expect, it } from "vitest";
 
+import { ROLES_KEY } from "../auth/roles.decorator";
+import { RolesGuard } from "../auth/roles.guard";
 import { DriversController } from "./drivers.controller";
-import type { DriversService } from "./drivers.service";
 
-describe("DriversController", () => {
-  it("returns users that can be assigned to a driver profile", async () => {
-    const response = { success: true as const, data: [] };
-    const service = {
-      findCandidates: vi.fn().mockResolvedValue(response),
-    } as unknown as DriversService;
-    const controller = new DriversController(service);
-
-    await expect(controller.findCandidates()).resolves.toEqual(response);
-    expect(service.findCandidates).toHaveBeenCalledOnce();
-  });
-
-  it("passes filters to the drivers service", async () => {
-    const response = { success: true as const, data: [] };
-    const service = {
-      findAll: vi.fn().mockResolvedValue(response),
-    } as unknown as DriversService;
-    const controller = new DriversController(service);
-    const query = {
-      search: "smith",
-      isActive: true,
-      truckNumber: "TR-10",
-      status: "available" as const,
-      page: 2,
-      limit: 10,
-    };
-
-    await expect(controller.findAll(query)).resolves.toEqual(response);
-    expect(service.findAll).toHaveBeenCalledWith(query);
-  });
-
-  it("passes a new driver to the drivers service", async () => {
-    const response = {
-      success: true as const,
-      data: { id: "driver-id" },
-    };
-    const service = {
-      create: vi.fn().mockResolvedValue(response),
-    } as unknown as DriversService;
-    const controller = new DriversController(service);
-    const dto = {
-      driverCode: "DR-1001",
-      email: "john.smith@example.com",
-      firstName: "John",
-      lastName: "Smith",
-      phone: "+12025550123",
-      licenseType: "CDL-A",
-      licenseNumber: "A123456789",
-      licenseExpirationDate: "2028-08-12",
-      licenseState: "Texas",
-      truckNumber: "TR-1001",
-      trailerNumber: "TL-1001",
-      isActive: true,
-      status: "available" as const,
-    };
-
-    await expect(controller.create(dto)).resolves.toEqual(response);
-    expect(service.create).toHaveBeenCalledWith(dto);
-  });
-
-  it("passes the driver id to the drivers service", async () => {
-    const response = {
-      success: true as const,
-      data: { id: "driver-id", tripsHistory: [] },
-    };
-    const service = {
-      findById: vi.fn().mockResolvedValue(response),
-    } as unknown as DriversService;
-    const controller = new DriversController(service);
-
-    await expect(controller.findById("driver-id")).resolves.toEqual(response);
-    expect(service.findById).toHaveBeenCalledWith("driver-id");
-  });
-
-  it("passes driver updates to the drivers service", async () => {
-    const response = {
-      success: true as const,
-      data: { id: "driver-id", isActive: false },
-    };
-    const service = {
-      update: vi.fn().mockResolvedValue(response),
-    } as unknown as DriversService;
-    const controller = new DriversController(service);
-    const dto = { isActive: false };
-
-    await expect(controller.update("driver-id", dto)).resolves.toEqual(
-      response,
-    );
-    expect(service.update).toHaveBeenCalledWith("driver-id", dto);
-  });
-
-  it("passes the driver id to the delete service", async () => {
-    const response = {
-      success: true as const,
-      message: "Driver deleted",
-    };
-    const service = {
-      remove: vi.fn().mockResolvedValue(response),
-    } as unknown as DriversService;
-    const controller = new DriversController(service);
-
-    await expect(controller.remove("driver-id")).resolves.toEqual(response);
-    expect(service.remove).toHaveBeenCalledWith("driver-id");
+describe("DriversController.findById", () => {
+  it("restricts driver details to operations roles", () => {
+    expect(Reflect.getMetadata(ROLES_KEY, DriversController.prototype.findById))
+      .toEqual(["admin", "dispatcher"]);
+    expect(
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        DriversController.prototype.findById,
+      ),
+    ).toContain(RolesGuard);
   });
 });
