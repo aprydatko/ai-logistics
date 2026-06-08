@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import * as React from 'react';
+import { useQuery } from "@tanstack/react-query";
+import * as React from "react";
 
-import { driverDetailsQueryOptions } from '@/lib/drivers/drivers-query';
-import { SidePanel } from '@repo/ui/components/side-panel';
+import { driverDetailsQueryOptions } from "@/lib/drivers/drivers-query";
+import { SidePanel } from "@repo/ui/components/side-panel";
 
-import type { DriverRow } from '../types';
-import { EmptyTab } from './panel-section';
-import { ProfileHeader, type ProfileTab } from './profile-header';
-import { ProfilePanelSkeleton } from './profile-panel-skeleton';
-import { ProfileTabContent } from './profile-tabs';
+import type { DriverRow } from "../types";
+import { EmptyTab } from "./panel-section";
+import { ProfileHeader, type ProfileTab } from "./profile-header";
+import { ProfilePanelSkeleton } from "./profile-panel-skeleton";
+import { ProfileTabContent } from "./profile-tabs";
 
 type DriverProfilePanelProps = {
   driver: DriverRow | null;
@@ -25,12 +25,12 @@ export const DriverProfilePanel = ({
   onClose,
   onEdit,
 }: DriverProfilePanelProps): React.JSX.Element | null => {
-  const [activeTab, setActiveTab] = React.useState<ProfileTab>('Profile');
-  const driverId = driver?.source?.id ?? '';
+  const [activeTab, setActiveTab] = React.useState<ProfileTab>("Profile");
+  const driverId = driver?.source?.id ?? "";
   const detailsQuery = useQuery(driverDetailsQueryOptions(driverId));
 
   React.useEffect(() => {
-    if (isOpen) setActiveTab('Profile');
+    if (isOpen) setActiveTab("Profile");
   }, [driverId, isOpen]);
 
   if (!driver) return null;

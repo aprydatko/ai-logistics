@@ -7,8 +7,9 @@ import { DriversController } from "./drivers.controller";
 
 describe("DriversController.findById", () => {
   it("restricts driver details to operations roles", () => {
-    expect(Reflect.getMetadata(ROLES_KEY, DriversController.prototype.findById))
-      .toEqual(["admin", "dispatcher"]);
+    expect(
+      Reflect.getMetadata(ROLES_KEY, DriversController.prototype.findById),
+    ).toEqual(["admin", "dispatcher"]);
     expect(
       Reflect.getMetadata(
         GUARDS_METADATA,
