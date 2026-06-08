@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX "driver_vehicle_assignments_active_primary_driver_unique" ON "driver_vehicle_assignments" USING btree ("driver_id") WHERE "driver_vehicle_assignments"."unassigned_at" is null and "driver_vehicle_assignments"."is_primary" = true;--> statement-breakpoint
+CREATE UNIQUE INDEX "driver_vehicle_assignments_active_primary_vehicle_unique" ON "driver_vehicle_assignments" USING btree ("vehicle_id") WHERE "driver_vehicle_assignments"."unassigned_at" is null and "driver_vehicle_assignments"."is_primary" = true;

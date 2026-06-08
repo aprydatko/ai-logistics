@@ -22,7 +22,7 @@ const allowedQueryParameters = new Set([
 export async function proxyDriverMutation(
   request: Request,
   path: string,
-  method: "POST" | "PATCH" | "DELETE",
+  method: "GET" | "POST" | "PATCH" | "DELETE",
 ): Promise<NextResponse> {
   try {
     const cookieStore = await cookies();
@@ -39,7 +39,10 @@ export async function proxyDriverMutation(
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const body = method === "DELETE" ? undefined : await request.text();
+    const body =
+      method === "GET" || method === "DELETE"
+        ? undefined
+        : await request.text();
     const sendRequest = (token: string): Promise<Response> =>
       fetch(`${API_BASE_URL}/${path}`, {
         method,

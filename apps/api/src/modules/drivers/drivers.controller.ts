@@ -45,6 +45,8 @@ export class DriversController {
   }
 
   @Get(":id")
+  @Roles("admin", "dispatcher")
+  @UseGuards(RolesGuard)
   findById(
     @Param("id", new ParseUUIDPipe()) id: string,
   ): Promise<DriverDetailsResponse> {
