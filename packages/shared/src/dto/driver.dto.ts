@@ -3,7 +3,7 @@ import type { Driver } from "../types/driver.js";
 
 export type CreateDriverDto = Omit<
   Driver,
-  keyof BaseEntity | "user" | "currentLocation"
+  keyof BaseEntity | "user" | "currentLocation" | "rating"
 >;
 
 export type UpdateDriverDto = Partial<CreateDriverDto>;

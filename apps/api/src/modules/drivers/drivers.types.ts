@@ -1,10 +1,17 @@
-import type { DriverRecord, LoadRecord } from "../../db/schema";
+import type {
+  DriverActivityRecord,
+  DriverDocumentRecord,
+  DriverRecord,
+  LoadRecord,
+  VehicleRecord,
+} from "../../db/schema";
 
 export type DriverListItem = Omit<
   DriverRecord,
-  "createdAt" | "currentLocation" | "updatedAt"
+  "createdAt" | "currentLocation" | "rating" | "updatedAt"
 > & {
   currentLocation?: NonNullable<DriverRecord["currentLocation"]>;
+  rating: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -61,6 +68,24 @@ export type DriverTrip = Omit<
 export type DriverDetailsResponse = {
   success: true;
   data: DriverListItem & {
+    currentVehicle:
+      | (Omit<VehicleRecord, "createdAt" | "updatedAt"> & {
+          assignedAt: string;
+          createdAt: string;
+          updatedAt: string;
+        })
+      | null;
+    documents: Array<
+      Omit<DriverDocumentRecord, "createdAt" | "updatedAt"> & {
+        createdAt: string;
+        updatedAt: string;
+      }
+    >;
     tripsHistory: DriverTrip[];
+    activity: Array<
+      Omit<DriverActivityRecord, "createdAt"> & {
+        createdAt: string;
+      }
+    >;
   };
 };

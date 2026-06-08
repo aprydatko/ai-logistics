@@ -20,10 +20,14 @@ import {
 import { DatabaseService } from "../../db/database.service";
 import {
   drivers,
+  driverActivity,
+  driverDocuments,
+  driverVehicleAssignments,
   type DriverRecord,
   loads,
   type LoadRecord,
   users,
+  vehicles,
 } from "../../db/schema";
 import type { CreateDriverDto } from "./dto/create-driver.dto";
 import type { ListDriversQueryDto } from "./dto/list-drivers-query.dto";
@@ -145,17 +149,70 @@ export class DriversService {
       throw new NotFoundException("Driver was not found");
     }
 
-    const tripsHistory = await this.databaseService.client
-      .select()
-      .from(loads)
-      .where(eq(loads.driverId, id))
-      .orderBy(desc(loads.pickupDate), desc(loads.createdAt));
+    const [tripsHistory, documents, activity, vehicleRows] = await Promise.all([
+      this.databaseService.client
+        .select()
+        .from(loads)
+        .where(eq(loads.driverId, id))
+        .orderBy(desc(loads.pickupDate), desc(loads.createdAt)),
+      this.databaseService.client
+        .select()
+        .from(driverDocuments)
+        .where(eq(driverDocuments.driverId, id))
+        .orderBy(
+          desc(driverDocuments.expiresAt),
+          desc(driverDocuments.createdAt),
+        ),
+      this.databaseService.client
+        .select()
+        .from(driverActivity)
+        .where(eq(driverActivity.driverId, id))
+        .orderBy(desc(driverActivity.createdAt))
+        .limit(20),
+      this.databaseService.client
+        .select({
+          vehicle: vehicles,
+          assignedAt: driverVehicleAssignments.assignedAt,
+        })
+        .from(driverVehicleAssignments)
+        .innerJoin(
+          vehicles,
+          eq(driverVehicleAssignments.vehicleId, vehicles.id),
+        )
+        .where(
+          and(
+            eq(driverVehicleAssignments.driverId, id),
+            isNull(driverVehicleAssignments.unassignedAt),
+            eq(driverVehicleAssignments.isPrimary, true),
+          ),
+        )
+        .orderBy(desc(driverVehicleAssignments.assignedAt))
+        .limit(1),
+    ]);
+    const currentVehicle = vehicleRows[0];
 
     return {
       success: true,
       data: {
         ...this.toDriver(driver),
+        currentVehicle: currentVehicle
+          ? {
+              ...currentVehicle.vehicle,
+              assignedAt: currentVehicle.assignedAt.toISOString(),
+              createdAt: currentVehicle.vehicle.createdAt.toISOString(),
+              updatedAt: currentVehicle.vehicle.updatedAt.toISOString(),
+            }
+          : null,
+        documents: documents.map((document) => ({
+          ...document,
+          createdAt: document.createdAt.toISOString(),
+          updatedAt: document.updatedAt.toISOString(),
+        })),
         tripsHistory: tripsHistory.map((trip) => this.toDriverTrip(trip)),
+        activity: activity.map((item) => ({
+          ...item,
+          createdAt: item.createdAt.toISOString(),
+        })),
       },
     };
   }
@@ -222,6 +279,7 @@ export class DriversService {
     if (query.search) {
       const pattern = `%${query.search}%`;
       const searchFilter = or(
+        ilike(drivers.driverCode, pattern),
         ilike(drivers.firstName, pattern),
         ilike(drivers.lastName, pattern),
         ilike(drivers.phone, pattern),
@@ -255,6 +313,7 @@ export class DriversService {
     return {
       ...driver,
       currentLocation: driver.currentLocation ?? undefined,
+      rating: Number(driver.rating),
       createdAt: driver.createdAt.toISOString(),
       updatedAt: driver.updatedAt.toISOString(),
     };

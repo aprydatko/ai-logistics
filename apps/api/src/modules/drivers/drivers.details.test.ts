@@ -23,6 +23,7 @@ const driver: DriverRecord = {
   emergencyContact: null,
   emergencyPhone: null,
   notes: null,
+  rating: "4.8",
   truckNumber: "TR-1001",
   trailerNumber: "TL-1001",
   isActive: true,
@@ -57,11 +58,13 @@ const trip: LoadRecord = {
 const createSelectChain = (result: unknown[], withOrderBy = false) => {
   const chain = {
     from: vi.fn(),
+    innerJoin: vi.fn(),
     where: vi.fn(),
     limit: vi.fn().mockResolvedValue(result),
     orderBy: vi.fn().mockResolvedValue(result),
   };
   chain.from.mockReturnValue(chain);
+  chain.innerJoin.mockReturnValue(chain);
   chain.where.mockReturnValue(chain);
 
   if (withOrderBy) {
@@ -71,13 +74,22 @@ const createSelectChain = (result: unknown[], withOrderBy = false) => {
   return chain;
 };
 
+const createLimitedSelectChain = (result: unknown[]) => {
+  const chain = createSelectChain(result);
+  chain.orderBy.mockReturnValue(chain);
+  return chain;
+};
+
 describe("DriversService.findById", () => {
   it("returns driver details with trip history", async () => {
     const client = {
       select: vi
         .fn()
         .mockReturnValueOnce(createSelectChain([driver]))
-        .mockReturnValueOnce(createSelectChain([trip], true)),
+        .mockReturnValueOnce(createSelectChain([trip], true))
+        .mockReturnValueOnce(createSelectChain([], true))
+        .mockReturnValueOnce(createLimitedSelectChain([]))
+        .mockReturnValueOnce(createLimitedSelectChain([])),
     };
     const service = new DriversService({
       client,
@@ -87,9 +99,12 @@ describe("DriversService.findById", () => {
       success: true,
       data: {
         ...driver,
+        rating: 4.8,
         currentLocation: undefined,
         createdAt: driver.createdAt.toISOString(),
         updatedAt: driver.updatedAt.toISOString(),
+        currentVehicle: null,
+        documents: [],
         tripsHistory: [
           {
             ...trip,
@@ -100,6 +115,7 @@ describe("DriversService.findById", () => {
             updatedAt: trip.updatedAt.toISOString(),
           },
         ],
+        activity: [],
       },
     });
   });

@@ -23,6 +23,7 @@ export interface Driver extends BaseEntity {
   emergencyContact?: string;
   emergencyPhone?: string;
   notes?: string;
+  rating: number;
 
   truckNumber?: string;
   trailerNumber?: string;

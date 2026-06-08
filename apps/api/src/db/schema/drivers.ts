@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   jsonb,
+  numeric,
   pgEnum,
   pgTable,
   date,
@@ -49,6 +50,9 @@ export const drivers = pgTable(
     emergencyContact: varchar("emergency_contact", { length: 200 }),
     emergencyPhone: varchar("emergency_phone", { length: 30 }),
     notes: text("notes"),
+    rating: numeric("rating", { precision: 2, scale: 1 })
+      .default("4.8")
+      .notNull(),
     truckNumber: varchar("truck_number", { length: 50 }),
     trailerNumber: varchar("trailer_number", { length: 50 }),
     isActive: boolean("is_active").default(true).notNull(),

@@ -20,6 +20,7 @@ const driverSchema = z.object({
   emergencyContact: z.string().nullable(),
   emergencyPhone: z.string().nullable(),
   notes: z.string().nullable(),
+  rating: z.number(),
   truckNumber: z.string().nullable(),
   trailerNumber: z.string().nullable(),
   isActive: z.boolean(),
@@ -54,6 +55,93 @@ export type DriversFilters = {
   limit: number;
 };
 export type DriversResult = z.infer<typeof driversResponseSchema>;
+
+const driverDocumentSchema = z.object({
+  id: z.string().uuid(),
+  driverId: z.string().uuid(),
+  type: z.enum(["license", "medical_card", "insurance", "other"]),
+  name: z.string(),
+  documentNumber: z.string().nullable(),
+  fileUrl: z.string().nullable(),
+  storageKey: z.string().nullable(),
+  mimeType: z.string().nullable(),
+  fileSize: z.number().nullable(),
+  issuedAt: z.string().nullable(),
+  expiresAt: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+const vehicleSchema = z.object({
+  id: z.string().uuid(),
+  unitNumber: z.string(),
+  type: z.string(),
+  make: z.string().nullable(),
+  model: z.string().nullable(),
+  year: z.number().nullable(),
+  vin: z.string().nullable(),
+  licensePlate: z.string().nullable(),
+  licenseState: z.string().nullable(),
+  odometerMiles: z.number().nullable(),
+  status: z.enum(["active", "maintenance", "inactive"]),
+  lastServiceAt: z.string().nullable(),
+  nextServiceAt: z.string().nullable(),
+  assignedAt: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+const driverTripSchema = z.object({
+  id: z.string().uuid(),
+  referenceNumber: z.string(),
+  pickupAddress: z.string(),
+  deliveryAddress: z.string(),
+  pickupDate: z.string(),
+  deliveryDate: z.string(),
+  weight: z.number(),
+  price: z.number(),
+  miles: z.number(),
+  notes: z.string().nullable(),
+  status: z.enum(["new", "assigned", "in_transit", "delivered", "cancelled"]),
+  broker: z.object({
+    id: z.string(),
+    companyName: z.string(),
+    phone: z.string(),
+  }),
+  driverId: z.string().uuid().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+const driverActivitySchema = z.object({
+  id: z.string().uuid(),
+  driverId: z.string().uuid(),
+  type: z.enum([
+    "created",
+    "updated",
+    "status_changed",
+    "document_added",
+    "vehicle_assigned",
+    "trip_assigned",
+    "trip_completed",
+  ]),
+  description: z.string(),
+  metadata: z.record(z.unknown()).nullable(),
+  actorUserId: z.string().uuid().nullable(),
+  createdAt: z.string(),
+});
+
+const driverDetailsResponseSchema = z.object({
+  success: z.literal(true),
+  data: driverSchema.extend({
+    currentVehicle: vehicleSchema.nullable(),
+    documents: z.array(driverDocumentSchema),
+    tripsHistory: z.array(driverTripSchema),
+    activity: z.array(driverActivitySchema),
+  }),
+});
+
+export type DriverDetails = z.infer<typeof driverDetailsResponseSchema>["data"];
 
 const toSearchParams = (filters: DriversFilters): URLSearchParams => {
   const params = new URLSearchParams({
@@ -92,4 +180,26 @@ export const driversQueryOptions = (filters: DriversFilters) =>
     placeholderData: keepPreviousData,
     queryKey: ["drivers", filters],
     queryFn: () => fetchDrivers(filters),
+  });
+
+export const driverDetailsQueryOptions = (driverId: string) =>
+  queryOptions({
+    enabled: Boolean(driverId),
+    queryKey: ["drivers", driverId],
+    queryFn: async (): Promise<DriverDetails> => {
+      const response = await fetch(`/api/drivers/${driverId}`);
+
+      if (!response.ok) {
+        throw new Error("Unable to load driver details");
+      }
+
+      const body: unknown = await response.json();
+      const parsedResponse = driverDetailsResponseSchema.safeParse(body);
+
+      if (!parsedResponse.success) {
+        throw new Error("The driver details response has an invalid format");
+      }
+
+      return parsedResponse.data.data;
+    },
   });

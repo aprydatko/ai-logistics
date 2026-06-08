@@ -28,6 +28,7 @@ const driver: DriverRecord = {
   emergencyContact: null,
   emergencyPhone: null,
   notes: null,
+  rating: "4.8",
   truckNumber: "TR-1001",
   trailerNumber: "TL-1001",
   isActive: false,
@@ -67,6 +68,7 @@ describe("DriversService.update", () => {
       success: true,
       data: {
         ...driver,
+        rating: 4.8,
         currentLocation: undefined,
         createdAt: driver.createdAt.toISOString(),
         updatedAt: driver.updatedAt.toISOString(),
