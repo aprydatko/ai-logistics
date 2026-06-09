@@ -1,11 +1,5 @@
-import { PageIntro } from "@/components/page-intro";
+import { LoadsTable } from "@/components/loads/loads-table";
 
-export default function LoadsPage() {
-  return (
-    <PageIntro
-      description="Track load status, origin, destination, ETA, assignments, and operational updates."
-      eyebrow="Dispatch planning"
-      title="Loads"
-    />
-  );
+export default function LoadsPage(): React.JSX.Element {
+  return <LoadsTable />;
 }
