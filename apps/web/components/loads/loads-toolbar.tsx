@@ -32,12 +32,14 @@ const routeOptions = [
 
 type LoadsToolbarProps = {
   filters: LoadFilters;
+  onCreateLoad: () => void;
   onFiltersChange: (filters: Partial<LoadFilters>) => void;
   onReset: () => void;
 };
 
 export const LoadsToolbar = ({
   filters,
+  onCreateLoad,
   onFiltersChange,
   onReset,
 }: LoadsToolbarProps): React.JSX.Element => {
@@ -101,6 +103,7 @@ export const LoadsToolbar = ({
         ) : null}
         <Button
           className="h-9 rounded-lg bg-primary-700 px-3! shadow-none hover:bg-primary-600"
+          onClick={onCreateLoad}
           type="button"
         >
           <Plus className="size-4" />

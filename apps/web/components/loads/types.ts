@@ -35,6 +35,7 @@ export type Load = {
     temperature: string;
     truckModel: string | null;
     distance: string;
+    notes: string;
   };
   schedule: {
     origin: string;
@@ -44,6 +45,16 @@ export type Load = {
     center: [number, number];
     route: Array<[number, number]>;
   };
+  routePoints: Array<{
+    label: string;
+    latitude: number;
+    longitude: number;
+  }>;
+  timeline: Array<{
+    dateTime: string;
+    description: string;
+    title: string;
+  }>;
 };
 
 export type LoadFilters = {

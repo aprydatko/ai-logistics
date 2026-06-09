@@ -16,6 +16,7 @@ import type { Load } from "../types";
 type LoadRowProps = {
   load: Load;
   isSelected: boolean;
+  onEdit: (load: Load) => void;
   onOpenDetails: (load: Load) => void;
   onSelectChange: (loadId: string, checked: boolean) => void;
 };
@@ -23,6 +24,7 @@ type LoadRowProps = {
 export const LoadRow = ({
   load,
   isSelected,
+  onEdit,
   onOpenDetails,
   onSelectChange,
 }: LoadRowProps): React.JSX.Element => (
@@ -121,7 +123,7 @@ export const LoadRow = ({
             label: "View load",
             onSelect: () => onOpenDetails(load),
           },
-          { icon: Pencil, label: "Edit load", onSelect: () => undefined },
+          { icon: Pencil, label: "Edit load", onSelect: () => onEdit(load) },
           {
             icon: UserRoundPlus,
             label: "Assign driver",

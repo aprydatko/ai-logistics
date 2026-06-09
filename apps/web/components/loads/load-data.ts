@@ -1,7 +1,12 @@
 import type { Load } from "./types";
 
-type LoadSeed = Omit<Load, "details" | "schedule" | "map"> &
-  Partial<Pick<Load, "details" | "schedule" | "map">>;
+type LoadSeed = Omit<
+  Load,
+  "details" | "schedule" | "map" | "routePoints" | "timeline"
+> &
+  Partial<
+    Pick<Load, "details" | "schedule" | "map" | "routePoints" | "timeline">
+  >;
 
 const loadSeeds: LoadSeed[] = [
   {
@@ -132,6 +137,7 @@ export const loads: Load[] = loadSeeds.map((load, index) => ({
     created: "May 25, 2025, 09:15",
     customer: "Acme Industries",
     distance: index === 0 ? "283 mi" : "420 mi",
+    notes: "",
     reference: `PO-${String(8921 + index).padStart(5, "0")}`,
     temperature: "N/A",
     truckModel: load.driver ? "Volvo VNL 860" : null,
@@ -142,4 +148,23 @@ export const loads: Load[] = loadSeeds.map((load, index) => ({
     destination: load.eta ? `${load.eta.date}, ${load.eta.time}` : "Not set",
     origin: "May 26, 08:00",
   },
+  routePoints: load.routePoints ?? [
+    {
+      label: load.route.origin,
+      latitude: defaultMap.route[0]![1],
+      longitude: defaultMap.route[0]![0],
+    },
+    {
+      label: load.route.destination,
+      latitude: defaultMap.route.at(-1)![1],
+      longitude: defaultMap.route.at(-1)![0],
+    },
+  ],
+  timeline: load.timeline ?? [
+    {
+      dateTime: "2026-05-25T09:15",
+      description: "Load record created",
+      title: "Load created",
+    },
+  ],
 }));
