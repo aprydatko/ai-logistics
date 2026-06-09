@@ -41,11 +41,13 @@ const detailActions = [
 type LoadDetailPanelProps = {
   load: Load | null;
   onClose: () => void;
+  onEdit: (load: Load) => void;
 };
 
 export const LoadDetailPanel = ({
   load,
   onClose,
+  onEdit,
 }: LoadDetailPanelProps): React.JSX.Element | null => {
   const [activeTab, setActiveTab] = React.useState<LoadTab>("Overview");
 
@@ -218,6 +220,9 @@ export const LoadDetailPanel = ({
                 <Button
                   className="h-20 flex-col gap-2 px-2 text-xs"
                   key={label}
+                  onClick={() => {
+                    if (label === "Edit load") onEdit(load);
+                  }}
                   type="button"
                   variant="outline"
                 >

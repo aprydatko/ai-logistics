@@ -14,9 +14,11 @@ import {
   TableRow,
   TableScrollArea,
 } from "@repo/ui/components/table";
+import { toast } from "@repo/ui/components/toaster";
 
-import { loads } from "../load-data";
+import { loads as initialLoads } from "../load-data";
 import { LoadDetailPanel } from "../load-detail-panel";
+import { LoadFormDialog } from "../load-form-dialog";
 import { LoadsToolbar } from "../loads-toolbar";
 import type { Load, LoadFilters } from "../types";
 import { LoadRow } from "./load-row";
@@ -56,11 +58,14 @@ const getPages = (
 };
 
 export const LoadsTable = (): React.JSX.Element => {
+  const [loads, setLoads] = React.useState(initialLoads);
   const [filters, setFilters] = React.useState(initialFilters);
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(10);
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [profileLoad, setProfileLoad] = React.useState<Load | null>(null);
+  const [formLoad, setFormLoad] = React.useState<Load | null>(null);
+  const [isFormOpen, setIsFormOpen] = React.useState(false);
 
   const filteredLoads = React.useMemo(() => {
     const search = filters.search.trim().toLowerCase();
@@ -101,7 +106,7 @@ export const LoadsTable = (): React.JSX.Element => {
         matchesDate
       );
     });
-  }, [filters]);
+  }, [filters, loads]);
 
   const totalPages = Math.max(1, Math.ceil(filteredLoads.length / pageSize));
   const visibleLoads = filteredLoads.slice(
@@ -134,6 +139,10 @@ export const LoadsTable = (): React.JSX.Element => {
       <div className="flex min-w-0 flex-1 flex-col gap-5 overflow-hidden">
         <LoadsToolbar
           filters={filters}
+          onCreateLoad={() => {
+            setFormLoad(null);
+            setIsFormOpen(true);
+          }}
           onFiltersChange={updateFilters}
           onReset={() => {
             setFilters(initialFilters);
@@ -188,6 +197,10 @@ export const LoadsTable = (): React.JSX.Element => {
                     isSelected={selectedIds.has(load.id)}
                     key={load.id}
                     load={load}
+                    onEdit={(selectedLoad) => {
+                      setFormLoad(selectedLoad);
+                      setIsFormOpen(true);
+                    }}
                     onOpenDetails={setProfileLoad}
                     onSelectChange={(loadId, checked) => {
                       setSelectedIds((current) => {
@@ -229,6 +242,41 @@ export const LoadsTable = (): React.JSX.Element => {
       <LoadDetailPanel
         load={profileLoad}
         onClose={() => setProfileLoad(null)}
+        onEdit={(selectedLoad) => {
+          setFormLoad(selectedLoad);
+          setIsFormOpen(true);
+        }}
+      />
+      <LoadFormDialog
+        isOpen={isFormOpen}
+        load={formLoad}
+        onDelete={(loadId) => {
+          setLoads((current) => current.filter((load) => load.id !== loadId));
+          setProfileLoad((current) => (current?.id === loadId ? null : current));
+          toast.success("Load deleted successfully");
+        }}
+        onOpenChange={setIsFormOpen}
+        onSave={(savedLoad) => {
+          const isEditing = loads.some((load) => load.id === savedLoad.id);
+          setLoads((current) => {
+            const existingIndex = current.findIndex(
+              (load) => load.id === savedLoad.id,
+            );
+            if (existingIndex === -1) return [savedLoad, ...current];
+
+            return current.map((load, index) =>
+              index === existingIndex ? savedLoad : load,
+            );
+          });
+          setProfileLoad((current) =>
+            current?.id === savedLoad.id ? savedLoad : current,
+          );
+          toast.success(
+            isEditing
+              ? "Load updated successfully"
+              : "Load created successfully",
+          );
+        }}
       />
     </section>
   );
