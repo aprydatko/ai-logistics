@@ -103,7 +103,13 @@ const driverTripSchema = z.object({
   price: z.number(),
   miles: z.number(),
   notes: z.string().nullable(),
-  status: z.enum(["new", "assigned", "in_transit", "delivered", "cancelled"]),
+  status: z.enum([
+    "pending",
+    "assigned",
+    "in_transit",
+    "delivered",
+    "cancelled",
+  ]),
   broker: z.object({
     id: z.string(),
     companyName: z.string(),

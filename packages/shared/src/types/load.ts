@@ -2,7 +2,7 @@ import type { BaseEntity, ISODateString } from "./common.js";
 import type { Driver } from "./driver.js";
 
 export type LoadStatus =
-  | "new"
+  | "pending"
   | "assigned"
   | "in_transit"
   | "delivered"

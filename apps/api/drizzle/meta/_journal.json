@@ -78,6 +78,13 @@
       "when": 1780924243704,
       "tag": "0010_curly_robbie_robertson",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1781005696478,
+      "tag": "0011_load_status_pending",
+      "breakpoints": true
     }
   ]
 }

@@ -15,7 +15,7 @@ import {
 import { drivers } from "./drivers";
 
 export const loadStatusEnum = pgEnum("load_status", [
-  "new",
+  "pending",
   "assigned",
   "in_transit",
   "delivered",
@@ -41,7 +41,7 @@ export const loads = pgTable(
     price: numeric("price", { precision: 12, scale: 2 }).notNull(),
     miles: integer("miles").notNull(),
     notes: text("notes"),
-    status: loadStatusEnum("status").default("new").notNull(),
+    status: loadStatusEnum("status").default("pending").notNull(),
     broker: jsonb("broker").$type<BrokerSnapshot>().notNull(),
     driverId: uuid("driver_id").references(() => drivers.id, {
       onDelete: "set null",

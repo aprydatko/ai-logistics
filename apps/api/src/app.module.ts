@@ -6,6 +6,7 @@ import { DatabaseModule } from "./db/database.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { DriversModule } from "./modules/drivers/drivers.module";
 import { HealthModule } from "./modules/health/health.module";
+import { LoadsModule } from "./modules/loads/loads.module";
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { HealthModule } from "./modules/health/health.module";
     DatabaseModule,
     AuthModule,
     DriversModule,
+    LoadsModule,
     HealthModule,
   ],
 })
