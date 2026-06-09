@@ -12,23 +12,23 @@ import {
 } from "@repo/ui/components/form";
 import { Input } from "@repo/ui/components/input";
 
-interface LoadInputFieldProps {
-  disabled?: boolean;
+type LoadInputFieldProps = {
   form: UseFormReturn<LoadFormValues>;
   label: string;
-  name: Exclude<keyof LoadFormValues, "routePoints" | "timeline">;
+  name: import("react-hook-form").FieldPath<LoadFormValues>;
   placeholder?: string;
   required?: boolean;
+  step?: string;
   type?: React.HTMLInputTypeAttribute;
-}
+};
 
 export const LoadInputField = ({
-  disabled,
   form,
   label,
   name,
   placeholder,
   required,
+  step,
   type = "text",
 }: LoadInputFieldProps): React.JSX.Element => (
   <FormField
@@ -41,11 +41,20 @@ export const LoadInputField = ({
         </FormLabel>
         <FormControl>
           <Input
-            {...field}
             className="h-10 bg-white"
-            disabled={disabled}
+            name={field.name}
+            onBlur={field.onBlur}
+            onChange={field.onChange}
             placeholder={placeholder}
+            ref={field.ref}
+            step={step}
             type={type}
+            value={
+              typeof field.value === "string" ||
+              typeof field.value === "number"
+                ? field.value
+                : ""
+            }
           />
         </FormControl>
         <FormMessage />

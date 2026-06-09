@@ -9,6 +9,7 @@ import {
   IsPhoneNumber,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
   Min,
   ValidateNested,
@@ -34,6 +35,42 @@ export class BrokerDto {
   @MaxLength(30)
   @Transform(trimString)
   phone!: string;
+}
+
+export class LoadRoutePointDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
+  @Transform(trimString)
+  label!: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  latitude!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
+  longitude!: number;
+}
+
+export class LoadTimelineEventDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
+  @Transform(trimString)
+  title!: string;
+
+  @IsString()
+  @MaxLength(500)
+  @Transform(trimString)
+  description!: string;
+
+  @IsDateString()
+  dateTime!: string;
 }
 
 export class CreateLoadDto {
@@ -89,6 +126,16 @@ export class CreateLoadDto {
   @ValidateNested()
   @Type(() => BrokerDto)
   broker!: BrokerDto;
+
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => LoadRoutePointDto)
+  routePoints?: LoadRoutePointDto[];
+
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => LoadTimelineEventDto)
+  timeline?: LoadTimelineEventDto[];
 
   @IsOptional()
   @IsUUID()

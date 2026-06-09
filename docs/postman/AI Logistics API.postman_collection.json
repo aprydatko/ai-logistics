@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "c05bafaa-2aac-46be-8781-bd9fd2bbf267",
     "name": "AI Logistics API",
-    "description": "Current authentication and driver API requests.",
+    "description": "Authentication, drivers, and loads API requests.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "6430736"
   },
@@ -298,6 +298,114 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Loads",
+      "item": [
+        {
+          "name": "List Loads",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/loads?page=1&limit=10&status=pending",
+              "host": ["{{baseUrl}}"],
+              "path": ["loads"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "status", "value": "pending", "disabled": true },
+                { "key": "search", "value": "Denver", "disabled": true },
+                { "key": "pickupFrom", "value": "2026-06-01", "disabled": true },
+                { "key": "pickupTo", "value": "2026-06-30", "disabled": true }
+              ]
+            },
+            "description": "List loads with optional search, status, driver, pickup period, and pagination filters."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Load",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data?.id) pm.collectionVariables.set('loadId', body.data.id);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"referenceNumber\": \"PM-LD-1001\",\n  \"pickupAddress\": \"Phoenix, AZ\",\n  \"deliveryAddress\": \"Las Vegas, NV\",\n  \"pickupDate\": \"2026-06-16T14:00:00.000Z\",\n  \"deliveryDate\": \"2026-06-16T21:30:00.000Z\",\n  \"weight\": 18000,\n  \"price\": 1450.00,\n  \"miles\": 297,\n  \"status\": \"pending\",\n  \"notes\": \"Created from Postman\",\n  \"broker\": {\n    \"id\": \"broker-postman-1\",\n    \"companyName\": \"Postman Freight Partners\",\n    \"phone\": \"+16025550199\"\n  },\n  \"routePoints\": [\n    {\n      \"label\": \"Phoenix pickup\",\n      \"latitude\": 33.4484,\n      \"longitude\": -112.0740\n    },\n    {\n      \"label\": \"Las Vegas delivery\",\n      \"latitude\": 36.1699,\n      \"longitude\": -115.1398\n    }\n  ],\n  \"timeline\": [\n    {\n      \"title\": \"Load created\",\n      \"description\": \"Load entered through Postman.\",\n      \"dateTime\": \"2026-06-09T15:00:00.000Z\"\n    }\n  ]\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/loads",
+              "host": ["{{baseUrl}}"],
+              "path": ["loads"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Load",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_transit\",\n  \"notes\": \"Driver departed pickup location.\",\n  \"timeline\": [\n    {\n      \"title\": \"Load created\",\n      \"description\": \"Load entered through Postman.\",\n      \"dateTime\": \"2026-06-09T15:00:00.000Z\"\n    },\n    {\n      \"title\": \"In transit\",\n      \"description\": \"Driver departed pickup location.\",\n      \"dateTime\": \"2026-06-16T14:20:00.000Z\"\n    }\n  ]\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/loads/{{loadId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["loads", "{{loadId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Assign Driver",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverId\": \"{{driverId}}\",\n  \"averageSpeedMph\": 55\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/loads/{{loadId}}/assign-driver",
+              "host": ["{{baseUrl}}"],
+              "path": ["loads", "{{loadId}}", "assign-driver"]
+            },
+            "description": "Assigns an available active driver with a truck and recalculates delivery ETA."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "auth": {
@@ -358,6 +466,10 @@
     {
       "key": "documentId",
       "value": "40000000-0000-4000-8000-000000000001"
+    },
+    {
+      "key": "loadId",
+      "value": "50000000-0000-4000-8000-000000000005"
     }
   ]
 }

@@ -48,8 +48,18 @@ export class LoadsService {
     const where = filters.length > 0 ? and(...filters) : undefined;
     const [rows, countRows] = await Promise.all([
       this.databaseService.client
-        .select()
+        .select({
+          load: loads,
+          driver: {
+            id: drivers.id,
+            firstName: drivers.firstName,
+            lastName: drivers.lastName,
+            avatarUrl: drivers.avatarUrl,
+            truckNumber: drivers.truckNumber,
+          },
+        })
         .from(loads)
+        .leftJoin(drivers, eq(loads.driverId, drivers.id))
         .where(where)
         .orderBy(desc(loads.pickupDate), desc(loads.createdAt))
         .limit(query.limit)
@@ -63,7 +73,9 @@ export class LoadsService {
 
     return {
       success: true,
-      data: rows.map((load) => this.toLoad(load)),
+      data: rows.map(({ load, driver }) =>
+        this.toLoad(load, driver?.id ? driver : null),
+      ),
       pagination: {
         page: query.page,
         limit: query.limit,
@@ -87,7 +99,7 @@ export class LoadsService {
         throw new InternalServerErrorException("Failed to create load");
       }
 
-      return { success: true, data: this.toLoad(load) };
+      return { success: true, data: this.toLoad(load, null) };
     } catch (error: unknown) {
       if (this.isUniqueViolation(error)) {
         throw new ConflictException("Load reference number already exists");
@@ -184,7 +196,16 @@ export class LoadsService {
         },
       });
 
-      return { success: true, data: this.toLoad(assignedLoad) };
+      return {
+        success: true,
+        data: this.toLoad(assignedLoad, {
+          id: driver.id,
+          firstName: driver.firstName,
+          lastName: driver.lastName,
+          avatarUrl: null,
+          truckNumber: driver.truckNumber,
+        }),
+      };
     });
   }
 
@@ -216,7 +237,10 @@ export class LoadsService {
         .returning();
 
       if (!load) throw new NotFoundException("Load was not found");
-      return { success: true, data: this.toLoad(load) };
+      const driver = load.driverId
+        ? await this.findDriverSummary(load.driverId)
+        : null;
+      return { success: true, data: this.toLoad(load, driver) };
     } catch (error: unknown) {
       if (this.isUniqueViolation(error)) {
         throw new ConflictException("Load reference number already exists");
@@ -262,7 +286,10 @@ export class LoadsService {
     };
   }
 
-  private toLoad(load: LoadRecord): LoadItem {
+  private toLoad(
+    load: LoadRecord,
+    driver: LoadItem["driver"],
+  ): LoadItem {
     return {
       ...load,
       pickupDate: load.pickupDate.toISOString(),
@@ -270,7 +297,26 @@ export class LoadsService {
       price: Number(load.price),
       createdAt: load.createdAt.toISOString(),
       updatedAt: load.updatedAt.toISOString(),
+      driver,
     };
+  }
+
+  private async findDriverSummary(
+    driverId: string,
+  ): Promise<LoadItem["driver"]> {
+    const [driver] = await this.databaseService.client
+      .select({
+        id: drivers.id,
+        firstName: drivers.firstName,
+        lastName: drivers.lastName,
+        avatarUrl: drivers.avatarUrl,
+        truckNumber: drivers.truckNumber,
+      })
+      .from(drivers)
+      .where(eq(drivers.id, driverId))
+      .limit(1);
+
+    return driver ?? null;
   }
 
   private assertDateOrder(pickupDate: string, deliveryDate: string): void {

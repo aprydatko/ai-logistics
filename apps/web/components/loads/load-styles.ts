@@ -1,22 +1,12 @@
-import type { LoadPriority, LoadStatus } from "./types";
+import type { LoadStatus } from "@/lib/loads/loads-query";
 
 export const loadStatusTone: Record<
   LoadStatus,
   "success" | "neutral" | "info" | "warning" | "danger"
 > = {
-  Assigned: "info",
-  Cancelled: "neutral",
-  Delayed: "warning",
-  Delivered: "success",
-  "In Transit": "info",
-  Pending: "neutral",
-};
-
-export const loadPriorityTone: Record<
-  LoadPriority,
-  "danger" | "info" | "warning"
-> = {
-  High: "danger",
-  Low: "info",
-  Medium: "warning",
+  pending: "neutral",
+  assigned: "info",
+  in_transit: "warning",
+  delivered: "success",
+  cancelled: "danger",
 };

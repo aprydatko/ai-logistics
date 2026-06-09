@@ -50,6 +50,8 @@ const trip: LoadRecord = {
     companyName: "Acme Logistics",
     phone: "+12025550124",
   },
+  routePoints: [],
+  timeline: [],
   driverId: driver.id,
   createdAt: new Date("2026-04-25T10:00:00.000Z"),
   updatedAt: new Date("2026-05-03T18:00:00.000Z"),
