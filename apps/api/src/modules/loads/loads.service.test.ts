@@ -26,6 +26,8 @@ const load: LoadRecord = {
     companyName: "Acme Logistics",
     phone: "+12025550123",
   },
+  routePoints: [],
+  timeline: [],
   driverId: null,
   createdAt: new Date("2026-06-09T10:00:00.000Z"),
   updatedAt: new Date("2026-06-09T10:00:00.000Z"),
@@ -59,6 +61,7 @@ describe("LoadsService", () => {
       success: true,
       data: {
         ...load,
+        driver: null,
         price: 2500,
         pickupDate: load.pickupDate.toISOString(),
         deliveryDate: load.deliveryDate.toISOString(),

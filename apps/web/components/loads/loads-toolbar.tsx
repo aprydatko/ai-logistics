@@ -1,113 +1,80 @@
 import { Plus, RotateCcw } from "lucide-react";
 
+import type { LoadsFilters } from "@/lib/loads/loads-query";
 import { Button } from "@repo/ui/components/button";
 import { SearchField } from "@repo/ui/components/search-field";
 import { SelectButton } from "@repo/ui/components/select-button";
 
-import type { LoadFilters } from "./types";
+import { PickupRangeFilter } from "./pickup-range-filter";
 
 const statusOptions = [
   { label: "All statuses", value: "all" },
-  { label: "In transit", value: "In Transit" },
-  { label: "Delayed", value: "Delayed" },
-  { label: "Delivered", value: "Delivered" },
-  { label: "Pending", value: "Pending" },
-  { label: "Assigned", value: "Assigned" },
-  { label: "Cancelled", value: "Cancelled" },
+  { label: "Pending", value: "pending" },
+  { label: "Assigned", value: "assigned" },
+  { label: "In transit", value: "in_transit" },
+  { label: "Delivered", value: "delivered" },
+  { label: "Cancelled", value: "cancelled" },
 ];
-
-const dateOptions = [
-  { label: "Any date", value: "all" },
-  { label: "May 28", value: "may-28" },
-  { label: "May 29 or later", value: "may-29-or-later" },
-];
-
-const routeOptions = [
-  { label: "All routes", value: "all" },
-  { label: "Midwest", value: "midwest" },
-  { label: "South", value: "south" },
-  { label: "West", value: "west" },
-  { label: "Northeast", value: "northeast" },
-];
-
-type LoadsToolbarProps = {
-  filters: LoadFilters;
-  onCreateLoad: () => void;
-  onFiltersChange: (filters: Partial<LoadFilters>) => void;
-  onReset: () => void;
-};
 
 export const LoadsToolbar = ({
   filters,
   onCreateLoad,
   onFiltersChange,
   onReset,
-}: LoadsToolbarProps): React.JSX.Element => {
-  const hasFilters = Object.values(filters).some(
-    (value) => value !== "" && value !== "all",
-  );
+}: {
+  filters: LoadsFilters;
+  onCreateLoad: () => void;
+  onFiltersChange: (filters: Partial<LoadsFilters>) => void;
+  onReset: () => void;
+}): React.JSX.Element => {
+  const hasFilters =
+    filters.search !== "" ||
+    filters.status !== "all" ||
+    filters.pickupFrom !== "" ||
+    filters.pickupTo !== "";
 
   return (
     <div className="flex flex-col gap-7">
       <div>
         <h1 className="text-2xl leading-9 text-ink-900">Loads</h1>
         <p className="max-w-2xl text-sm text-primary-700">
-          Track statuses, assignments, routes, and delivery timelines.
+          Track assignments, pickup windows, ETA, and delivery status.
         </p>
       </div>
-      <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="flex flex-wrap items-center gap-3">
         <SearchField
           className="min-w-56 flex-1"
           label="Search loads"
           onChange={(event) => onFiltersChange({ search: event.target.value })}
-          placeholder="Load ID, cargo, driver, or city"
+          placeholder="Reference, pickup, or destination"
           value={filters.search}
         />
         <SelectButton
-          className="sm:min-w-36"
+          className="min-w-36"
           onValueChange={(status) =>
-            onFiltersChange({ status: status as LoadFilters["status"] })
+            onFiltersChange({ status: status as LoadsFilters["status"] })
           }
           options={statusOptions}
           placeholder="Status"
           value={filters.status}
         />
-        <SelectButton
-          className="sm:min-w-32"
-          onValueChange={(date) =>
-            onFiltersChange({ date: date as LoadFilters["date"] })
+        <PickupRangeFilter
+          from={filters.pickupFrom}
+          onChange={(range) =>
+            onFiltersChange({
+              pickupFrom: range.from,
+              pickupTo: range.to,
+            })
           }
-          options={dateOptions}
-          placeholder="Date"
-          value={filters.date}
-        />
-        <SelectButton
-          className="sm:min-w-36"
-          onValueChange={(route) =>
-            onFiltersChange({ route: route as LoadFilters["route"] })
-          }
-          options={routeOptions}
-          placeholder="Route"
-          value={filters.route}
+          to={filters.pickupTo}
         />
         {hasFilters ? (
-          <Button
-            className="h-9 px-3 text-primary-700"
-            onClick={onReset}
-            type="button"
-            variant="ghost"
-          >
-            <RotateCcw className="size-4" />
-            Reset
+          <Button onClick={onReset} type="button" variant="ghost">
+            <RotateCcw className="size-4" /> Reset
           </Button>
         ) : null}
-        <Button
-          className="h-9 rounded-lg bg-primary-700 px-3! shadow-none hover:bg-primary-600"
-          onClick={onCreateLoad}
-          type="button"
-        >
-          <Plus className="size-4" />
-          Create load
+        <Button onClick={onCreateLoad} type="button">
+          <Plus className="size-4" /> Create load
         </Button>
       </div>
     </div>

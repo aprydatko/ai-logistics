@@ -34,12 +34,78 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO "loads" (
   "id", "reference_number", "pickup_address", "delivery_address", "pickup_date",
-  "delivery_date", "weight", "price", "miles", "status", "broker", "driver_id"
+  "delivery_date", "weight", "price", "miles", "status", "broker",
+  "route_points", "timeline", "driver_id"
 ) VALUES
-('50000000-0000-4000-8000-000000000001', 'DEMO-LD-01', 'Chicago, IL', 'Detroit, MI', '2026-05-28T14:30:00Z', '2026-05-29T10:00:00Z', 28000, 1850.00, 283, 'delivered', '{"id":"broker-demo-1","companyName":"Northstar Freight","phone":"+13125550901"}', '10000000-0000-4000-8000-000000000001'),
-('50000000-0000-4000-8000-000000000002', 'DEMO-LD-02', 'Dallas, TX', 'Houston, TX', '2026-06-05T09:45:00Z', '2026-06-05T16:30:00Z', 19500, 1125.00, 239, 'delivered', '{"id":"broker-demo-2","companyName":"Lone Star Cargo","phone":"+12145550902"}', '10000000-0000-4000-8000-000000000002'),
-('50000000-0000-4000-8000-000000000003', 'DEMO-LD-03', 'Milwaukee, WI', 'Cleveland, OH', '2026-06-08T07:00:00Z', '2026-06-09T15:00:00Z', 31000, 2240.00, 436, 'in_transit', '{"id":"broker-demo-1","companyName":"Northstar Freight","phone":"+13125550901"}', '10000000-0000-4000-8000-000000000001')
-ON CONFLICT DO NOTHING;
+(
+  '50000000-0000-4000-8000-000000000001', 'DEMO-LD-01',
+  'Chicago, IL', 'Detroit, MI', '2026-06-01T14:30:00Z', '2026-06-02T10:00:00Z',
+  28000, 1850.00, 283, 'delivered',
+  '{"id":"broker-demo-1","companyName":"Northstar Freight","phone":"+13125550901"}',
+  '[{"label":"Chicago pickup","latitude":41.8781,"longitude":-87.6298},{"label":"Detroit delivery","latitude":42.3314,"longitude":-83.0458}]',
+  '[{"title":"Load created","description":"Shipment entered by dispatch.","dateTime":"2026-05-31T16:00:00Z"},{"title":"Delivered","description":"Receiver signed the proof of delivery.","dateTime":"2026-06-02T09:42:00Z"}]',
+  '10000000-0000-4000-8000-000000000001'
+),
+(
+  '50000000-0000-4000-8000-000000000002', 'DEMO-LD-02',
+  'Dallas, TX', 'Houston, TX', '2026-06-05T09:45:00Z', '2026-06-05T16:30:00Z',
+  19500, 1125.00, 239, 'delivered',
+  '{"id":"broker-demo-2","companyName":"Lone Star Cargo","phone":"+12145550902"}',
+  '[{"label":"Dallas distribution center","latitude":32.7767,"longitude":-96.797},{"label":"Houston warehouse","latitude":29.7604,"longitude":-95.3698}]',
+  '[{"title":"Picked up","description":"Freight loaded and sealed.","dateTime":"2026-06-05T09:40:00Z"},{"title":"Delivered","description":"Delivery completed on schedule.","dateTime":"2026-06-05T16:18:00Z"}]',
+  '10000000-0000-4000-8000-000000000002'
+),
+(
+  '50000000-0000-4000-8000-000000000003', 'DEMO-LD-03',
+  'Milwaukee, WI', 'Cleveland, OH', '2026-06-09T07:00:00Z', '2026-06-09T21:00:00Z',
+  31000, 2240.00, 436, 'in_transit',
+  '{"id":"broker-demo-1","companyName":"Northstar Freight","phone":"+13125550901"}',
+  '[{"label":"Milwaukee pickup","latitude":43.0389,"longitude":-87.9065},{"label":"Chicago checkpoint","latitude":41.8781,"longitude":-87.6298},{"label":"Cleveland delivery","latitude":41.4993,"longitude":-81.6944}]',
+  '[{"title":"Driver departed","description":"Shipment is moving toward Cleveland.","dateTime":"2026-06-09T07:15:00Z"},{"title":"Checkpoint","description":"Planned fuel stop near Chicago.","dateTime":"2026-06-09T11:30:00Z"}]',
+  '10000000-0000-4000-8000-000000000001'
+),
+(
+  '50000000-0000-4000-8000-000000000004', 'DEMO-LD-04',
+  'Seattle, WA', 'Portland, OR', '2026-06-11T15:00:00Z', '2026-06-11T20:15:00Z',
+  16500, 980.00, 174, 'assigned',
+  '{"id":"broker-demo-3","companyName":"Pacific Route Partners","phone":"+12065550903"}',
+  '[{"label":"Seattle pickup","latitude":47.6062,"longitude":-122.3321},{"label":"Portland delivery","latitude":45.5152,"longitude":-122.6784}]',
+  '[{"title":"Driver assigned","description":"Elena Rodriguez confirmed the load.","dateTime":"2026-06-09T13:00:00Z"},{"title":"Pickup appointment","description":"Dock 12 appointment.","dateTime":"2026-06-11T15:00:00Z"}]',
+  '10000000-0000-4000-8000-000000000002'
+),
+(
+  '50000000-0000-4000-8000-000000000005', 'DEMO-LD-05',
+  'Denver, CO', 'Salt Lake City, UT', '2026-06-12T13:00:00Z', '2026-06-13T04:00:00Z',
+  24500, 2100.00, 518, 'pending',
+  '{"id":"broker-demo-4","companyName":"Mountain West Brokerage","phone":"+13035550904"}',
+  '[{"label":"Denver pickup","latitude":39.7392,"longitude":-104.9903},{"label":"Grand Junction checkpoint","latitude":39.0639,"longitude":-108.5506},{"label":"Salt Lake City delivery","latitude":40.7608,"longitude":-111.891}]',
+  '[{"title":"Load created","description":"Awaiting driver assignment.","dateTime":"2026-06-09T14:00:00Z"}]',
+  NULL
+),
+(
+  '50000000-0000-4000-8000-000000000006', 'DEMO-LD-06',
+  'Atlanta, GA', 'Miami, FL', '2026-06-14T12:00:00Z', '2026-06-15T08:00:00Z',
+  22000, 1980.00, 662, 'cancelled',
+  '{"id":"broker-demo-5","companyName":"Southeast Freight Desk","phone":"+14045550905"}',
+  '[{"label":"Atlanta pickup","latitude":33.749,"longitude":-84.388},{"label":"Jacksonville checkpoint","latitude":30.3322,"longitude":-81.6557},{"label":"Miami delivery","latitude":25.7617,"longitude":-80.1918}]',
+  '[{"title":"Load created","description":"Temperature-controlled shipment requested.","dateTime":"2026-06-08T12:00:00Z"},{"title":"Cancelled","description":"Broker cancelled before pickup.","dateTime":"2026-06-09T10:30:00Z"}]',
+  NULL
+)
+ON CONFLICT ("id") DO UPDATE SET
+  "reference_number" = EXCLUDED."reference_number",
+  "pickup_address" = EXCLUDED."pickup_address",
+  "delivery_address" = EXCLUDED."delivery_address",
+  "pickup_date" = EXCLUDED."pickup_date",
+  "delivery_date" = EXCLUDED."delivery_date",
+  "weight" = EXCLUDED."weight",
+  "price" = EXCLUDED."price",
+  "miles" = EXCLUDED."miles",
+  "status" = EXCLUDED."status",
+  "broker" = EXCLUDED."broker",
+  "route_points" = EXCLUDED."route_points",
+  "timeline" = EXCLUDED."timeline",
+  "driver_id" = EXCLUDED."driver_id",
+  "updated_at" = NOW();
 
 INSERT INTO "driver_activity" (
   "id", "driver_id", "type", "description", "created_at"

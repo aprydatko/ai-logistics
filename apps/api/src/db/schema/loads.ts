@@ -28,6 +28,18 @@ type BrokerSnapshot = {
   phone: string;
 };
 
+export type LoadRoutePoint = {
+  label: string;
+  latitude: number;
+  longitude: number;
+};
+
+export type LoadTimelineEvent = {
+  title: string;
+  description: string;
+  dateTime: string;
+};
+
 export const loads = pgTable(
   "loads",
   {
@@ -43,6 +55,8 @@ export const loads = pgTable(
     notes: text("notes"),
     status: loadStatusEnum("status").default("pending").notNull(),
     broker: jsonb("broker").$type<BrokerSnapshot>().notNull(),
+    routePoints: jsonb("route_points").$type<LoadRoutePoint[]>().default([]).notNull(),
+    timeline: jsonb("timeline").$type<LoadTimelineEvent[]>().default([]).notNull(),
     driverId: uuid("driver_id").references(() => drivers.id, {
       onDelete: "set null",
     }),

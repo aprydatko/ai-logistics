@@ -1,7 +1,13 @@
 "use client";
 
-import * as React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 
+import {
+  loadsQueryOptions,
+  type LoadApiItem,
+  type LoadsFilters,
+} from "@/lib/loads/loads-query";
 import { Checkbox } from "@repo/ui/components/checkbox";
 import { DataPagination } from "@repo/ui/components/pagination";
 import {
@@ -14,124 +20,86 @@ import {
   TableRow,
   TableScrollArea,
 } from "@repo/ui/components/table";
-import { toast } from "@repo/ui/components/toaster";
 
-import { loads as initialLoads } from "../load-data";
+import { AssignDriverDialog } from "../assign-driver-dialog";
 import { LoadDetailPanel } from "../load-detail-panel";
 import { LoadFormDialog } from "../load-form-dialog";
 import { LoadsToolbar } from "../loads-toolbar";
-import type { Load, LoadFilters } from "../types";
 import { LoadRow } from "./load-row";
+import { LoadsTableSkeleton } from "./loads-table-skeleton";
 
-const initialFilters: LoadFilters = {
+const DEFAULT_FILTERS: LoadsFilters = {
   search: "",
   status: "all",
-  date: "all",
-  route: "all",
-};
-
-const routeRegions: Record<Exclude<LoadFilters["route"], "all">, string[]> = {
-  midwest: ["Chicago", "Detroit", "St. Louis", "Kansas City", "Columbus"],
-  northeast: ["Boston", "New York", "Pittsburgh"],
-  south: ["Dallas", "Houston", "Atlanta", "Miami", "Austin", "New Orleans"],
-  west: ["Los Angeles", "Phoenix", "Seattle", "Portland", "Denver", "Fresno"],
+  pickupFrom: "",
+  pickupTo: "",
+  page: 1,
+  limit: 10,
 };
 
 const getPages = (
   currentPage: number,
   totalPages: number,
 ): Array<number | "ellipsis"> => {
-  const pages = Array.from(
-    { length: totalPages },
-    (_, index) => index + 1,
-  ).filter(
+  const pages = Array.from({ length: totalPages }, (_, index) => index + 1).filter(
     (page) =>
       page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1,
   );
-
   return pages.flatMap((page, index) => {
-    const previousPage = pages[index - 1];
-    return previousPage && page - previousPage > 1
-      ? ["ellipsis" as const, page]
-      : [page];
+    const previous = pages[index - 1];
+    return previous && page - previous > 1 ? ["ellipsis" as const, page] : [page];
   });
 };
 
 export const LoadsTable = (): React.JSX.Element => {
-  const [loads, setLoads] = React.useState(initialLoads);
-  const [filters, setFilters] = React.useState(initialFilters);
-  const [page, setPage] = React.useState(1);
-  const [pageSize, setPageSize] = React.useState(10);
-  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
-  const [profileLoad, setProfileLoad] = React.useState<Load | null>(null);
-  const [formLoad, setFormLoad] = React.useState<Load | null>(null);
-  const [isFormOpen, setIsFormOpen] = React.useState(false);
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [detailLoad, setDetailLoad] = useState<LoadApiItem | null>(null);
+  const [formLoad, setFormLoad] = useState<LoadApiItem | null>(null);
+  const [assignLoad, setAssignLoad] = useState<LoadApiItem | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
-  const filteredLoads = React.useMemo(() => {
-    const search = filters.search.trim().toLowerCase();
+  useEffect(() => {
+    const timeout = window.setTimeout(
+      () => setDebouncedSearch(filters.search.trim()),
+      300,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [filters.search]);
 
-    return loads.filter((load) => {
-      const searchable = [
-        load.id,
-        load.description,
-        load.driver?.name,
-        load.driver?.truckId,
-        load.route.origin,
-        load.route.destination,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      const routeCities =
-        filters.route === "all" ? [] : routeRegions[filters.route];
-      const etaDay = load.eta ? Number(load.eta.date.split(" ")[1]) : null;
-      const matchesRoute =
-        filters.route === "all" ||
-        routeCities.some(
-          (city) =>
-            load.route.origin.includes(city) ||
-            load.route.destination.includes(city),
-        );
-      const matchesDate =
-        filters.date === "all" ||
-        (filters.date === "may-28" && load.eta?.date === "May 28") ||
-        (filters.date === "may-29-or-later" &&
-          etaDay !== null &&
-          (load.eta?.date.startsWith("Jun") || etaDay >= 29));
-
-      return (
-        (!search || searchable.includes(search)) &&
-        (filters.status === "all" || load.status === filters.status) &&
-        matchesRoute &&
-        matchesDate
-      );
-    });
-  }, [filters, loads]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredLoads.length / pageSize));
-  const visibleLoads = filteredLoads.slice(
-    (page - 1) * pageSize,
-    page * pageSize,
+  const queryFilters = useMemo(
+    () => ({ ...filters, search: debouncedSearch }),
+    [debouncedSearch, filters],
   );
+  const loadsQuery = useQuery(loadsQueryOptions(queryFilters));
+  const loads = useMemo(() => loadsQuery.data?.data ?? [], [loadsQuery.data]);
+  const pagination = loadsQuery.data?.pagination;
   const isAllSelected =
-    visibleLoads.length > 0 &&
-    visibleLoads.every((load) => selectedIds.has(load.id));
+    loads.length > 0 && loads.every((load) => selectedIds.has(load.id));
   const isPartiallySelected =
-    !isAllSelected && visibleLoads.some((load) => selectedIds.has(load.id));
+    !isAllSelected && loads.some((load) => selectedIds.has(load.id));
 
-  const updateFilters = (nextFilters: Partial<LoadFilters>): void => {
-    setFilters((current) => ({ ...current, ...nextFilters }));
-    setPage(1);
+  useEffect(() => {
+    if (!detailLoad) return;
+    const refreshedLoad = loads.find((load) => load.id === detailLoad.id);
+    if (refreshedLoad && refreshedLoad !== detailLoad) {
+      setDetailLoad(refreshedLoad);
+    }
+  }, [detailLoad, loads]);
+
+  const updateFilters = (updates: Partial<LoadsFilters>): void => {
+    setFilters((current) => ({
+      ...current,
+      ...updates,
+      page: updates.page ?? 1,
+    }));
+    setSelectedIds(new Set());
   };
 
-  const selectAll = (checked: boolean): void => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      visibleLoads.forEach((load) =>
-        checked ? next.add(load.id) : next.delete(load.id),
-      );
-      return next;
-    });
+  const openEdit = (load: LoadApiItem): void => {
+    setFormLoad(load);
+    setIsFormOpen(true);
   };
 
   return (
@@ -145,20 +113,20 @@ export const LoadsTable = (): React.JSX.Element => {
           }}
           onFiltersChange={updateFilters}
           onReset={() => {
-            setFilters(initialFilters);
-            setPage(1);
+            setFilters(DEFAULT_FILTERS);
+            setDebouncedSearch("");
           }}
         />
         <DataTable className="flex min-h-0 flex-1 flex-col">
           <TableScrollArea className="min-h-0 flex-1 overflow-auto">
-            <Table className="min-w-[960px] table-fixed">
+            <Table className="min-w-[1050px] table-fixed">
               <colgroup>
                 <col className="w-10" />
+                <col className="w-[15%]" />
+                <col className="w-[11%]" />
                 <col className="w-[17%]" />
-                <col className="w-[13%]" />
-                <col className="w-[20%]" />
-                <col className="w-[22%]" />
-                <col className="w-[12%]" />
+                <col className="w-[24%]" />
+                <col className="w-[15%]" />
                 <col className="w-[11%]" />
                 <col className="w-14" />
               </colgroup>
@@ -167,10 +135,14 @@ export const LoadsTable = (): React.JSX.Element => {
                   <TableHead className="text-center">
                     <Checkbox
                       aria-label="Select all loads"
-                      checked={
-                        isPartiallySelected ? "indeterminate" : isAllSelected
+                      checked={isPartiallySelected ? "indeterminate" : isAllSelected}
+                      onCheckedChange={(checked) =>
+                        setSelectedIds(
+                          checked === true
+                            ? new Set(loads.map((load) => load.id))
+                            : new Set(),
+                        )
                       }
-                      onCheckedChange={(checked) => selectAll(checked === true)}
                     />
                   </TableHead>
                   <TableHead>Load</TableHead>
@@ -178,41 +150,42 @@ export const LoadsTable = (): React.JSX.Element => {
                   <TableHead>Driver</TableHead>
                   <TableHead>Route</TableHead>
                   <TableHead>ETA</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>
-                    <span className="sr-only">Actions</span>
-                  </TableHead>
+                  <TableHead>Trip</TableHead>
+                  <TableHead><span className="sr-only">Actions</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {visibleLoads.length === 0 ? (
+                {loadsQuery.isPending ? <LoadsTableSkeleton /> : null}
+                {loadsQuery.isError ? (
                   <TableRow>
                     <TableCell className="py-12 text-center" colSpan={8}>
-                      No loads match the selected filters.
+                      Unable to load loads. Please try again.
                     </TableCell>
                   </TableRow>
                 ) : null}
-                {visibleLoads.map((load) => (
+                {loadsQuery.isSuccess && loads.length === 0 ? (
+                  <TableRow>
+                    <TableCell className="py-12 text-center" colSpan={8}>
+                      No loads found.
+                    </TableCell>
+                  </TableRow>
+                ) : null}
+                {loads.map((load) => (
                   <LoadRow
                     isSelected={selectedIds.has(load.id)}
                     key={load.id}
                     load={load}
-                    onEdit={(selectedLoad) => {
-                      setFormLoad(selectedLoad);
-                      setIsFormOpen(true);
-                    }}
-                    onOpenDetails={setProfileLoad}
-                    onSelectChange={(loadId, checked) => {
+                    onAssign={setAssignLoad}
+                    onEdit={openEdit}
+                    onOpenDetails={setDetailLoad}
+                    onSelectChange={(id, checked) =>
                       setSelectedIds((current) => {
                         const next = new Set(current);
-                        if (checked) {
-                          next.add(loadId);
-                        } else {
-                          next.delete(loadId);
-                        }
+                        if (checked) next.add(id);
+                        else next.delete(id);
                         return next;
-                      });
-                    }}
+                      })
+                    }
                   />
                 ))}
               </TableBody>
@@ -220,62 +193,37 @@ export const LoadsTable = (): React.JSX.Element => {
           </TableScrollArea>
           <DataPagination
             ariaLabel="Loads pagination"
-            currentPage={page}
-            endItem={Math.min(page * pageSize, filteredLoads.length)}
+            currentPage={filters.page}
+            endItem={Math.min(filters.page * filters.limit, pagination?.total ?? 0)}
             itemName="loads"
-            onPageChange={setPage}
-            onPageSizeChange={(size) => {
-              setPageSize(size);
-              setPage(1);
-            }}
-            pages={getPages(page, totalPages)}
-            pageSize={pageSize}
-            pageSizeOptions={[8, 10, 20]}
+            onPageChange={(page) => updateFilters({ page })}
+            onPageSizeChange={(limit) => updateFilters({ limit })}
+            pages={getPages(filters.page, Math.max(1, pagination?.totalPages ?? 1))}
+            pageSize={filters.limit}
+            pageSizeOptions={[10, 15, 20]}
             startItem={
-              filteredLoads.length === 0 ? 0 : (page - 1) * pageSize + 1
+              pagination?.total ? (filters.page - 1) * filters.limit + 1 : 0
             }
-            totalItems={filteredLoads.length}
-            totalPages={totalPages}
+            totalItems={pagination?.total ?? 0}
+            totalPages={Math.max(1, pagination?.totalPages ?? 1)}
           />
         </DataTable>
       </div>
       <LoadDetailPanel
-        load={profileLoad}
-        onClose={() => setProfileLoad(null)}
-        onEdit={(selectedLoad) => {
-          setFormLoad(selectedLoad);
-          setIsFormOpen(true);
-        }}
+        load={detailLoad}
+        onAssign={setAssignLoad}
+        onClose={() => setDetailLoad(null)}
+        onEdit={openEdit}
       />
       <LoadFormDialog
         isOpen={isFormOpen}
         load={formLoad}
-        onDelete={(loadId) => {
-          setLoads((current) => current.filter((load) => load.id !== loadId));
-          setProfileLoad((current) => (current?.id === loadId ? null : current));
-          toast.success("Load deleted successfully");
-        }}
         onOpenChange={setIsFormOpen}
-        onSave={(savedLoad) => {
-          const isEditing = loads.some((load) => load.id === savedLoad.id);
-          setLoads((current) => {
-            const existingIndex = current.findIndex(
-              (load) => load.id === savedLoad.id,
-            );
-            if (existingIndex === -1) return [savedLoad, ...current];
-
-            return current.map((load, index) =>
-              index === existingIndex ? savedLoad : load,
-            );
-          });
-          setProfileLoad((current) =>
-            current?.id === savedLoad.id ? savedLoad : current,
-          );
-          toast.success(
-            isEditing
-              ? "Load updated successfully"
-              : "Load created successfully",
-          );
+      />
+      <AssignDriverDialog
+        load={assignLoad}
+        onOpenChange={(open) => {
+          if (!open) setAssignLoad(null);
         }}
       />
     </section>
