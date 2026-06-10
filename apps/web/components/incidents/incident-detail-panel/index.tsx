@@ -56,13 +56,13 @@ export const IncidentDetailPanel = ({
       />
       {activeTab === "AI Timeline" ? (
         <>
-          <IncidentTimeline />
+          <IncidentTimeline items={incident.timeline} />
           <IncidentSummary incident={incident} />
         </>
       ) : (
         <IncidentTabPlaceholder tab={activeTab} />
       )}
-      <IncidentActions />
+      <IncidentActions incident={incident} />
     </SidePanel>
   );
 };

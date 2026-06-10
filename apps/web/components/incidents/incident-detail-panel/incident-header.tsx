@@ -16,9 +16,10 @@ export const incidentTabs = [
 export type IncidentTab = (typeof incidentTabs)[number];
 
 const priorityTone: Record<IncidentPriority, "danger" | "warning" | "info"> = {
-  High: "danger",
-  Medium: "warning",
-  Low: "info",
+  critical: "danger",
+  high: "danger",
+  medium: "warning",
+  low: "info",
 };
 
 type IncidentHeaderProps = {
@@ -44,11 +45,11 @@ export const IncidentHeader = ({
               {incident.title}
             </h3>
             <p className="mt-1 truncate text-sm font-medium text-primary-700">
-              {incident.location}
+              {incident.location ?? "-"}
             </p>
           </div>
           <StatusBadge size="lg" tone={priorityTone[incident.priority]}>
-            {incident.priority}
+            {incident.priority[0]?.toUpperCase()}{incident.priority.slice(1)}
           </StatusBadge>
         </div>
       </div>

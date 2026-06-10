@@ -6,7 +6,7 @@ import { RolesGuard } from "../auth/roles.guard";
 import { IncidentsController } from "./incidents.controller";
 
 describe("IncidentsController mutations", () => {
-  it.each(["create", "updateStatus"] as const)(
+  it.each(["create", "update", "updateStatus", "updateTimeline"] as const)(
     "restricts %s to operations roles",
     (method) => {
       expect(

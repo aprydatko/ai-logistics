@@ -17,6 +17,17 @@ export type IncidentStatus =
   | "resolved"
   | "closed";
 
+export type IncidentTimelineTone = "blue" | "green" | "red";
+
+export interface IncidentTimelineEvent {
+  id: string;
+  dateTime: ISODateString;
+  title: string;
+  description: string;
+  type: string;
+  tone: IncidentTimelineTone;
+}
+
 export interface Incident extends BaseEntity {
   loadId: string;
   title: string;
@@ -28,4 +39,5 @@ export interface Incident extends BaseEntity {
   status: IncidentStatus;
   occurredAt: ISODateString;
   resolvedAt?: ISODateString;
+  timeline: IncidentTimelineEvent[];
 }

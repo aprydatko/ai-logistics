@@ -27,6 +27,8 @@ import {
 import type { CreateIncidentDto } from "./dto/create-incident.dto";
 import type { ListIncidentsQueryDto } from "./dto/list-incidents-query.dto";
 import type { UpdateIncidentStatusDto } from "./dto/update-incident-status.dto";
+import type { UpdateIncidentTimelineDto } from "./dto/update-incident-timeline.dto";
+import type { UpdateIncidentDto } from "./dto/update-incident.dto";
 import type {
   IncidentItem,
   IncidentResponse,
@@ -99,6 +101,7 @@ export class IncidentsService {
         description: dto.description.trim(),
         location: dto.location?.trim() || null,
         photos: dto.photos ?? [],
+        timeline: dto.timeline ?? [],
         occurredAt: new Date(dto.occurredAt),
         resolvedAt: this.isResolved(dto.status) ? new Date() : null,
       })
@@ -108,6 +111,45 @@ export class IncidentsService {
       throw new InternalServerErrorException("Failed to create incident");
     }
 
+    return { success: true, data: await this.findIncident(incident.id) };
+  }
+
+  async update(id: string, dto: UpdateIncidentDto): Promise<IncidentResponse> {
+    if (dto.loadId) await this.assertLoadExists(dto.loadId);
+
+    const [incident] = await this.databaseService.client
+      .update(incidents)
+      .set({
+        ...dto,
+        title: dto.title?.trim(),
+        description: dto.description?.trim(),
+        location: dto.location?.trim() || (dto.location === "" ? null : undefined),
+        occurredAt: dto.occurredAt ? new Date(dto.occurredAt) : undefined,
+        resolvedAt: dto.status
+          ? this.isResolved(dto.status)
+            ? new Date()
+            : null
+          : undefined,
+        updatedAt: new Date(),
+      })
+      .where(eq(incidents.id, id))
+      .returning({ id: incidents.id });
+
+    if (!incident) throw new NotFoundException("Incident was not found");
+    return { success: true, data: await this.findIncident(incident.id) };
+  }
+
+  async updateTimeline(
+    id: string,
+    dto: UpdateIncidentTimelineDto,
+  ): Promise<IncidentResponse> {
+    const [incident] = await this.databaseService.client
+      .update(incidents)
+      .set({ timeline: dto.timeline, updatedAt: new Date() })
+      .where(eq(incidents.id, id))
+      .returning({ id: incidents.id });
+
+    if (!incident) throw new NotFoundException("Incident was not found");
     return { success: true, data: await this.findIncident(incident.id) };
   }
 

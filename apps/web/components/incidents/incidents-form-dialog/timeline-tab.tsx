@@ -22,71 +22,12 @@ import {
 } from "@repo/ui/components/select";
 import { Textarea } from "@repo/ui/components/textarea";
 import { cn } from "@repo/ui/lib/utils";
+import type { IncidentTimelineEvent } from "@/lib/incidents/incidents-query";
 
-type TimelineTone = "blue" | "green" | "red";
-
-export type IncidentTimelineEvent = {
-  id: string;
+type TimelineTone = IncidentTimelineEvent["tone"];
+type EventDraft = Omit<IncidentTimelineEvent, "id" | "tone" | "dateTime"> & {
   time: string;
-  title: string;
-  description: string;
-  type: string;
-  tone: TimelineTone;
 };
-
-type EventDraft = Omit<IncidentTimelineEvent, "id" | "tone">;
-
-const initialTimelineEvents: IncidentTimelineEvent[] = [
-  {
-    id: "detected",
-    time: "09:41",
-    title: "Incident detected",
-    description: "AI system detected potential accident from telematics data.",
-    type: "Detection",
-    tone: "blue",
-  },
-  {
-    id: "evidence",
-    time: "09:42",
-    title: "Evidence collected",
-    description: "Dashcam clip, GPS, speed, and brake data collected.",
-    type: "Collection",
-    tone: "green",
-  },
-  {
-    id: "classification",
-    time: "09:43",
-    title: "AI classification",
-    description: "Model confidence: 92%\nType: Rear-end collision",
-    type: "AI Analysis",
-    tone: "green",
-  },
-  {
-    id: "severity",
-    time: "09:44",
-    title: "Severity assessment",
-    description: "Severity: High\nPotential injuries: Likely",
-    type: "Assessment",
-    tone: "red",
-  },
-  {
-    id: "actions",
-    time: "09:45",
-    title: "Suggested actions",
-    description:
-      "• Check driver wellness\n• Contact emergency services\n• Notify customer",
-    type: "Recommendations",
-    tone: "red",
-  },
-  {
-    id: "dispatcher",
-    time: "09:47",
-    title: "Dispatcher notified",
-    description: "Alex Dispatcher acknowledged the incident.",
-    type: "Action",
-    tone: "blue",
-  },
-];
 
 const emptyDraft: EventDraft = {
   time: "",
@@ -112,11 +53,13 @@ const getTone = (type: string): TimelineTone => {
 
 type TimelineTabProps = {
   events: IncidentTimelineEvent[];
+  occurredAt: string;
   onEventsChange: (events: IncidentTimelineEvent[]) => void;
 };
 
 export const TimelineTab = ({
   events,
+  occurredAt,
   onEventsChange,
 }: TimelineTabProps): React.JSX.Element => {
   const [isAddingEvent, setIsAddingEvent] = React.useState(true);
@@ -136,7 +79,13 @@ export const TimelineTab = ({
       ...events,
       {
         ...draft,
-        id: `event-${Date.now()}`,
+        id: crypto.randomUUID(),
+        dateTime: (() => {
+          const date = occurredAt ? new Date(occurredAt) : new Date();
+          const [hours, minutes] = draft.time.split(":").map(Number);
+          date.setHours(hours ?? 0, minutes ?? 0, 0, 0);
+          return date.toISOString();
+        })(),
         tone: getTone(draft.type),
       },
     ]);
@@ -173,7 +122,10 @@ export const TimelineTab = ({
               key={event.id}
             >
               <time className="pt-4 text-xs font-semibold text-primary-700">
-                {event.time}
+                {new Date(event.dateTime).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </time>
               <div className="relative flex justify-center">
                 {index < events.length - 1 ? (
@@ -214,7 +166,7 @@ export const TimelineTab = ({
                         label: "Edit event",
                         onSelect: () => {
                           setDraft({
-                            time: event.time,
+                            time: new Date(event.dateTime).toTimeString().slice(0, 5),
                             title: event.title,
                             description: event.description,
                             type: event.type,
@@ -359,5 +311,3 @@ export const TimelineTab = ({
     </div>
   );
 };
-
-export { initialTimelineEvents };

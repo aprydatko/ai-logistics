@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   AlertTriangle,
@@ -8,7 +9,6 @@ import {
   ListChecks,
   MessageSquareText,
   Paperclip,
-  Trash2,
 } from "lucide-react";
 
 import { Button } from "@repo/ui/components/button";
@@ -19,7 +19,11 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@repo/ui/components/dialog";
+import { toast } from "@repo/ui/components/toaster";
 
+import { saveIncident } from "@/lib/incidents/incident-mutations";
+import type { IncidentTimelineEvent } from "@/lib/incidents/incidents-query";
+import { loadsQueryOptions } from "@/lib/loads/loads-query";
 import type { Incident } from "../types";
 import {
   emptyIncidentFormValues,
@@ -27,18 +31,12 @@ import {
   type IncidentFormValues,
 } from "./form-values";
 import { OverviewTab } from "./overview-tab";
-import {
-  initialTimelineEvents,
-  TimelineTab,
-  type IncidentTimelineEvent,
-} from "./timeline-tab";
+import { TimelineTab } from "./timeline-tab";
 
 type IncidentsFormDialogProps = {
   incident: Incident | null;
   isOpen: boolean;
-  onDelete: (incidentId: string) => void;
   onOpenChange: (open: boolean) => void;
-  onSave: (values: IncidentFormValues, incidentId?: string) => void;
 };
 
 type IncidentFormTab =
@@ -64,23 +62,42 @@ const tabs: Array<{
 export const IncidentsFormDialog = ({
   incident,
   isOpen,
-  onDelete,
   onOpenChange,
-  onSave,
 }: IncidentsFormDialogProps): React.JSX.Element => {
+  const queryClient = useQueryClient();
+  const loadsQuery = useQuery(
+    loadsQueryOptions({
+      search: "",
+      status: "all",
+      pickupFrom: "",
+      pickupTo: "",
+      page: 1,
+      limit: 100,
+    }),
+  );
+  const mutation = useMutation({
+    mutationFn: saveIncident,
+    onError: (error) =>
+      toast.error("Unable to save incident", { description: error.message }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["incidents"] });
+      onOpenChange(false);
+      toast.success(incident ? "Incident updated" : "Incident created");
+    },
+  });
   const [values, setValues] = React.useState<IncidentFormValues>(
     emptyIncidentFormValues,
   );
   const [activeTab, setActiveTab] = React.useState<IncidentFormTab>("overview");
   const [timelineEvents, setTimelineEvents] = React.useState<
     IncidentTimelineEvent[]
-  >(initialTimelineEvents);
+  >([]);
 
   React.useEffect(() => {
     if (!isOpen) return;
 
     setValues(toIncidentFormValues(incident));
-    setTimelineEvents(initialTimelineEvents);
+    setTimelineEvents(incident?.timeline ?? []);
     setActiveTab("overview");
   }, [incident, isOpen]);
 
@@ -136,17 +153,25 @@ export const IncidentsFormDialog = ({
           className="flex min-h-0 flex-1 flex-col"
           onSubmit={(event) => {
             event.preventDefault();
-            onSave(values, incident?.id);
-            onOpenChange(false);
+            mutation.mutate({
+              incidentId: incident?.id,
+              timeline: timelineEvents,
+              values,
+            });
           }}
         >
           <div className="min-h-0 flex-1 overflow-y-auto px-7 py-7">
             {activeTab === "overview" ? (
-              <OverviewTab onChange={updateValue} values={values} />
+              <OverviewTab
+                loads={loadsQuery.data?.data ?? []}
+                onChange={updateValue}
+                values={values}
+              />
             ) : null}
             {activeTab === "timeline" ? (
               <TimelineTab
                 events={timelineEvents}
+                occurredAt={values.occurredAt}
                 onEventsChange={setTimelineEvents}
               />
             ) : null}
@@ -163,20 +188,7 @@ export const IncidentsFormDialog = ({
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-white px-7 py-5">
             <div>
-              {incident ? (
-                <Button
-                  className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
-                  onClick={() => {
-                    onDelete(incident.id);
-                    onOpenChange(false);
-                  }}
-                  type="button"
-                  variant="outline"
-                >
-                  <Trash2 />
-                  Delete incident
-                </Button>
-              ) : null}
+              {incident ? <span className="text-xs text-primary-700">ID: {incident.id}</span> : null}
             </div>
             <div className="flex gap-3">
               <DialogClose asChild>
@@ -188,7 +200,11 @@ export const IncidentsFormDialog = ({
                 className="bg-primary-700 hover:bg-primary-600"
                 type="submit"
               >
-                {incident ? "Save changes" : "Save incident"}
+                {mutation.isPending
+                  ? "Saving..."
+                  : incident
+                    ? "Save changes"
+                    : "Save incident"}
               </Button>
             </div>
           </div>

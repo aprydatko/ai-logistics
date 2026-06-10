@@ -16,6 +16,8 @@ import { RolesGuard } from "../auth/roles.guard";
 import { CreateIncidentDto } from "./dto/create-incident.dto";
 import { ListIncidentsQueryDto } from "./dto/list-incidents-query.dto";
 import { UpdateIncidentStatusDto } from "./dto/update-incident-status.dto";
+import { UpdateIncidentTimelineDto } from "./dto/update-incident-timeline.dto";
+import { UpdateIncidentDto } from "./dto/update-incident.dto";
 import { IncidentsService } from "./incidents.service";
 import type {
   IncidentResponse,
@@ -39,6 +41,26 @@ export class IncidentsController {
   @UseGuards(RolesGuard)
   create(@Body() dto: CreateIncidentDto): Promise<IncidentResponse> {
     return this.incidentsService.create(dto);
+  }
+
+  @Patch(":id")
+  @Roles("admin", "dispatcher")
+  @UseGuards(RolesGuard)
+  update(
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateIncidentDto,
+  ): Promise<IncidentResponse> {
+    return this.incidentsService.update(id, dto);
+  }
+
+  @Patch(":id/timeline")
+  @Roles("admin", "dispatcher")
+  @UseGuards(RolesGuard)
+  updateTimeline(
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateIncidentTimelineDto,
+  ): Promise<IncidentResponse> {
+    return this.incidentsService.updateTimeline(id, dto);
   }
 
   @Patch(":id/status")
