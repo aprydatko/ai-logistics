@@ -1,11 +1,5 @@
-import { PageIntro } from "@/components/page-intro";
+import { IncidentsTable } from "@/components/incidents/incidents-table";
 
-export default function IncidentsPage() {
-  return (
-    <PageIntro
-      description="Triage reported issues, priority changes, ticket creation, and AI-assisted incident summaries."
-      eyebrow="Exception handling"
-      title="Incidents"
-    />
-  );
+export default function IncidentsPage(): React.JSX.Element {
+  return <IncidentsTable />;
 }
