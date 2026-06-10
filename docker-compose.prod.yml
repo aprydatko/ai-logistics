@@ -1,0 +1,112 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ai_logistics}
+      POSTGRES_USER: ${POSTGRES_USER:-ai_logistics}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ai_logistics_network
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    image: ai-logistics-api:latest
+    restart: 'no'
+    command: pnpm --filter api db:migrate
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ai_logistics}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-ai_logistics}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ai_logistics_network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    image: ai-logistics-api:latest
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      API_PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ai_logistics}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-ai_logistics}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set JWT_ACCESS_SECRET in .env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET in .env}
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      WEB_ORIGIN: ${WEB_ORIGIN:?Set WEB_ORIGIN in .env}
+    ports:
+      - '127.0.0.1:4000:4000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - ai_logistics_network
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:4000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: web
+    image: ai-logistics-web:latest
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      API_BASE_URL: http://api:4000/api
+    ports:
+      - '127.0.0.1:3001:3000'
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - ai_logistics_network
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  postgres_data:
+
+networks:
+  ai_logistics_network:
+    driver: bridge
