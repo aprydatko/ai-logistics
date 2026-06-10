@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "c05bafaa-2aac-46be-8781-bd9fd2bbf267",
     "name": "AI Logistics API",
-    "description": "Authentication, drivers, and loads API requests.",
+    "description": "Authentication, drivers, loads, and incidents API requests.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "6430736"
   },
@@ -406,6 +406,151 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Incidents",
+      "item": [
+        {
+          "name": "List Incidents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidents?page=1&limit=10&sortBy=occurredAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["incidents"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "sortBy", "value": "occurredAt" },
+                { "key": "sortOrder", "value": "desc" },
+                { "key": "search", "value": "delay", "disabled": true },
+                { "key": "type", "value": "delay", "disabled": true },
+                { "key": "priority", "value": "high", "disabled": true },
+                { "key": "status", "value": "open", "disabled": true },
+                { "key": "loadId", "value": "{{loadId}}", "disabled": true },
+                { "key": "driverId", "value": "{{driverId}}", "disabled": true },
+                {
+                  "key": "occurredFrom",
+                  "value": "2026-06-01T00:00:00.000Z",
+                  "disabled": true
+                },
+                {
+                  "key": "occurredTo",
+                  "value": "2026-06-30T23:59:59.999Z",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Lists incidents with search, type, priority, status, load, driver, occurrence period, sorting, and pagination filters."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Incident",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data?.id) pm.collectionVariables.set('incidentId', body.data.id);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"loadId\": \"{{loadId}}\",\n  \"title\": \"Fuel system warning\",\n  \"description\": \"The driver reported an intermittent fuel pressure warning.\",\n  \"location\": \"Denver, CO\",\n  \"type\": \"fuel_issue\",\n  \"priority\": \"medium\",\n  \"status\": \"open\",\n  \"occurredAt\": \"2026-06-10T12:30:00.000Z\",\n  \"photos\": [],\n  \"timeline\": [\n    {\n      \"id\": \"warning-reported\",\n      \"dateTime\": \"2026-06-10T12:30:00.000Z\",\n      \"title\": \"Warning reported\",\n      \"description\": \"Fuel pressure warning appeared on the dashboard.\",\n      \"type\": \"Detection\",\n      \"tone\": \"blue\"\n    }\n  ]\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/incidents",
+              "host": ["{{baseUrl}}"],
+              "path": ["incidents"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Incident",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Fuel pressure warning under investigation\",\n  \"description\": \"Dispatch requested a diagnostic inspection at the next service stop.\",\n  \"priority\": \"high\",\n  \"status\": \"investigating\",\n  \"location\": \"I-70 near Denver, CO\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/incidents/{{incidentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["incidents", "{{incidentId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Incident Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"resolved\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/incidents/{{incidentId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["incidents", "{{incidentId}}", "status"]
+            },
+            "description": "Updates only the incident status. Resolved and closed statuses automatically set resolvedAt."
+          },
+          "response": []
+        },
+        {
+          "name": "Replace Incident Timeline",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"timeline\": [\n    {\n      \"id\": \"warning-reported\",\n      \"dateTime\": \"2026-06-10T12:30:00.000Z\",\n      \"title\": \"Warning reported\",\n      \"description\": \"Fuel pressure warning appeared on the dashboard.\",\n      \"type\": \"Detection\",\n      \"tone\": \"blue\"\n    },\n    {\n      \"id\": \"inspection-completed\",\n      \"dateTime\": \"2026-06-10T14:15:00.000Z\",\n      \"title\": \"Inspection completed\",\n      \"description\": \"A loose sensor connection was secured and tested.\",\n      \"type\": \"Action\",\n      \"tone\": \"green\"\n    }\n  ]\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/incidents/{{incidentId}}/timeline",
+              "host": ["{{baseUrl}}"],
+              "path": ["incidents", "{{incidentId}}", "timeline"]
+            },
+            "description": "Replaces the complete ordered timeline for an incident."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "auth": {
@@ -470,6 +615,10 @@
     {
       "key": "loadId",
       "value": "50000000-0000-4000-8000-000000000005"
+    },
+    {
+      "key": "incidentId",
+      "value": "70000000-0000-4000-8000-000000000005"
     }
   ]
 }

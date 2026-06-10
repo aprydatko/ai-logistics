@@ -1,6 +1,7 @@
 import type { ChangeEvent } from "react";
 import { AlertTriangle, Circle } from "lucide-react";
 
+import type { LoadApiItem } from "@/lib/loads/loads-query";
 import { Input } from "@repo/ui/components/input";
 import {
   Select,
@@ -12,6 +13,7 @@ import {
 import { Textarea } from "@repo/ui/components/textarea";
 
 import type { IncidentPriority, IncidentStatus } from "../types";
+import { incidentTypeLabels } from "../types";
 import { DateTimePickerField } from "./date-time-picker-field";
 import type { IncidentFormValues } from "./form-values";
 
@@ -21,6 +23,7 @@ type OverviewTabProps = {
     key: Key,
     value: IncidentFormValues[Key],
   ) => void;
+  loads: LoadApiItem[];
 };
 
 const fieldClassName = "h-12 w-full bg-white shadow-none";
@@ -43,6 +46,7 @@ const Field = ({
 );
 
 export const OverviewTab = ({
+  loads,
   values,
   onChange,
 }: OverviewTabProps): React.JSX.Element => (
@@ -52,26 +56,32 @@ export const OverviewTab = ({
         Incident information
       </h3>
       <div className="grid gap-x-7 gap-y-5 sm:grid-cols-2">
+        <Field label="Title" required>
+          <Input
+            className={fieldClassName}
+            onChange={(event) => onChange("title", event.target.value)}
+            placeholder="Accident detected"
+            required
+            value={values.title}
+          />
+        </Field>
         <Field label="Incident type" required>
           <Select
             value={values.type}
-            onValueChange={(value) => onChange("type", value)}
+            onValueChange={(value) =>
+              onChange("type", value as IncidentFormValues["type"])
+            }
           >
             <SelectTrigger className={fieldClassName}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {[
-                "Accident",
-                "Delay risk",
-                "Maintenance alert",
-                "Route deviation",
-                "Document issue",
-                "Weather alert",
-              ].map((type) => (
+              {(Object.entries(incidentTypeLabels) as Array<
+                [IncidentFormValues["type"], string]
+              >).map(([type, label]) => (
                 <SelectItem key={type} value={type}>
                   <AlertTriangle className="text-destructive" />
-                  {type}
+                  {label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -88,18 +98,18 @@ export const OverviewTab = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(["High", "Medium", "Low"] as const).map((priority) => (
+              {(["critical", "high", "medium", "low"] as const).map((priority) => (
                 <SelectItem key={priority} value={priority}>
                   <Circle
                     className={
-                      priority === "High"
+                      priority === "critical" || priority === "high"
                         ? "fill-red-500 text-red-500"
-                        : priority === "Medium"
+                        : priority === "medium"
                           ? "fill-amber-500 text-amber-500"
                           : "fill-blue-500 text-blue-500"
                     }
                   />
-                  {priority}
+                  {priority[0]?.toUpperCase()}{priority.slice(1)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -131,15 +141,9 @@ export const OverviewTab = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {[
-                "Open",
-                "Investigating",
-                "Monitoring",
-                "Resolved",
-                "Closed",
-              ].map((status) => (
+              {(["open", "investigating", "monitoring", "resolved", "closed"] as const).map((status) => (
                 <SelectItem key={status} value={status}>
-                  {status}
+                  {status[0]?.toUpperCase()}{status.slice(1)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -181,44 +185,34 @@ export const OverviewTab = ({
         <span className="font-normal text-primary-700">(optional)</span>
       </h3>
       <div className="grid gap-x-7 gap-y-5 sm:grid-cols-2">
-        <Field label="Load reference">
+        <Field label="Load reference" required>
           <Select
-            value={values.load}
-            onValueChange={(value) => onChange("load", value)}
+            value={values.loadId}
+            onValueChange={(value) => onChange("loadId", value)}
           >
             <SelectTrigger className={fieldClassName}>
               <SelectValue placeholder="Select load reference" />
             </SelectTrigger>
             <SelectContent>
-              {["LD-78291", "LD-10456", "LD-2156", "LD-9901"].map((load) => (
-                <SelectItem key={load} value={load}>
-                  {load}
+              {loads.map((load) => (
+                <SelectItem key={load.id} value={load.id}>
+                  {load.referenceNumber}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </Field>
         <Field label="Driver">
-          <Select
-            value={values.driver}
-            onValueChange={(value) => onChange("driver", value)}
-          >
-            <SelectTrigger className={fieldClassName}>
-              <SelectValue placeholder="Select driver" />
-            </SelectTrigger>
-            <SelectContent>
-              {[
-                "John Smith",
-                "Sarah Davis",
-                "Robert Brown",
-                "Emily Taylor",
-              ].map((driver) => (
-                <SelectItem key={driver} value={driver}>
-                  {driver}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Input
+            className={fieldClassName}
+            disabled
+            value={(() => {
+              const driver = loads.find(({ id }) => id === values.loadId)?.driver;
+              return driver
+                ? `${driver.firstName} ${driver.lastName}`
+                : "No driver assigned to selected load";
+            })()}
+          />
         </Field>
       </div>
     </section>

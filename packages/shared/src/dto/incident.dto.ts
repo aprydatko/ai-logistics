@@ -14,10 +14,16 @@ export type CreateIncidentDto = Pick<
   | "title"
   | "type"
 > &
-  Partial<Pick<Incident, "location" | "photos" | "status">>;
+  Partial<Pick<Incident, "location" | "photos" | "status" | "timeline">>;
+
+export type UpdateIncidentDto = Partial<CreateIncidentDto>;
 
 export type UpdateIncidentStatusDto = {
   status: IncidentStatus;
+};
+
+export type UpdateIncidentTimelineDto = {
+  timeline: Incident["timeline"];
 };
 
 export type ListIncidentsQueryDto = {

@@ -107,6 +107,88 @@ ON CONFLICT ("id") DO UPDATE SET
   "driver_id" = EXCLUDED."driver_id",
   "updated_at" = NOW();
 
+INSERT INTO "incidents" (
+  "id", "load_id", "title", "description", "location", "type", "priority",
+  "status", "occurred_at", "resolved_at", "timeline"
+) VALUES
+(
+  '70000000-0000-4000-8000-000000000001',
+  '50000000-0000-4000-8000-000000000003',
+  'Unexpected tire pressure loss',
+  'The driver reported a rapid pressure drop in the rear passenger-side tire.',
+  'I-94 near Chicago, IL',
+  'flat_tire',
+  'high',
+  'investigating',
+  '2026-06-09T12:18:00Z',
+  NULL,
+  '[{"id":"tire-detected","dateTime":"2026-06-09T12:18:00Z","title":"Pressure alert detected","description":"Telematics reported a rapid tire pressure drop.","type":"Detection","tone":"blue"},{"id":"tire-driver","dateTime":"2026-06-09T12:22:00Z","title":"Driver contacted","description":"Marcus confirmed the truck was moved to a safe shoulder.","type":"Action","tone":"blue"}]'
+),
+(
+  '70000000-0000-4000-8000-000000000002',
+  '50000000-0000-4000-8000-000000000004',
+  'Pickup delay risk',
+  'Traffic congestion may delay arrival at the Seattle pickup appointment.',
+  'Seattle, WA',
+  'delay',
+  'medium',
+  'monitoring',
+  '2026-06-10T08:35:00Z',
+  NULL,
+  '[{"id":"delay-route","dateTime":"2026-06-10T08:35:00Z","title":"Route delay detected","description":"Current traffic adds approximately 35 minutes to the route.","type":"Detection","tone":"blue"},{"id":"delay-broker","dateTime":"2026-06-10T08:42:00Z","title":"Broker notified","description":"Pacific Route Partners received the revised ETA.","type":"Update","tone":"green"}]'
+),
+(
+  '70000000-0000-4000-8000-000000000003',
+  '50000000-0000-4000-8000-000000000001',
+  'Minor loading dock accident',
+  'The trailer made contact with a dock barrier. No injuries were reported.',
+  'Detroit receiving dock',
+  'accident',
+  'critical',
+  'resolved',
+  '2026-06-02T09:05:00Z',
+  '2026-06-02T11:30:00Z',
+  '[{"id":"accident-reported","dateTime":"2026-06-02T09:05:00Z","title":"Accident reported","description":"Receiving staff reported contact with the dock barrier.","type":"Detection","tone":"red"},{"id":"accident-inspection","dateTime":"2026-06-02T09:25:00Z","title":"Vehicle inspected","description":"Inspection found cosmetic trailer damage only.","type":"Assessment","tone":"green"},{"id":"accident-resolved","dateTime":"2026-06-02T11:30:00Z","title":"Incident resolved","description":"Documentation was completed and the load was released.","type":"Action","tone":"green"}]'
+),
+(
+  '70000000-0000-4000-8000-000000000004',
+  '50000000-0000-4000-8000-000000000002',
+  'Low fuel warning',
+  'Fuel level fell below the planned reserve before the Houston delivery.',
+  'I-45 near Huntsville, TX',
+  'fuel_issue',
+  'low',
+  'closed',
+  '2026-06-05T13:10:00Z',
+  '2026-06-05T13:45:00Z',
+  '[{"id":"fuel-warning","dateTime":"2026-06-05T13:10:00Z","title":"Low fuel warning","description":"Telematics reported fuel below the reserve threshold.","type":"Detection","tone":"blue"},{"id":"fuel-stop","dateTime":"2026-06-05T13:45:00Z","title":"Fuel stop completed","description":"The driver refueled and resumed the route.","type":"Action","tone":"green"}]'
+),
+(
+  '70000000-0000-4000-8000-000000000005',
+  '50000000-0000-4000-8000-000000000004',
+  'Preventive maintenance inspection',
+  'A brake wear alert requires inspection before the next long-haul assignment.',
+  'Portland, OR service area',
+  'maintenance',
+  'high',
+  'open',
+  '2026-06-10T10:15:00Z',
+  NULL,
+  '[{"id":"maintenance-alert","dateTime":"2026-06-10T10:15:00Z","title":"Brake wear alert","description":"The maintenance system flagged the front brake pads for inspection.","type":"Detection","tone":"red"},{"id":"maintenance-scheduled","dateTime":"2026-06-10T10:28:00Z","title":"Inspection scheduled","description":"A service appointment was requested in Portland.","type":"Action","tone":"blue"}]'
+)
+ON CONFLICT ("id") DO UPDATE SET
+  "load_id" = EXCLUDED."load_id",
+  "title" = EXCLUDED."title",
+  "description" = EXCLUDED."description",
+  "location" = EXCLUDED."location",
+  "type" = EXCLUDED."type",
+  "priority" = EXCLUDED."priority",
+  "status" = EXCLUDED."status",
+  "occurred_at" = EXCLUDED."occurred_at",
+  "resolved_at" = EXCLUDED."resolved_at",
+  "timeline" = EXCLUDED."timeline",
+  "updated_at" = NOW();
+
 INSERT INTO "driver_activity" (
   "id", "driver_id", "type", "description", "created_at"
 ) VALUES

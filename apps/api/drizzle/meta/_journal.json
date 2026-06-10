@@ -99,6 +99,13 @@
       "when": 1781087529227,
       "tag": "0013_young_warlock",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1781088484142,
+      "tag": "0014_far_maverick",
+      "breakpoints": true
     }
   ]
 }

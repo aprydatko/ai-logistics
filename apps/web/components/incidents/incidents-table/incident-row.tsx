@@ -7,23 +7,30 @@ import { Checkbox } from "@repo/ui/components/checkbox";
 import { StatusBadge } from "@repo/ui/components/status-badge";
 import { TableCell, TableRow } from "@repo/ui/components/table";
 
-import type { Incident, IncidentPriority, IncidentStatus } from "../types";
+import {
+  incidentPriorityLabels,
+  incidentStatusLabels,
+  type Incident,
+  type IncidentPriority,
+  type IncidentStatus,
+} from "../types";
 
 const priorityTone: Record<IncidentPriority, "danger" | "warning" | "info"> = {
-  High: "danger",
-  Medium: "warning",
-  Low: "info",
+  critical: "danger",
+  high: "danger",
+  medium: "warning",
+  low: "info",
 };
 
 const statusTone: Record<
   IncidentStatus,
   "danger" | "warning" | "info" | "success" | "neutral"
 > = {
-  Open: "danger",
-  Investigating: "info",
-  Monitoring: "info",
-  Resolved: "success",
-  Closed: "neutral",
+  open: "danger",
+  investigating: "info",
+  monitoring: "info",
+  resolved: "success",
+  closed: "neutral",
 };
 
 type IncidentRowProps = {
@@ -60,33 +67,33 @@ export const IncidentRow = ({
         {incident.title}
       </button>
       <p className="mt-1 truncate text-[0.65rem] text-primary-700">
-        {incident.location}
+        {incident.location ?? "-"}
       </p>
     </TableCell>
     <TableCell>
       <StatusBadge size="sm" tone={priorityTone[incident.priority]}>
-        {incident.priority}
+        {incidentPriorityLabels[incident.priority]}
       </StatusBadge>
     </TableCell>
     <TableCell>
       <StatusBadge size="sm" tone={statusTone[incident.status]}>
-        {incident.status}
+        {incidentStatusLabels[incident.status]}
       </StatusBadge>
     </TableCell>
     <TableCell className="max-w-0">
-      {incident.driver ? (
+      {incident.load.driver ? (
         <div className="flex min-w-0 items-center gap-2">
           <DriverAvatar
-            imageUrl={incident.driver.avatarUrl}
-            name={incident.driver.name}
+            imageUrl={incident.load.driver.avatarUrl ?? ""}
+            name={`${incident.load.driver.firstName} ${incident.load.driver.lastName}`}
             size="default"
           />
           <div className="min-w-0">
             <p className="truncate text-xs font-semibold text-ink-900">
-              {incident.driver.name}
+              {incident.load.driver.firstName} {incident.load.driver.lastName}
             </p>
             <p className="mt-1 truncate text-[0.65rem] text-primary-700">
-              {incident.driver.truck}
+              {incident.load.driver.truckNumber ?? "No truck"}
             </p>
           </div>
         </div>
@@ -95,18 +102,24 @@ export const IncidentRow = ({
       )}
     </TableCell>
     <TableCell className="truncate text-xs font-medium text-primary-700">
-      {incident.load ?? "-"}
+      {incident.load.referenceNumber}
     </TableCell>
     <TableCell>
       <p className="text-xs font-medium text-primary-700">
-        {incident.occurredAt.primary}
+        {new Date(incident.occurredAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
       </p>
       <p className="mt-1 text-[0.65rem] text-primary-700">
-        {incident.occurredAt.secondary}
+        {new Date(incident.occurredAt).toLocaleDateString([], {
+          month: "short",
+          day: "numeric",
+        })}
       </p>
     </TableCell>
     <TableCell className="truncate text-xs font-medium text-primary-700">
-      {incident.updatedAt}
+      {new Date(incident.updatedAt).toLocaleDateString()}
     </TableCell>
     <TableCell className="w-14 text-right">
       <ActionMenu

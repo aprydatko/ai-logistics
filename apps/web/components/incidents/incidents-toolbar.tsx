@@ -8,25 +8,19 @@ import type { IncidentFilters } from "./types";
 
 const priorityOptions = [
   { label: "All priorities", value: "all" },
-  { label: "High", value: "High" },
-  { label: "Medium", value: "Medium" },
-  { label: "Low", value: "Low" },
+  { label: "Critical", value: "critical" },
+  { label: "High", value: "high" },
+  { label: "Medium", value: "medium" },
+  { label: "Low", value: "low" },
 ];
 
 const statusOptions = [
   { label: "All statuses", value: "all" },
-  { label: "Open", value: "Open" },
-  { label: "Investigating", value: "Investigating" },
-  { label: "Monitoring", value: "Monitoring" },
-  { label: "Resolved", value: "Resolved" },
-  { label: "Closed", value: "Closed" },
-];
-
-const dateOptions = [
-  { label: "All dates", value: "all" },
-  { label: "Today", value: "today" },
-  { label: "Yesterday", value: "yesterday" },
-  { label: "Older", value: "older" },
+  { label: "Open", value: "open" },
+  { label: "Investigating", value: "investigating" },
+  { label: "Monitoring", value: "monitoring" },
+  { label: "Resolved", value: "resolved" },
+  { label: "Closed", value: "closed" },
 ];
 
 type IncidentsToolbarProps = {
@@ -79,15 +73,6 @@ export const IncidentsToolbar = ({
           options={statusOptions}
           placeholder="Status"
           value={filters.status}
-        />
-        <SelectButton
-          className="sm:min-w-32"
-          onValueChange={(date) =>
-            onChange({ date: date as IncidentFilters["date"] })
-          }
-          options={dateOptions}
-          placeholder="Date"
-          value={filters.date}
         />
         {hasFilters ? (
           <Button

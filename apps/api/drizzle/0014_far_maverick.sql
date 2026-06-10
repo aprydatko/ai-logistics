@@ -1,0 +1,1 @@
+ALTER TABLE "incidents" ADD COLUMN "timeline" jsonb DEFAULT '[]'::jsonb NOT NULL;

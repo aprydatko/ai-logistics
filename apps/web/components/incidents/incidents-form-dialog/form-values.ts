@@ -1,27 +1,27 @@
 import type { Incident } from "../types";
 
 export type IncidentFormValues = {
-  type: string;
+  title: string;
+  type: Incident["type"];
   priority: Incident["priority"];
   location: string;
   occurredAt: string;
   status: Incident["status"];
   reportedBy: string;
   description: string;
-  load: string;
-  driver: string;
+  loadId: string;
 };
 
 export const emptyIncidentFormValues: IncidentFormValues = {
-  type: "Accident",
-  priority: "High",
+  title: "",
+  type: "accident",
+  priority: "high",
   location: "",
   occurredAt: "",
-  status: "Open",
+  status: "open",
   reportedBy: "Alex Dispatcher",
   description: "",
-  load: "",
-  driver: "",
+  loadId: "",
 };
 
 export const toIncidentFormValues = (
@@ -29,14 +29,14 @@ export const toIncidentFormValues = (
 ): IncidentFormValues =>
   incident
     ? {
-        type: incident.title.replace(/ detected$/i, ""),
+        title: incident.title,
+        type: incident.type,
         priority: incident.priority,
-        location: incident.location,
-        occurredAt: "",
+        location: incident.location ?? "",
+        occurredAt: incident.occurredAt.slice(0, 16),
         status: incident.status,
         reportedBy: "Alex Dispatcher",
-        description: `${incident.title} at ${incident.location}.`,
-        load: incident.load ?? "",
-        driver: incident.driver?.name ?? "",
+        description: incident.description,
+        loadId: incident.loadId,
       }
     : emptyIncidentFormValues;

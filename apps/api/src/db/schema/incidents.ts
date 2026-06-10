@@ -11,6 +11,15 @@ import {
 
 import { loads } from "./loads";
 
+export type IncidentTimelineEvent = {
+  id: string;
+  dateTime: string;
+  title: string;
+  description: string;
+  type: string;
+  tone: "blue" | "green" | "red";
+};
+
 export const incidentTypeEnum = pgEnum("incident_type", [
   "flat_tire",
   "delay",
@@ -46,6 +55,10 @@ export const incidents = pgTable(
     description: text("description").notNull(),
     location: varchar("location", { length: 500 }),
     photos: jsonb("photos").$type<string[]>().default([]).notNull(),
+    timeline: jsonb("timeline")
+      .$type<IncidentTimelineEvent[]>()
+      .default([])
+      .notNull(),
     type: incidentTypeEnum("type").notNull(),
     priority: incidentPriorityEnum("priority").notNull(),
     status: incidentStatusEnum("status").default("open").notNull(),

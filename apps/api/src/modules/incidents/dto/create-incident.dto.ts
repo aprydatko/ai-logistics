@@ -1,4 +1,4 @@
-import { Transform } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import {
   IsArray,
   IsDateString,
@@ -9,7 +9,10 @@ import {
   IsUrl,
   IsUUID,
   MaxLength,
+  ValidateNested,
 } from "class-validator";
+
+import { IncidentTimelineEventDto } from "./incident-timeline-event.dto";
 
 const trimString = ({ value }: { value: unknown }): unknown =>
   typeof value === "string" ? value.trim() : value;
@@ -40,6 +43,12 @@ export class CreateIncidentDto {
   @IsArray()
   @IsUrl({}, { each: true })
   photos?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => IncidentTimelineEventDto)
+  timeline?: IncidentTimelineEventDto[];
 
   @IsIn([
     "flat_tire",
