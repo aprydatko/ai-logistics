@@ -64,8 +64,13 @@ activity. Deleting a vehicle cascades to its assignments.
 
 ## Demo Data
 
-After applying migrations, `apps/api/seeds/demo.sql` can be run against the
-local PostgreSQL database. It adds three demo drivers plus sample vehicles,
-assignments, documents, loads, and activity. The statements use
-`ON CONFLICT DO NOTHING`, so the seed can be applied again without duplicating
-the fixed demo records.
+After applying migrations, run `pnpm db:seed` to add three demo drivers plus
+sample vehicles, assignments, documents, loads, incidents, and activity. The
+seed is idempotent, so it can be applied again without duplicating the fixed
+demo records.
+
+For the production Docker stack, run:
+
+```bash
+docker compose -f docker-compose.prod.yml --profile seed run --rm seed
+```

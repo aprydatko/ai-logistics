@@ -37,6 +37,20 @@ services:
     networks:
       - ai_logistics_network
 
+  seed:
+    image: ai-logistics-api:latest
+    profiles:
+      - seed
+    restart: 'no'
+    command: pnpm --filter api db:seed
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ai_logistics}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-ai_logistics}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - ai_logistics_network
+
   api:
     build:
       context: .
