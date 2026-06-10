@@ -1,4 +1,4 @@
-import { Ellipsis, Eye } from "lucide-react";
+import { Ellipsis, Eye, Pencil } from "lucide-react";
 
 import { ActionMenu } from "@repo/ui/components/action-menu";
 import { DriverAvatar } from "@repo/ui/components/avatar";
@@ -30,6 +30,7 @@ type IncidentRowProps = {
   incident: Incident;
   isSelected: boolean;
   onOpenDetail: (incident: Incident) => void;
+  onEdit: (incident: Incident) => void;
   onSelectChange: (id: string, checked: boolean) => void;
 };
 
@@ -37,6 +38,7 @@ export const IncidentRow = ({
   incident,
   isSelected,
   onOpenDetail,
+  onEdit,
   onSelectChange,
 }: IncidentRowProps): React.JSX.Element => (
   <TableRow isSelected={isSelected}>
@@ -114,6 +116,11 @@ export const IncidentRow = ({
             icon: Eye,
             label: "View incident",
             onSelect: () => onOpenDetail(incident),
+          },
+          {
+            icon: Pencil,
+            label: "Edit incident",
+            onSelect: () => onEdit(incident),
           },
         ]}
         trigger={() => (

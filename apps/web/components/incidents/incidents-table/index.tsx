@@ -17,6 +17,8 @@ import {
 
 import { IncidentsToolbar } from "../incidents-toolbar";
 import { IncidentDetailPanel } from "../incident-detail-panel";
+import { IncidentsFormDialog } from "../incidents-form-dialog";
+import type { IncidentFormValues } from "../incidents-form-dialog/form-values";
 import { mockIncidents } from "../mock-incidents";
 import type { Incident, IncidentFilters } from "../types";
 import { IncidentRow } from "./incident-row";
@@ -35,8 +37,12 @@ export const IncidentsTable = (): React.JSX.Element => {
   const [detailIncident, setDetailIncident] = React.useState<Incident | null>(
     null,
   );
+  const [incidentItems, setIncidentItems] =
+    React.useState<Incident[]>(mockIncidents);
+  const [formIncident, setFormIncident] = React.useState<Incident | null>(null);
+  const [isFormOpen, setIsFormOpen] = React.useState(false);
 
-  const incidents = mockIncidents.filter((incident) => {
+  const incidents = incidentItems.filter((incident) => {
     const search = filters.search.toLowerCase();
     const matchesSearch =
       `${incident.title} ${incident.location} ${incident.driver?.name ?? ""} ${incident.load ?? ""}`
@@ -80,6 +86,46 @@ export const IncidentsTable = (): React.JSX.Element => {
     });
   };
 
+  const saveIncident = (
+    values: IncidentFormValues,
+    incidentId?: string,
+  ): void => {
+    const occurredAt = values.occurredAt
+      ? new Date(values.occurredAt)
+      : new Date();
+    const incident: Incident = {
+      id: incidentId ?? `INC-${Date.now().toString().slice(-5)}`,
+      title: values.type === "Accident" ? "Accident detected" : values.type,
+      location: values.location,
+      priority: values.priority,
+      status: values.status,
+      driver: values.driver
+        ? { name: values.driver, truck: "Unassigned", avatarUrl: "" }
+        : null,
+      load: values.load || null,
+      occurredAt: {
+        primary: occurredAt.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        secondary: occurredAt.toLocaleDateString([], {
+          month: "short",
+          day: "numeric",
+        }),
+      },
+      updatedAt: "Just now",
+    };
+
+    setIncidentItems((current) =>
+      incidentId
+        ? current.map((item) => (item.id === incidentId ? incident : item))
+        : [incident, ...current],
+    );
+    setDetailIncident((current) =>
+      current?.id === incidentId ? incident : current,
+    );
+  };
+
   return (
     <section className="flex h-[calc(100svh-7rem)] gap-5 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col gap-5 overflow-hidden">
@@ -88,9 +134,10 @@ export const IncidentsTable = (): React.JSX.Element => {
           onChange={(next) =>
             setFilters((current) => ({ ...current, ...next }))
           }
-          onReport={() =>
-            window.alert("Incident reporting form will be connected next.")
-          }
+          onReport={() => {
+            setFormIncident(null);
+            setIsFormOpen(true);
+          }}
           onReset={() => setFilters(initialFilters)}
         />
         <DataTable className="flex min-h-0 flex-1 flex-col">
@@ -149,6 +196,10 @@ export const IncidentsTable = (): React.JSX.Element => {
                       incident={incident}
                       isSelected={selectedIds.has(incident.id)}
                       key={incident.id}
+                      onEdit={(item) => {
+                        setFormIncident(item);
+                        setIsFormOpen(true);
+                      }}
                       onOpenDetail={setDetailIncident}
                       onSelectChange={selectIncident}
                     />
@@ -177,6 +228,18 @@ export const IncidentsTable = (): React.JSX.Element => {
         incident={detailIncident}
         isOpen={detailIncident !== null}
         onClose={() => setDetailIncident(null)}
+      />
+      <IncidentsFormDialog
+        incident={formIncident}
+        isOpen={isFormOpen}
+        onDelete={(incidentId) => {
+          setIncidentItems((current) =>
+            current.filter(({ id }) => id !== incidentId),
+          );
+          if (detailIncident?.id === incidentId) setDetailIncident(null);
+        }}
+        onOpenChange={setIsFormOpen}
+        onSave={saveIncident}
       />
     </section>
   );
