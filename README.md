@@ -13,6 +13,8 @@ logistics teams.
 ![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)
 ![pnpm](https://img.shields.io/badge/pnpm-9-F69220?logo=pnpm&logoColor=white)
 
+### [Open Live Demo](https://ai-logistics.prydatko.site)
+
 </div>
 
 ![AI Logistics platform overview](docs/main.png)
