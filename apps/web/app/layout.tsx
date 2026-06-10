@@ -6,9 +6,9 @@ import { QueryProvider } from "@/components/query-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AI Logistics",
+  title: "AI Logistics | Intelligent Fleet Operations",
   description:
-    "Operational logistics console for dispatch, incidents, and AI workflows.",
+    "Real-time fleet visibility, AI-powered incident detection, and automated logistics workflows.",
 };
 
 export default function RootLayout({
