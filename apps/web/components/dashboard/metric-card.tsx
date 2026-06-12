@@ -8,6 +8,7 @@ type MetricTone = "blue" | "cyan" | "red" | "teal";
 export type MetricCardProps = {
   chartData: number[];
   change: string;
+  changeLabel?: string;
   icon: LucideIcon;
   title: string;
   tone: MetricTone;
@@ -44,6 +45,7 @@ const toneStyles: Record<
 export function MetricCard({
   chartData,
   change,
+  changeLabel = "vs yesterday",
   icon: Icon,
   title,
   tone,
@@ -84,7 +86,7 @@ export function MetricCard({
             {change}
           </p>
           <p className="text-[0.65rem] leading-2 text-primary-700">
-            vs yesterday
+            {changeLabel}
           </p>
         </div>
       </div>
