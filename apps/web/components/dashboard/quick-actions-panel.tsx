@@ -11,6 +11,7 @@ import {
   UserRoundCheck,
 } from "lucide-react";
 
+import { IncidentsFormDialog } from "@/components/incidents/incidents-form-dialog";
 import { LoadFormDialog } from "@/components/loads/load-form-dialog";
 
 import { AssignDriverQuickActionDialog } from "./modals/assign-driver-quick-action-dialog";
@@ -25,6 +26,8 @@ const quickActions = [
 export function QuickActionsPanel(): React.JSX.Element {
   const [isAssignDriverOpen, setIsAssignDriverOpen] = React.useState(false);
   const [isCreateLoadOpen, setIsCreateLoadOpen] = React.useState(false);
+  const [isReportIncidentOpen, setIsReportIncidentOpen] =
+    React.useState(false);
 
   return (
     <>
@@ -42,7 +45,9 @@ export function QuickActionsPanel(): React.JSX.Element {
                   ? () => setIsAssignDriverOpen(true)
                   : label === "Create load"
                     ? () => setIsCreateLoadOpen(true)
-                  : undefined
+                    : label === "Report incident"
+                      ? () => setIsReportIncidentOpen(true)
+                      : undefined
               }
               type="button"
               variant="outline"
@@ -62,6 +67,11 @@ export function QuickActionsPanel(): React.JSX.Element {
         isOpen={isCreateLoadOpen}
         load={null}
         onOpenChange={setIsCreateLoadOpen}
+      />
+      <IncidentsFormDialog
+        incident={null}
+        isOpen={isReportIncidentOpen}
+        onOpenChange={setIsReportIncidentOpen}
       />
     </>
   );
