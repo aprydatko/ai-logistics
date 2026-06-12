@@ -101,7 +101,7 @@ const toSearchParams = (filters: IncidentsFilters): URLSearchParams => {
   return params;
 };
 
-const fetchIncidents = async (
+export const fetchIncidents = async (
   filters: IncidentsFilters,
 ): Promise<z.infer<typeof incidentsResponseSchema>> => {
   const response = await fetch(`/api/incidents?${toSearchParams(filters)}`);
