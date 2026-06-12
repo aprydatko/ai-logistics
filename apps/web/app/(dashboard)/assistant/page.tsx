@@ -1,11 +1,5 @@
-import { PageIntro } from "@/components/page-intro";
+import { AssistantWorkspace } from "@/components/assistant/assistant-workspace";
 
-export default function AssistantPage() {
-  return (
-    <PageIntro
-      description="Ask questions about active loads, drivers, incidents, documents, and suggested operational actions."
-      eyebrow="AI workspace"
-      title="Assistant"
-    />
-  );
+export default function AssistantPage(): React.JSX.Element {
+  return <AssistantWorkspace />;
 }
