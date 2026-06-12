@@ -11,6 +11,8 @@ import {
   UserRoundCheck,
 } from "lucide-react";
 
+import { LoadFormDialog } from "@/components/loads/load-form-dialog";
+
 import { AssignDriverQuickActionDialog } from "./modals/assign-driver-quick-action-dialog";
 
 const quickActions = [
@@ -22,6 +24,7 @@ const quickActions = [
 
 export function QuickActionsPanel(): React.JSX.Element {
   const [isAssignDriverOpen, setIsAssignDriverOpen] = React.useState(false);
+  const [isCreateLoadOpen, setIsCreateLoadOpen] = React.useState(false);
 
   return (
     <>
@@ -37,6 +40,8 @@ export function QuickActionsPanel(): React.JSX.Element {
               onClick={
                 label === "Assign driver"
                   ? () => setIsAssignDriverOpen(true)
+                  : label === "Create load"
+                    ? () => setIsCreateLoadOpen(true)
                   : undefined
               }
               type="button"
@@ -52,6 +57,11 @@ export function QuickActionsPanel(): React.JSX.Element {
       <AssignDriverQuickActionDialog
         isOpen={isAssignDriverOpen}
         onOpenChange={setIsAssignDriverOpen}
+      />
+      <LoadFormDialog
+        isOpen={isCreateLoadOpen}
+        load={null}
+        onOpenChange={setIsCreateLoadOpen}
       />
     </>
   );
