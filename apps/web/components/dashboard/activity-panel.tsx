@@ -1,34 +1,38 @@
-import { Badge } from "@repo/ui/components/badge";
-import { Button } from "@repo/ui/components/button";
+'use client';
 
-const activities = [
-  {
-    description: "Chicago, IL -> Detroit, MI",
-    label: "Event",
-    time: "10:24",
-    title: "Load #LO-78291 status changed to In Transit",
-  },
-  {
-    description: "Dallas, TX -> Houston, TX",
-    label: "AI",
-    time: "09:57",
-    title: "Delay risk detected for Load #LO-10456",
-  },
-  {
-    description: "Driver: John Smith",
-    label: "Document",
-    time: "09:31",
-    title: "POD uploaded for Load #LO-78288",
-  },
-];
+import { useQuery } from '@tanstack/react-query';
+
+import { dashboardActivityQueryOptions } from '@/lib/dashboard/activity-query';
+import { Badge } from '@repo/ui/components/badge';
+import { Button } from '@repo/ui/components/button';
+import { useRouter } from 'next/navigation';
 
 export function ActivityPanel(): React.JSX.Element {
+  const router = useRouter();
+  const { data, isError, isLoading } = useQuery(
+    dashboardActivityQueryOptions()
+  );
+  const activities = data?.activities ?? [];
+
   return (
     <article className="rounded-xl border border-border bg-card p-4 shadow-xs">
       <h2 className="text-sm font-bold text-ink-900">Recent activity</h2>
       <div className="mt-3">
+        {isLoading ? (
+          <p className="text-sm text-primary-700">Loading activity...</p>
+        ) : null}
+        {isError ? (
+          <p className="text-sm text-danger">
+            Unable to load recent activity right now.
+          </p>
+        ) : null}
+        {!isLoading && !isError && activities.length === 0 ? (
+          <p className="text-sm text-primary-700">
+            No recent activity available.
+          </p>
+        ) : null}
         {activities.map((activity, index) => (
-          <div className="relative flex gap-4 pb-3" key={activity.time}>
+          <div className="relative flex gap-4 pb-3" key={activity.id}>
             {index < activities.length - 1 ? (
               <span className="absolute left-[7px] top-5 h-full w-px bg-blue-400" />
             ) : null}
@@ -56,7 +60,11 @@ export function ActivityPanel(): React.JSX.Element {
           </div>
         ))}
       </div>
-      <Button className="h-auto p-0 text-blue-600" variant="link">
+      <Button
+        onClick={() => router.push('/ai-logs')}
+        className="h-auto p-0 text-blue-600"
+        variant="link"
+      >
         View all activity
       </Button>
     </article>
