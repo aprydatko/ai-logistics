@@ -1,11 +1,5 @@
-import { PageIntro } from "@/components/page-intro";
+import { AiLogsWorkspace } from "@/components/ai-logs/ai-logs-workspace";
 
-export default function AiLogsPage() {
-  return (
-    <PageIntro
-      description="Monitor AI requests, model usage, latency, cost, errors, and structured outputs."
-      eyebrow="AI monitoring"
-      title="AI Logs"
-    />
-  );
+export default function AiLogsPage(): React.JSX.Element {
+  return <AiLogsWorkspace />;
 }
