@@ -1,0 +1,62 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  ParseUUIDPipe,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
+
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { Roles } from "../auth/roles.decorator";
+import { RolesGuard } from "../auth/roles.guard";
+import { DocumentsService } from "./documents.service";
+import type {
+  DeleteDocumentResult,
+  DocumentResult,
+  DocumentsListResult,
+} from "./documents.types";
+import { ListDocumentsQueryDto } from "./dto/list-documents-query.dto";
+import { UpdateDocumentDto } from "./dto/update-document.dto";
+
+@Controller("documents")
+@UseGuards(JwtAuthGuard)
+export class DocumentsController {
+  constructor(private readonly documentsService: DocumentsService) {}
+
+  @Get()
+  findAll(
+    @Query() query: ListDocumentsQueryDto,
+  ): Promise<DocumentsListResult> {
+    return this.documentsService.findAll(query);
+  }
+
+  @Get(":id")
+  findOne(
+    @Param("id", new ParseUUIDPipe()) id: string,
+  ): Promise<DocumentResult> {
+    return this.documentsService.findOne(id);
+  }
+
+  @Patch(":id")
+  @Roles("admin", "dispatcher")
+  @UseGuards(RolesGuard)
+  update(
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateDocumentDto,
+  ): Promise<DocumentResult> {
+    return this.documentsService.update(id, dto);
+  }
+
+  @Delete(":id")
+  @Roles("admin", "dispatcher")
+  @UseGuards(RolesGuard)
+  remove(
+    @Param("id", new ParseUUIDPipe()) id: string,
+  ): Promise<DeleteDocumentResult> {
+    return this.documentsService.remove(id);
+  }
+}

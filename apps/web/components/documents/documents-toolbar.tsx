@@ -1,12 +1,14 @@
 "use client";
 
+import type { DocumentStatus, DocumentType } from "@repo/shared";
 import { RotateCcw } from "lucide-react";
 
+import type { DriverCandidate } from "@/lib/drivers/driver-candidates-query";
 import { Button } from "@repo/ui/components/button";
 import { SearchField } from "@repo/ui/components/search-field";
 import { SelectButton } from "@repo/ui/components/select-button";
 
-import type { DocumentFilters, DocumentStatus } from "./types";
+import { documentTypeLabels, type DocumentFilters } from "./types";
 
 const statusOptions: Array<{
   label: string;
@@ -18,24 +20,20 @@ const statusOptions: Array<{
   { label: "Needs review", value: "needs_review" },
 ];
 
-interface DocumentsToolbarProps {
-  driverOptions: string[];
-  filters: DocumentFilters;
-  onChange: (updates: Partial<DocumentFilters>) => void;
-  onReset: () => void;
-  typeOptions: string[];
-}
-
 export const DocumentsToolbar = ({
   driverOptions,
   filters,
   onChange,
   onReset,
-  typeOptions,
-}: DocumentsToolbarProps): React.JSX.Element => {
+}: {
+  driverOptions: DriverCandidate[];
+  filters: DocumentFilters;
+  onChange: (updates: Partial<DocumentFilters>) => void;
+  onReset: () => void;
+}): React.JSX.Element => {
   const hasFilters =
     filters.search !== "" ||
-    filters.driver !== "all" ||
+    filters.driverId !== "all" ||
     filters.type !== "all" ||
     filters.status !== "all";
 
@@ -51,44 +49,42 @@ export const DocumentsToolbar = ({
         <SearchField
           className="min-w-56 flex-1"
           label="Search documents"
-          onChange={(event) => {
-            onChange({ search: event.target.value });
-          }}
+          onChange={(event) => onChange({ search: event.target.value })}
           placeholder="File name, driver, load, or type"
           value={filters.search}
         />
         <SelectButton
           className="sm:min-w-44"
-          onValueChange={(driver) => {
-            onChange({ driver });
-          }}
+          onValueChange={(driverId) => onChange({ driverId })}
           options={[
             { label: "All drivers", value: "all" },
             ...driverOptions.map((driver) => ({
-              label: driver,
-              value: driver,
+              label: `${driver.firstName} ${driver.lastName}`,
+              value: driver.id,
             })),
           ]}
           placeholder="Driver"
-          value={filters.driver}
+          value={filters.driverId}
         />
         <SelectButton
           className="sm:min-w-48"
-          onValueChange={(type) => {
-            onChange({ type });
-          }}
+          onValueChange={(type) =>
+            onChange({ type: type as DocumentFilters["type"] })
+          }
           options={[
             { label: "All document types", value: "all" },
-            ...typeOptions.map((type) => ({ label: type, value: type })),
+            ...(Object.entries(documentTypeLabels) as Array<
+              [DocumentType, string]
+            >).map(([value, label]) => ({ label, value })),
           ]}
           placeholder="Document type"
           value={filters.type}
         />
         <SelectButton
           className="sm:min-w-40"
-          onValueChange={(status) => {
-            onChange({ status: status as DocumentFilters["status"] });
-          }}
+          onValueChange={(status) =>
+            onChange({ status: status as DocumentFilters["status"] })
+          }
           options={statusOptions}
           placeholder="Status"
           value={filters.status}

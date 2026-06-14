@@ -107,6 +107,60 @@ ON CONFLICT ("id") DO UPDATE SET
   "driver_id" = EXCLUDED."driver_id",
   "updated_at" = NOW();
 
+INSERT INTO "documents" (
+  "id", "file_name", "file_size", "type", "status", "driver_id", "load_id",
+  "uploaded_at"
+) VALUES
+(
+  '80000000-0000-4000-8000-000000000001',
+  'BOL-DEMO-LD-03.pdf',
+  428160,
+  'bill_of_lading',
+  'complete',
+  (SELECT "id" FROM "drivers" WHERE "driver_code" = 'DEMO-DR-01'),
+  (SELECT "id" FROM "loads" WHERE "reference_number" = 'DEMO-LD-03'),
+  '2026-06-09T06:42:00Z'
+),
+(
+  '80000000-0000-4000-8000-000000000002',
+  'POD-DEMO-LD-02.pdf',
+  315392,
+  'proof_of_delivery',
+  'complete',
+  (SELECT "id" FROM "drivers" WHERE "driver_code" = 'DEMO-DR-02'),
+  (SELECT "id" FROM "loads" WHERE "reference_number" = 'DEMO-LD-02'),
+  '2026-06-05T16:24:00Z'
+),
+(
+  '80000000-0000-4000-8000-000000000003',
+  'Rate-Confirmation-DEMO-LD-04.pdf',
+  184320,
+  'rate_confirmation',
+  'processing',
+  (SELECT "id" FROM "drivers" WHERE "driver_code" = 'DEMO-DR-02'),
+  (SELECT "id" FROM "loads" WHERE "reference_number" = 'DEMO-LD-04'),
+  '2026-06-09T12:55:00Z'
+),
+(
+  '80000000-0000-4000-8000-000000000004',
+  'Marcus-Johnson-CDL.pdf',
+  247808,
+  'driver_license',
+  'needs_review',
+  (SELECT "id" FROM "drivers" WHERE "driver_code" = 'DEMO-DR-01'),
+  NULL,
+  '2026-05-18T11:00:00Z'
+)
+ON CONFLICT ("id") DO UPDATE SET
+  "file_name" = EXCLUDED."file_name",
+  "file_size" = EXCLUDED."file_size",
+  "type" = EXCLUDED."type",
+  "status" = EXCLUDED."status",
+  "driver_id" = EXCLUDED."driver_id",
+  "load_id" = EXCLUDED."load_id",
+  "uploaded_at" = EXCLUDED."uploaded_at",
+  "updated_at" = NOW();
+
 INSERT INTO "incidents" (
   "id", "load_id", "title", "description", "location", "type", "priority",
   "status", "occurred_at", "resolved_at", "timeline"

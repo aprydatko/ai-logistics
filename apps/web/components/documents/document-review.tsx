@@ -1,3 +1,7 @@
+"use client";
+
+import type { Document } from "@repo/shared";
+import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -20,6 +24,9 @@ import {
 import Link from "next/link";
 
 import { Button } from "@repo/ui/components/button";
+import { documentQueryOptions } from "@/lib/documents/documents-query";
+
+import { formatDocumentFileSize } from "./types";
 
 const extractedFields = [
   ["Document type", "Bill of Lading", "98%"],
@@ -181,7 +188,11 @@ const BolPreview = (): React.JSX.Element => (
   </div>
 );
 
-export const DocumentReview = (): React.JSX.Element => (
+const DocumentReviewContent = ({
+  document,
+}: {
+  document: Document;
+}): React.JSX.Element => (
   <div className="-m-4 min-h-full bg-surface-50 lg:-mt-5 lg:-ml-6">
     <header className="border-b border-border bg-card px-5 pt-4 lg:px-7">
       <Link
@@ -193,13 +204,17 @@ export const DocumentReview = (): React.JSX.Element => (
       <div className="mt-4 flex flex-col justify-between gap-6 pb-5 xl:flex-row xl:items-center">
         <div>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-h1 text-ink-900">BOL_78291_2025-05-28.pdf</h1>
+            <h1 className="text-h1 text-ink-900">{document.fileName}</h1>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-success-background px-2.5 py-1 text-xs font-semibold text-success">
               <Check className="size-3.5" /> Extraction complete
             </span>
           </div>
           <p className="mt-1 text-sm text-ink-500">
-            Uploaded May 28, 2025 09:15 by Alex Dispatcher
+            Uploaded{" "}
+            {new Intl.DateTimeFormat("en-US", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            }).format(new Date(document.uploadedAt))}
           </p>
         </div>
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
@@ -210,12 +225,14 @@ export const DocumentReview = (): React.JSX.Element => (
             <Truck className="size-4 text-info" />
             <span>Load</span>
             <a className="font-medium text-info" href="#">
-              LD-78291
+              {document.load?.referenceNumber ?? "Unassigned"}
             </a>
             <UserRound className="size-4 text-primary-700" />
             <span>Driver</span>
             <a className="font-medium text-primary-700" href="#">
-              John Smith
+              {document.driver
+                ? `${document.driver.firstName} ${document.driver.lastName}`
+                : "Unassigned"}
             </a>
             <AlertTriangle className="size-4 text-red-500" />
             <span>Incident</span>
@@ -322,10 +339,16 @@ export const DocumentReview = (): React.JSX.Element => (
             <h2 className="text-base font-semibold">Metadata</h2>
             <dl className="mt-4 grid gap-x-7 gap-y-2 text-sm sm:grid-cols-[auto_1fr_auto_1fr]">
               {[
-                ["File name", "BOL_78291_2025-05-28.pdf"],
+                ["File name", document.fileName],
                 ["Owner", "Alex Dispatcher"],
-                ["File size", "245 KB"],
-                ["Uploaded at", "May 28, 2025 09:15"],
+                ["File size", formatDocumentFileSize(document.fileSize)],
+                [
+                  "Uploaded at",
+                  new Intl.DateTimeFormat("en-US", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  }).format(new Date(document.uploadedAt)),
+                ],
                 ["File type", "application/pdf"],
                 ["AI model", "Document Extractor v2.1"],
                 ["Pages", "1"],
@@ -383,3 +406,23 @@ export const DocumentReview = (): React.JSX.Element => (
     </main>
   </div>
 );
+
+export const DocumentReview = ({
+  documentId,
+}: {
+  documentId: string;
+}): React.JSX.Element => {
+  const query = useQuery(documentQueryOptions(documentId));
+
+  if (query.isPending) {
+    return <div className="p-10 text-center">Loading document...</div>;
+  }
+  if (query.isError) {
+    return (
+      <div className="p-10 text-center">
+        Unable to load this document. It may have been deleted.
+      </div>
+    );
+  }
+  return <DocumentReviewContent document={query.data} />;
+};
