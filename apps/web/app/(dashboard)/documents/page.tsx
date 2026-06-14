@@ -1,5 +1,5 @@
-import { DocumentReview } from "@/components/documents/document-review";
+import { DocumentsTable } from "@/components/documents/documents-table";
 
 export default function DocumentsPage(): React.JSX.Element {
-  return <DocumentReview />;
+  return <DocumentsTable />;
 }
