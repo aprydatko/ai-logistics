@@ -1,5 +1,10 @@
 import { DocumentReview } from "@/components/documents/document-review";
 
-export default function DocumentPage(): React.JSX.Element {
-  return <DocumentReview />;
+export default async function DocumentPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<React.JSX.Element> {
+  const { id } = await params;
+  return <DocumentReview documentId={id} />;
 }

@@ -1,0 +1,59 @@
+import {
+  index,
+  integer,
+  pgEnum,
+  pgTable,
+  timestamp,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
+
+import { drivers } from "./drivers";
+import { loads } from "./loads";
+
+export const documentTypeEnum = pgEnum("document_type", [
+  "bill_of_lading",
+  "proof_of_delivery",
+  "rate_confirmation",
+  "driver_license",
+]);
+
+export const documentStatusEnum = pgEnum("document_status", [
+  "complete",
+  "processing",
+  "needs_review",
+]);
+
+export const documents = pgTable(
+  "documents",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    fileName: varchar("file_name", { length: 255 }).notNull(),
+    fileSize: integer("file_size").notNull(),
+    type: documentTypeEnum("type").notNull(),
+    status: documentStatusEnum("status").notNull(),
+    driverId: uuid("driver_id").references(() => drivers.id, {
+      onDelete: "set null",
+    }),
+    loadId: uuid("load_id").references(() => loads.id, {
+      onDelete: "set null",
+    }),
+    uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("documents_driver_id_idx").on(table.driverId),
+    index("documents_load_id_idx").on(table.loadId),
+    index("documents_type_idx").on(table.type),
+    index("documents_status_idx").on(table.status),
+    index("documents_uploaded_at_idx").on(table.uploadedAt),
+  ],
+);
+
+export type DocumentRecord = typeof documents.$inferSelect;
+export type NewDocumentRecord = typeof documents.$inferInsert;

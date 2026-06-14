@@ -1,7 +1,11 @@
 "use client";
 
+import type { Document } from "@repo/shared";
+import { useQuery } from "@tanstack/react-query";
 import * as React from "react";
 
+import { documentsQueryOptions } from "@/lib/documents/documents-query";
+import { driverCandidatesQueryOptions } from "@/lib/drivers/driver-candidates-query";
 import { Checkbox } from "@repo/ui/components/checkbox";
 import { DataPagination } from "@repo/ui/components/pagination";
 import {
@@ -15,54 +19,99 @@ import {
   TableScrollArea,
 } from "@repo/ui/components/table";
 
+import { DeleteDocumentDialog } from "./delete-document-dialog";
+import { DocumentCreateDialog } from "./document-create-dialog";
+import { DocumentEditDialog } from "./document-edit-dialog";
 import { DocumentRow } from "./document-row";
+import { DocumentsTableSkeleton } from "./documents-table-skeleton";
 import { DocumentsToolbar } from "./documents-toolbar";
-import { filterDocuments } from "./filter-documents";
-import { mockDocuments } from "./mock-documents";
-import type { DocumentFilters } from "./types";
+import { toDocumentsQuery, type DocumentFilters } from "./types";
 
-const defaultFilters: DocumentFilters = {
+const DEFAULT_FILTERS: DocumentFilters = {
   search: "",
-  driver: "all",
+  driverId: "all",
   type: "all",
   status: "all",
+  page: 1,
+  limit: 10,
 };
 
-const driverOptions = [...new Set(mockDocuments.map(({ driver }) => driver))];
-const typeOptions = [...new Set(mockDocuments.map(({ type }) => type))];
+const getPages = (
+  currentPage: number,
+  totalPages: number,
+): Array<number | "ellipsis"> => {
+  const pages = Array.from(
+    { length: totalPages },
+    (_, index) => index + 1,
+  ).filter(
+    (page) =>
+      page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1,
+  );
+  return pages.flatMap((page, index) => {
+    const previous = pages[index - 1];
+    return previous && page - previous > 1
+      ? ["ellipsis" as const, page]
+      : [page];
+  });
+};
 
 export const DocumentsTable = (): React.JSX.Element => {
-  const [filters, setFilters] =
-    React.useState<DocumentFilters>(defaultFilters);
+  const [filters, setFilters] = React.useState(DEFAULT_FILTERS);
+  const [debouncedSearch, setDebouncedSearch] = React.useState("");
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(
     () => new Set(),
   );
-  const documents = React.useMemo(
-    () => filterDocuments(mockDocuments, filters),
-    [filters],
+  const [editDocument, setEditDocument] = React.useState<Document | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+  const [deleteTarget, setDeleteTarget] = React.useState<Document | null>(null);
+
+  React.useEffect(() => {
+    const timeout = window.setTimeout(
+      () => setDebouncedSearch(filters.search.trim()),
+      300,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [filters.search]);
+
+  const queryFilters = React.useMemo(
+    () => toDocumentsQuery(filters, debouncedSearch),
+    [debouncedSearch, filters],
   );
+  const documentsQuery = useQuery(documentsQueryOptions(queryFilters));
+  const driversQuery = useQuery(driverCandidatesQueryOptions);
+  const documents = React.useMemo(
+    () => documentsQuery.data?.data ?? [],
+    [documentsQuery.data],
+  );
+  const pagination = documentsQuery.data?.pagination;
   const isAllSelected =
     documents.length > 0 &&
-    documents.every(({ id }) => selectedIds.has(id));
+    documents.every((document) => selectedIds.has(document.id));
   const isPartiallySelected =
-    !isAllSelected && documents.some(({ id }) => selectedIds.has(id));
+    !isAllSelected &&
+    documents.some((document) => selectedIds.has(document.id));
 
   const updateFilters = (updates: Partial<DocumentFilters>): void => {
-    setFilters((current) => ({ ...current, ...updates }));
+    setFilters((current) => ({
+      ...current,
+      ...updates,
+      page: updates.page ?? 1,
+    }));
     setSelectedIds(new Set());
   };
 
   return (
     <section className="flex h-[calc(100svh-7rem)] flex-col gap-5 overflow-hidden">
       <DocumentsToolbar
-        driverOptions={driverOptions}
+        driverOptions={driversQuery.data ?? []}
         filters={filters}
         onChange={updateFilters}
+        onCreate={() => setIsCreateOpen(true)}
         onReset={() => {
-          setFilters(defaultFilters);
+          setFilters(DEFAULT_FILTERS);
+          setDebouncedSearch("");
           setSelectedIds(new Set());
         }}
-        typeOptions={typeOptions}
       />
       <DataTable className="flex min-h-0 flex-1 flex-col">
         <TableScrollArea className="min-h-0 flex-1 overflow-auto">
@@ -85,13 +134,13 @@ export const DocumentsTable = (): React.JSX.Element => {
                     checked={
                       isPartiallySelected ? "indeterminate" : isAllSelected
                     }
-                    onCheckedChange={(checked) => {
+                    onCheckedChange={(checked) =>
                       setSelectedIds(
                         checked === true
                           ? new Set(documents.map(({ id }) => id))
                           : new Set(),
-                      );
-                    }}
+                      )
+                    }
                   />
                 </TableHead>
                 {[
@@ -110,7 +159,15 @@ export const DocumentsTable = (): React.JSX.Element => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {documents.length === 0 ? (
+              {documentsQuery.isPending ? <DocumentsTableSkeleton /> : null}
+              {documentsQuery.isError ? (
+                <TableRow>
+                  <TableCell className="py-12 text-center" colSpan={8}>
+                    Unable to load documents. Please try again.
+                  </TableCell>
+                </TableRow>
+              ) : null}
+              {documentsQuery.isSuccess && documents.length === 0 ? (
                 <TableRow>
                   <TableCell className="py-12 text-center" colSpan={8}>
                     No documents found.
@@ -122,14 +179,16 @@ export const DocumentsTable = (): React.JSX.Element => {
                   document={document}
                   isSelected={selectedIds.has(document.id)}
                   key={document.id}
-                  onSelectChange={(id, checked) => {
+                  onDelete={setDeleteTarget}
+                  onEdit={setEditDocument}
+                  onSelectChange={(id, checked) =>
                     setSelectedIds((current) => {
                       const next = new Set(current);
                       if (checked) next.add(id);
                       else next.delete(id);
                       return next;
-                    });
-                  }}
+                    })
+                  }
                 />
               ))}
             </TableBody>
@@ -137,17 +196,43 @@ export const DocumentsTable = (): React.JSX.Element => {
         </TableScrollArea>
         <DataPagination
           ariaLabel="Documents pagination"
-          currentPage={1}
-          endItem={documents.length}
+          currentPage={filters.page}
+          endItem={Math.min(
+            filters.page * filters.limit,
+            pagination?.total ?? 0,
+          )}
           itemName="documents"
-          pages={[1]}
-          pageSize={10}
-          pageSizeOptions={[10]}
-          startItem={documents.length > 0 ? 1 : 0}
-          totalItems={documents.length}
-          totalPages={1}
+          onPageChange={(page) => updateFilters({ page })}
+          onPageSizeChange={(limit) => updateFilters({ limit })}
+          pages={getPages(
+            filters.page,
+            Math.max(1, pagination?.totalPages ?? 1),
+          )}
+          pageSize={filters.limit}
+          pageSizeOptions={[10, 15, 20]}
+          startItem={
+            pagination?.total ? (filters.page - 1) * filters.limit + 1 : 0
+          }
+          totalItems={pagination?.total ?? 0}
+          totalPages={Math.max(1, pagination?.totalPages ?? 1)}
         />
       </DataTable>
+      <DocumentCreateDialog
+        isOpen={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+      />
+      <DocumentEditDialog
+        document={editDocument}
+        onOpenChange={(open) => {
+          if (!open) setEditDocument(null);
+        }}
+      />
+      <DeleteDocumentDialog
+        document={deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+      />
     </section>
   );
 };
