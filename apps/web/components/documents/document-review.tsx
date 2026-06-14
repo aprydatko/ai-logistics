@@ -17,6 +17,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
+import Link from "next/link";
 
 import { Button } from "@repo/ui/components/button";
 
@@ -183,12 +184,12 @@ const BolPreview = (): React.JSX.Element => (
 export const DocumentReview = (): React.JSX.Element => (
   <div className="-m-4 min-h-full bg-surface-50 lg:-mt-5 lg:-ml-6">
     <header className="border-b border-border bg-card px-5 pt-4 lg:px-7">
-      <button
+      <Link
         className="flex items-center gap-2 text-sm font-semibold text-primary-700 hover:text-primary"
-        type="button"
+        href="/documents"
       >
         <ArrowLeft className="size-4" /> Back to documents
-      </button>
+      </Link>
       <div className="mt-4 flex flex-col justify-between gap-6 pb-5 xl:flex-row xl:items-center">
         <div>
           <div className="flex flex-wrap items-center gap-3">
