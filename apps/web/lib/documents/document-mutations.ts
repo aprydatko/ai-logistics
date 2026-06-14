@@ -1,4 +1,5 @@
 import type {
+  CreateDocumentDto,
   DeleteDocumentResponse,
   Document,
   DocumentResponse,
@@ -49,6 +50,22 @@ export const updateDocument = async ({
   if (!response.ok) {
     throw new Error(
       await extractDocumentApiError(response, "Unable to update document"),
+    );
+  }
+  return documentResponseSchema.parse(await response.json()).data;
+};
+
+export const createDocument = async (
+  document: CreateDocumentDto,
+): Promise<Document> => {
+  const response = await fetch("/api/documents", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(document),
+  });
+  if (!response.ok) {
+    throw new Error(
+      await extractDocumentApiError(response, "Unable to add document"),
     );
   }
   return documentResponseSchema.parse(await response.json()).data;

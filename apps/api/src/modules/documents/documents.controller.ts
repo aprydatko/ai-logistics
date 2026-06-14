@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   ParseUUIDPipe,
+  Post,
   Query,
   UseGuards,
 } from "@nestjs/common";
@@ -19,6 +20,7 @@ import type {
   DocumentResult,
   DocumentsListResult,
 } from "./documents.types";
+import { CreateDocumentDto } from "./dto/create-document.dto";
 import { ListDocumentsQueryDto } from "./dto/list-documents-query.dto";
 import { UpdateDocumentDto } from "./dto/update-document.dto";
 
@@ -28,10 +30,15 @@ export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
   @Get()
-  findAll(
-    @Query() query: ListDocumentsQueryDto,
-  ): Promise<DocumentsListResult> {
+  findAll(@Query() query: ListDocumentsQueryDto): Promise<DocumentsListResult> {
     return this.documentsService.findAll(query);
+  }
+
+  @Post()
+  @Roles("admin", "dispatcher")
+  @UseGuards(RolesGuard)
+  create(@Body() dto: CreateDocumentDto): Promise<DocumentResult> {
+    return this.documentsService.create(dto);
   }
 
   @Get(":id")

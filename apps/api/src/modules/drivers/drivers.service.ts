@@ -19,6 +19,7 @@ import {
 
 import { DatabaseService } from "../../db/database.service";
 import {
+  documents,
   drivers,
   driverActivity,
   driverDocuments,
@@ -294,6 +295,16 @@ export class DriversService {
           throw new InternalServerErrorException("Failed to save document");
         }
 
+        await tx.insert(documents).values({
+          id: savedDocument.id,
+          fileName: savedDocument.name,
+          fileSize,
+          type: "driver_license",
+          status: "complete",
+          driverId,
+          uploadedAt: savedDocument.createdAt,
+        });
+
         await tx.insert(driverActivity).values({
           driverId,
           type: "document_added",
@@ -322,15 +333,25 @@ export class DriversService {
     driverId: string,
     documentId: string,
   ): Promise<DeleteDriverDocumentResponse> {
-    const [document] = await this.databaseService.client
-      .delete(driverDocuments)
-      .where(
-        and(
-          eq(driverDocuments.id, documentId),
-          eq(driverDocuments.driverId, driverId),
-        ),
-      )
-      .returning({ id: driverDocuments.id });
+    const document = await this.databaseService.client.transaction(
+      async (tx) => {
+        const [deletedDocument] = await tx
+          .delete(driverDocuments)
+          .where(
+            and(
+              eq(driverDocuments.id, documentId),
+              eq(driverDocuments.driverId, driverId),
+            ),
+          )
+          .returning({ id: driverDocuments.id });
+
+        if (deletedDocument) {
+          await tx.delete(documents).where(eq(documents.id, documentId));
+        }
+
+        return deletedDocument;
+      },
+    );
 
     if (!document) {
       throw new NotFoundException("Document was not found");

@@ -9,7 +9,11 @@ import {
   driverFormSchema,
   type DriverFormValues,
 } from "@/lib/drivers/driver-form-schema";
-import { saveDriver } from "@/lib/drivers/driver-mutations";
+import {
+  addDriverDocument,
+  saveDriver,
+  type DriverDocumentInput,
+} from "@/lib/drivers/driver-mutations";
 import {
   driverDetailsQueryOptions,
   type DriversApiItem,
@@ -52,6 +56,8 @@ export const DriverFormDialog = ({
   onOpenChange,
 }: DriverFormDialogProps): React.JSX.Element => {
   const [tab, setTab] = React.useState<DriverTab>("info");
+  const [pendingDocument, setPendingDocument] =
+    React.useState<DriverDocumentInput | null>(null);
   const queryClient = useQueryClient();
   const detailsQuery = useQuery(driverDetailsQueryOptions(driver?.id ?? ""));
   const form = useForm<DriverFormValues>({
@@ -68,19 +74,40 @@ export const DriverFormDialog = ({
         },
       );
     },
-    onSuccess: async () => {
+    onSuccess: async (savedDriver) => {
+      let documentUploaded = true;
+      if (!driver && pendingDocument) {
+        try {
+          await addDriverDocument({
+            driverId: savedDriver.id,
+            document: pendingDocument,
+          });
+        } catch (error: unknown) {
+          documentUploaded = false;
+          toast.error("Driver created, but document upload failed", {
+            description:
+              error instanceof Error ? error.message : "Please try again.",
+          });
+        }
+      }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["drivers"] }),
       ]);
       onOpenChange(false);
-      toast.success(
-        driver ? "Driver updated successfully" : "Driver created successfully",
-        {
-          description: driver
-            ? `${driver.firstName} ${driver.lastName} was updated.`
-            : "The new driver was added to the driver list.",
-        },
-      );
+      if (documentUploaded) {
+        toast.success(
+          driver
+            ? "Driver updated successfully"
+            : "Driver created successfully",
+          {
+            description: driver
+              ? `${driver.firstName} ${driver.lastName} was updated.`
+              : pendingDocument
+                ? "The driver and document were added."
+                : "The new driver was added to the driver list.",
+          },
+        );
+      }
     },
   });
   const resetMutation = mutation.reset;
@@ -89,6 +116,7 @@ export const DriverFormDialog = ({
     if (!isOpen) return;
 
     form.reset(toDriverFormValues(driver));
+    setPendingDocument(null);
     resetMutation();
     setTab("info");
   }, [driver, form, isOpen, resetMutation]);
@@ -143,6 +171,8 @@ export const DriverFormDialog = ({
                 <DocumentsTab
                   details={detailsQuery.data}
                   driverId={driver?.id}
+                  onPendingDocumentChange={setPendingDocument}
+                  pendingDocument={pendingDocument}
                 />
               ) : null}
               {tab === "trips" ? (
@@ -156,7 +186,7 @@ export const DriverFormDialog = ({
               form={form}
               isEditing={Boolean(driver)}
               isPending={mutation.isPending}
-              isSubmitDisabled={tab !== "info"}
+              isSubmitDisabled={Boolean(driver) && tab !== "info"}
             />
           </form>
         </Form>

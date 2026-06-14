@@ -20,6 +20,7 @@ import {
 } from "@repo/ui/components/table";
 
 import { DeleteDocumentDialog } from "./delete-document-dialog";
+import { DocumentCreateDialog } from "./document-create-dialog";
 import { DocumentEditDialog } from "./document-edit-dialog";
 import { DocumentRow } from "./document-row";
 import { DocumentsTableSkeleton } from "./documents-table-skeleton";
@@ -39,13 +40,18 @@ const getPages = (
   currentPage: number,
   totalPages: number,
 ): Array<number | "ellipsis"> => {
-  const pages = Array.from({ length: totalPages }, (_, index) => index + 1).filter(
+  const pages = Array.from(
+    { length: totalPages },
+    (_, index) => index + 1,
+  ).filter(
     (page) =>
       page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1,
   );
   return pages.flatMap((page, index) => {
     const previous = pages[index - 1];
-    return previous && page - previous > 1 ? ["ellipsis" as const, page] : [page];
+    return previous && page - previous > 1
+      ? ["ellipsis" as const, page]
+      : [page];
   });
 };
 
@@ -56,6 +62,7 @@ export const DocumentsTable = (): React.JSX.Element => {
     () => new Set(),
   );
   const [editDocument, setEditDocument] = React.useState<Document | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = React.useState(false);
   const [deleteTarget, setDeleteTarget] = React.useState<Document | null>(null);
 
   React.useEffect(() => {
@@ -81,7 +88,8 @@ export const DocumentsTable = (): React.JSX.Element => {
     documents.length > 0 &&
     documents.every((document) => selectedIds.has(document.id));
   const isPartiallySelected =
-    !isAllSelected && documents.some((document) => selectedIds.has(document.id));
+    !isAllSelected &&
+    documents.some((document) => selectedIds.has(document.id));
 
   const updateFilters = (updates: Partial<DocumentFilters>): void => {
     setFilters((current) => ({
@@ -98,6 +106,7 @@ export const DocumentsTable = (): React.JSX.Element => {
         driverOptions={driversQuery.data ?? []}
         filters={filters}
         onChange={updateFilters}
+        onCreate={() => setIsCreateOpen(true)}
         onReset={() => {
           setFilters(DEFAULT_FILTERS);
           setDebouncedSearch("");
@@ -108,17 +117,23 @@ export const DocumentsTable = (): React.JSX.Element => {
         <TableScrollArea className="min-h-0 flex-1 overflow-auto">
           <Table className="min-w-[1080px] table-fixed">
             <colgroup>
-              <col className="w-10" /><col className="w-[24%]" />
-              <col className="w-[16%]" /><col className="w-[14%]" />
-              <col className="w-[11%]" /><col className="w-[13%]" />
-              <col className="w-[18%]" /><col className="w-14" />
+              <col className="w-10" />
+              <col className="w-[24%]" />
+              <col className="w-[16%]" />
+              <col className="w-[14%]" />
+              <col className="w-[11%]" />
+              <col className="w-[13%]" />
+              <col className="w-[18%]" />
+              <col className="w-14" />
             </colgroup>
             <TableHeader className="sticky top-0 z-10">
               <TableRow>
                 <TableHead className="text-center">
                   <Checkbox
                     aria-label="Select all documents"
-                    checked={isPartiallySelected ? "indeterminate" : isAllSelected}
+                    checked={
+                      isPartiallySelected ? "indeterminate" : isAllSelected
+                    }
                     onCheckedChange={(checked) =>
                       setSelectedIds(
                         checked === true
@@ -128,23 +143,36 @@ export const DocumentsTable = (): React.JSX.Element => {
                     }
                   />
                 </TableHead>
-                {["Document", "Type", "Driver", "Load", "Status", "Uploaded"].map(
-                  (heading) => <TableHead key={heading}>{heading}</TableHead>,
-                )}
-                <TableHead><span className="sr-only">Actions</span></TableHead>
+                {[
+                  "Document",
+                  "Type",
+                  "Driver",
+                  "Load",
+                  "Status",
+                  "Uploaded",
+                ].map((heading) => (
+                  <TableHead key={heading}>{heading}</TableHead>
+                ))}
+                <TableHead>
+                  <span className="sr-only">Actions</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {documentsQuery.isPending ? <DocumentsTableSkeleton /> : null}
               {documentsQuery.isError ? (
-                <TableRow><TableCell className="py-12 text-center" colSpan={8}>
-                  Unable to load documents. Please try again.
-                </TableCell></TableRow>
+                <TableRow>
+                  <TableCell className="py-12 text-center" colSpan={8}>
+                    Unable to load documents. Please try again.
+                  </TableCell>
+                </TableRow>
               ) : null}
               {documentsQuery.isSuccess && documents.length === 0 ? (
-                <TableRow><TableCell className="py-12 text-center" colSpan={8}>
-                  No documents found.
-                </TableCell></TableRow>
+                <TableRow>
+                  <TableCell className="py-12 text-center" colSpan={8}>
+                    No documents found.
+                  </TableCell>
+                </TableRow>
               ) : null}
               {documents.map((document) => (
                 <DocumentRow
@@ -169,18 +197,30 @@ export const DocumentsTable = (): React.JSX.Element => {
         <DataPagination
           ariaLabel="Documents pagination"
           currentPage={filters.page}
-          endItem={Math.min(filters.page * filters.limit, pagination?.total ?? 0)}
+          endItem={Math.min(
+            filters.page * filters.limit,
+            pagination?.total ?? 0,
+          )}
           itemName="documents"
           onPageChange={(page) => updateFilters({ page })}
           onPageSizeChange={(limit) => updateFilters({ limit })}
-          pages={getPages(filters.page, Math.max(1, pagination?.totalPages ?? 1))}
+          pages={getPages(
+            filters.page,
+            Math.max(1, pagination?.totalPages ?? 1),
+          )}
           pageSize={filters.limit}
           pageSizeOptions={[10, 15, 20]}
-          startItem={pagination?.total ? (filters.page - 1) * filters.limit + 1 : 0}
+          startItem={
+            pagination?.total ? (filters.page - 1) * filters.limit + 1 : 0
+          }
           totalItems={pagination?.total ?? 0}
           totalPages={Math.max(1, pagination?.totalPages ?? 1)}
         />
       </DataTable>
+      <DocumentCreateDialog
+        isOpen={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+      />
       <DocumentEditDialog
         document={editDocument}
         onOpenChange={(open) => {

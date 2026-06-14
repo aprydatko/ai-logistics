@@ -16,9 +16,15 @@ export type ListDocumentsQueryDto = {
   limit?: number;
 };
 
-export type UpdateDocumentDto = Partial<
-  Pick<Document, "type" | "status">
+export type CreateDocumentDto = Pick<
+  Document,
+  "fileName" | "fileSize" | "status" | "type"
 > & {
+  driverId?: string;
+  loadId?: string;
+};
+
+export type UpdateDocumentDto = Partial<Pick<Document, "type" | "status">> & {
   driverId?: string | null;
   loadId?: string | null;
 };

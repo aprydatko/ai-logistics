@@ -24,6 +24,7 @@ import {
   type DocumentRecord,
 } from "../../db/schema";
 import type { ListDocumentsQueryDto } from "./dto/list-documents-query.dto";
+import type { CreateDocumentDto } from "./dto/create-document.dto";
 import type { UpdateDocumentDto } from "./dto/update-document.dto";
 import type {
   DeleteDocumentResult,
@@ -82,9 +83,7 @@ export class DocumentsService {
   }
 
   async findOne(id: string): Promise<DocumentResult> {
-    const [row] = await this.baseSelect()
-      .where(eq(documents.id, id))
-      .limit(1);
+    const [row] = await this.baseSelect().where(eq(documents.id, id)).limit(1);
 
     if (!row) throw new NotFoundException("Document was not found");
     return {
@@ -93,10 +92,32 @@ export class DocumentsService {
     };
   }
 
-  async update(
-    id: string,
-    dto: UpdateDocumentDto,
-  ): Promise<DocumentResult> {
+  async create(dto: CreateDocumentDto): Promise<DocumentResult> {
+    if (dto.driverId) {
+      await this.assertRelationExists(drivers, dto.driverId, "Driver");
+    }
+    if (dto.loadId) {
+      await this.assertRelationExists(loads, dto.loadId, "Load");
+    }
+
+    const [created] = await this.databaseService.client
+      .insert(documents)
+      .values({
+        fileName: dto.fileName,
+        fileSize: dto.fileSize,
+        type: dto.type,
+        status: dto.status,
+        driverId: dto.driverId,
+        loadId: dto.loadId,
+        uploadedAt: new Date(),
+      })
+      .returning({ id: documents.id });
+
+    if (!created) throw new BadRequestException("Unable to create document");
+    return this.findOne(created.id);
+  }
+
+  async update(id: string, dto: UpdateDocumentDto): Promise<DocumentResult> {
     if (!Object.values(dto).some((value) => value !== undefined)) {
       throw new BadRequestException("At least one field must be provided");
     }

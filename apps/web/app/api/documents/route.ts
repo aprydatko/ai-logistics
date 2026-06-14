@@ -23,7 +23,7 @@ const allowedQueryParameters = new Set([
 export const proxyDocumentRequest = async (
   request: Request,
   path: string,
-  method: "GET" | "PATCH" | "DELETE",
+  method: "GET" | "POST" | "PATCH" | "DELETE",
 ): Promise<NextResponse> => {
   try {
     const cookieStore = await cookies();
@@ -47,11 +47,14 @@ export const proxyDocumentRequest = async (
     const apiUrl = new URL(`${API_BASE_URL}/${path}`);
     if (method === "GET") {
       new URL(request.url).searchParams.forEach((value, key) => {
-        if (allowedQueryParameters.has(key)) apiUrl.searchParams.set(key, value);
+        if (allowedQueryParameters.has(key))
+          apiUrl.searchParams.set(key, value);
       });
     }
     const body =
-      method === "PATCH" ? await request.text() : undefined;
+      method === "POST" || method === "PATCH"
+        ? await request.text()
+        : undefined;
     const sendRequest = (token: string): Promise<Response> =>
       fetch(apiUrl, {
         method,
@@ -91,3 +94,6 @@ export const proxyDocumentRequest = async (
 
 export const GET = (request: Request): Promise<NextResponse> =>
   proxyDocumentRequest(request, "documents", "GET");
+
+export const POST = (request: Request): Promise<NextResponse> =>
+  proxyDocumentRequest(request, "documents", "POST");
