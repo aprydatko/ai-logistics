@@ -1,3 +1,5 @@
+import type { AiLogsListResponse } from "@repo/shared";
+
 export type AiLogStatus = "Failed" | "Success";
 
 export type AiLog = {
@@ -12,7 +14,7 @@ export type AiLog = {
   cost: string;
   user: string;
   initials: string;
-  source: "Mobile" | "Web";
+  source: "Mobile" | "Web" | "API";
   linkedType: string;
   linkedId: string;
   linkedTitle: string;
@@ -21,271 +23,103 @@ export type AiLog = {
   response: string;
 };
 
-const basePrompt =
-  "Show me delayed loads in the Midwest from yesterday and suggest the next actions.";
-const baseResponse =
-  "Found 6 delayed loads in the Midwest on May 27, 2025. Severe storms and an I-94 accident caused the largest delays.";
+const formatDate = (value: string): string =>
+  new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "short",
+    second: "2-digit",
+  }).format(new Date(value));
 
-export const aiLogs: AiLog[] = [
-  [
-    "log-1",
-    "May 28, 09:15:42",
-    "GPT-4.1",
-    "AI Assistant (chat)",
-    "Success",
-    "2.12s",
-    "2,145",
-    "1,245 prompt / 900 completion",
-    "$0.032",
-    "Alex Dispatcher",
-    "AD",
-    "Web",
-    "Load",
-    "LD-78291",
-    "Equipment parts",
-    "Chicago, IL → Detroit, MI",
-  ],
-  [
-    "log-2",
-    "May 28, 09:14:01",
-    "GPT-4.1",
-    "Document extraction",
-    "Success",
-    "4.32s",
-    "6,842",
-    "6,114 prompt / 728 completion",
-    "$0.102",
-    "Alex Dispatcher",
-    "AD",
-    "Web",
-    "Document",
-    "DOC-5562",
-    "Bill of lading",
-  ],
-  [
-    "log-3",
-    "May 28, 09:12:37",
-    "GPT-4.1",
-    "Delay analysis",
-    "Success",
-    "3.01s",
-    "3,210",
-    "2,610 prompt / 600 completion",
-    "$0.048",
-    "Sarah Davis",
-    "SD",
-    "Web",
-    "Incident",
-    "INC-2291",
-    "Late delivery risk",
-  ],
-  [
-    "log-4",
-    "May 28, 09:10:11",
-    "GPT-4.1",
-    "Route optimization",
-    "Success",
-    "5.21s",
-    "8,912",
-    "7,806 prompt / 1,106 completion",
-    "$0.134",
-    "Alex Dispatcher",
-    "AD",
-    "Web",
-    "Load",
-    "LD-10456",
-    "Retail goods",
-    "Dallas, TX → Phoenix, AZ",
-  ],
-  [
-    "log-5",
-    "May 28, 09:08:55",
-    "GPT-3.5 Turbo",
-    "AI Assistant (chat)",
-    "Success",
-    "1.45s",
-    "1,102",
-    "702 prompt / 400 completion",
-    "$0.006",
-    "Michael Wilson",
-    "MW",
-    "Mobile",
-    "Driver",
-    "TR-1042",
-    "Driver support",
-  ],
-  [
-    "log-6",
-    "May 28, 09:07:33",
-    "GPT-4.1",
-    "Incident summary",
-    "Success",
-    "2.78s",
-    "2,987",
-    "2,301 prompt / 686 completion",
-    "$0.045",
-    "Sarah Davis",
-    "SD",
-    "Web",
-    "Incident",
-    "INC-2291",
-    "Late delivery risk",
-  ],
-  [
-    "log-7",
-    "May 28, 09:05:22",
-    "GPT-4.1",
-    "Document extraction",
-    "Failed",
-    "8.91s",
-    "0",
-    "0 prompt / 0 completion",
-    "$0.000",
-    "Alex Dispatcher",
-    "AD",
-    "Web",
-    "Document",
-    "DOC-5561",
-    "Damaged scan",
-  ],
-  [
-    "log-8",
-    "May 28, 09:02:18",
-    "GPT-4.1",
-    "Suggested actions",
-    "Success",
-    "3.56s",
-    "4,123",
-    "3,411 prompt / 712 completion",
-    "$0.062",
-    "Emily Taylor",
-    "ET",
-    "Web",
-    "Load",
-    "LD-2156",
-    "Automotive supplies",
-  ],
-  [
-    "log-9",
-    "May 28, 09:01:07",
-    "GPT-3.5 Turbo",
-    "Weather impact",
-    "Success",
-    "1.12s",
-    "1,008",
-    "688 prompt / 320 completion",
-    "$0.004",
-    "Michael Wilson",
-    "MW",
-    "Mobile",
-    "Load",
-    "LD-9901",
-    "Fresh produce",
-  ],
-  [
-    "log-10",
-    "May 28, 08:59:44",
-    "GPT-4.1",
-    "Report generation",
-    "Success",
-    "6.34s",
-    "9,456",
-    "8,204 prompt / 1,252 completion",
-    "$0.142",
-    "Alex Dispatcher",
-    "AD",
-    "Web",
-    "Report",
-    "RPT-332",
-    "Daily operations brief",
-  ],
-].map(
-  ([
-    id,
-    time,
-    model,
-    operation,
-    status,
-    latency,
-    tokens,
-    tokenDetail,
-    cost,
-    user,
-    initials,
-    source,
-    linkedType,
-    linkedId,
-    linkedTitle,
-    route,
-  ]) => ({
-    id,
-    time,
-    model,
-    operation,
-    status,
-    latency,
-    tokens,
-    tokenDetail,
-    cost,
-    user,
-    initials,
-    source,
-    linkedType,
-    linkedId,
-    linkedTitle,
-    route,
-    prompt: basePrompt,
-    response:
-      status === "Failed"
-        ? "The source document could not be parsed because the scan quality was too low."
-        : baseResponse,
-  }),
-) as AiLog[];
+const formatLatency = (latencyMs: number): string =>
+  `${(latencyMs / 1000).toFixed(2)}s`;
+
+const formatTokens = (value: number): string =>
+  new Intl.NumberFormat("en-US").format(value);
+
+const formatCost = (value: number): string => `$${value.toFixed(3)}`;
+
+const getInitials = (name: string): string =>
+  name
+    .split(" ")
+    .map((part) => part[0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+const toSourceLabel = (source: string): AiLog["source"] => {
+  if (source === "mobile") return "Mobile";
+  if (source === "api") return "API";
+  return "Web";
+};
+
+export const mapAiLogListResponse = (response: AiLogsListResponse): AiLog[] =>
+  response.data.map((log) => ({
+    id: log.id,
+    time: formatDate(log.completedAt ?? log.createdAt),
+    model: log.model,
+    operation: log.operation,
+    status: log.status === "success" ? "Success" : "Failed",
+    latency: formatLatency(log.latencyMs),
+    tokens: formatTokens(log.totalTokens),
+    tokenDetail: `${formatTokens(log.promptTokens)} prompt / ${formatTokens(log.completionTokens)} completion`,
+    cost: formatCost(log.estimatedCostUsd),
+    user: log.userName,
+    initials: getInitials(log.userName),
+    source: toSourceLabel(log.source),
+    linkedType: log.linkedEntity?.type ?? "Not linked",
+    linkedId: log.linkedEntity?.recordId ?? "—",
+    linkedTitle: log.linkedEntity?.title ?? "—",
+    route: log.linkedEntity?.route,
+    prompt: log.requestInput,
+    response: log.responseOutput ?? log.errorMessage ?? "No response captured.",
+  }));
 
 export const metricData = [
   {
     title: "AI Requests",
-    value: "18,392",
-    change: "12.5%",
+    value: "Live data soon",
+    change: "0%",
     direction: "up",
     favorable: true,
     color: "#0891b2",
-    data: [18, 16, 21, 17, 14, 17, 23, 22],
+    data: [10, 12, 11, 15, 14, 16, 13, 18],
   },
   {
     title: "Avg Latency",
-    value: "2.34s",
-    change: "8.1%",
+    value: "From logs",
+    change: "0%",
     direction: "down",
     favorable: true,
     color: "#0f766e",
-    data: [18, 22, 21, 19, 20, 17, 18, 23],
+    data: [18, 16, 14, 17, 13, 15, 12, 10],
   },
   {
     title: "Errors",
-    value: "37",
-    change: "15.3%",
+    value: "Tracked",
+    change: "0%",
     direction: "up",
     favorable: false,
     color: "#dc2626",
-    data: [6, 7, 14, 19, 12, 5, 5, 6],
+    data: [3, 4, 2, 5, 4, 3, 2, 4],
   },
   {
     title: "Tokens Used",
-    value: "4.2M",
-    change: "9.7%",
+    value: "Tracked",
+    change: "0%",
     direction: "up",
     favorable: false,
     color: "#5b5fc7",
-    data: [17, 14, 21, 18, 14, 18, 23, 20],
+    data: [12, 10, 14, 16, 13, 17, 18, 20],
   },
   {
     title: "Estimated Cost",
-    value: "$68.42",
-    change: "11.2%",
+    value: "Tracked",
+    change: "0%",
     direction: "up",
     favorable: false,
     color: "#d97706",
-    data: [14, 12, 20, 9, 13, 12, 12, 12],
+    data: [9, 8, 10, 12, 11, 13, 12, 14],
   },
 ] as const;
