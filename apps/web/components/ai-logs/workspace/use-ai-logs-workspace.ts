@@ -10,6 +10,7 @@ import type { AiLogFilterOption } from "./types";
 type UseAiLogsWorkspaceResult = {
   endItem: number;
   error: string | null;
+  from: string;
   isLoading: boolean;
   limit: number;
   logs: AiLog[];
@@ -23,8 +24,10 @@ type UseAiLogsWorkspaceResult = {
   setSelected: (log: AiLog | null) => void;
   startItem: number;
   status: string;
+  to: string;
   totalItems: number;
   totalPages: number;
+  updateDateRange: (value: { from: string; to: string }) => void;
   updateModel: (value: string) => void;
   updateOperation: (value: string) => void;
   updateStatus: (value: string) => void;
@@ -40,6 +43,8 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
   const [model, setModel] = React.useState("all");
   const [status, setStatus] = React.useState("all");
   const [operation, setOperation] = React.useState("all");
+  const [from, setFrom] = React.useState("");
+  const [to, setTo] = React.useState("");
   const [page, setPage] = React.useState(1);
   const [limit, setLimitState] = React.useState(DEFAULT_PAGE_SIZE);
   const [selected, setSelected] = React.useState<AiLog | null>(null);
@@ -58,6 +63,8 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
         if (model !== "all") searchParams.set("model", model);
         if (status !== "all") searchParams.set("status", status);
         if (operation !== "all") searchParams.set("operation", operation);
+        if (from) searchParams.set("from", from);
+        if (to) searchParams.set("to", to);
 
         const response = await fetch(
           `/api/ai-logs?${searchParams.toString()}`,
@@ -90,7 +97,7 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
     };
 
     void loadLogs();
-  }, [limit, model, operation, page, status]);
+  }, [from, limit, model, operation, page, status, to]);
 
   const operationOptions = React.useMemo(
     () => [
@@ -128,9 +135,16 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
     setPage(1);
   };
 
+  const updateDateRange = (value: { from: string; to: string }): void => {
+    setFrom(value.from);
+    setTo(value.to);
+    setPage(1);
+  };
+
   return {
     endItem,
     error,
+    from,
     isLoading,
     limit,
     logs,
@@ -144,8 +158,10 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
     setSelected,
     startItem,
     status,
+    to,
     totalItems,
     totalPages,
+    updateDateRange,
     updateModel,
     updateOperation,
     updateStatus,

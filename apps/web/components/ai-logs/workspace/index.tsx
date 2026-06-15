@@ -13,6 +13,7 @@ export const AiLogsWorkspace = (): React.JSX.Element => {
   const {
     endItem,
     error,
+    from,
     isLoading,
     limit,
     logs,
@@ -26,8 +27,10 @@ export const AiLogsWorkspace = (): React.JSX.Element => {
     setSelected,
     startItem,
     status,
+    to,
     totalItems,
     totalPages,
+    updateDateRange,
     updateModel,
     updateOperation,
     updateStatus,
@@ -38,10 +41,13 @@ export const AiLogsWorkspace = (): React.JSX.Element => {
       <AiLogsHeader />
       <AiLogsMetrics />
       <AiLogsFilters
+        from={from}
         model={model}
         operation={operation}
         operationOptions={operationOptions}
         status={status}
+        to={to}
+        updateDateRange={updateDateRange}
         updateModel={updateModel}
         updateOperation={updateOperation}
         updateStatus={updateStatus}

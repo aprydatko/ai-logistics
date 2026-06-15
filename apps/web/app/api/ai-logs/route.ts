@@ -12,6 +12,8 @@ const allowedQueryParameters = new Set([
   "model",
   "operation",
   "status",
+  "from",
+  "to",
   "page",
   "limit",
 ]);

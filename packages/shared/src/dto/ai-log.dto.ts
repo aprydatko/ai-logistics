@@ -26,6 +26,8 @@ export interface ListAiLogsQueryDto {
   model?: string;
   operation?: string;
   status?: AiLog["status"];
+  from?: string;
+  to?: string;
   page?: number;
   limit?: number;
 }

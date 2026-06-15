@@ -1,5 +1,6 @@
 import { Transform, Type } from "class-transformer";
 import {
+  IsDateString,
   IsIn,
   IsInt,
   IsOptional,
@@ -28,6 +29,14 @@ export class ListAiLogsQueryDto {
   @IsOptional()
   @IsIn(["success", "failed"])
   status?: "success" | "failed";
+
+  @IsOptional()
+  @IsDateString()
+  from?: string;
+
+  @IsOptional()
+  @IsDateString()
+  to?: string;
 
   @IsOptional()
   @Type(() => Number)

@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException } from "@nestjs/common";
-import { and, count, desc, eq, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, gte, lte, sql, type SQL } from "drizzle-orm";
 
 import { DatabaseService } from "../../db/database.service";
 import { aiLogs } from "../../db/schema";
@@ -14,6 +14,8 @@ import type {
 @Injectable()
 export class AiLogsService {
   constructor(private readonly databaseService: DatabaseService) {}
+
+  private readonly loggedAtExpression = sql<Date>`coalesce(${aiLogs.completedAt}, ${aiLogs.createdAt})`;
 
   async findAll(query: ListAiLogsQueryDto): Promise<AiLogsListResponse> {
     const filters = this.buildFilters(query);
@@ -93,8 +95,24 @@ export class AiLogsService {
     if (query.status) {
       filters.push(eq(aiLogs.status, query.status));
     }
+    if (query.from) {
+      filters.push(gte(this.loggedAtExpression, this.toStartOfDay(query.from)));
+    }
+    if (query.to) {
+      filters.push(lte(this.loggedAtExpression, this.toEndOfDay(query.to)));
+    }
 
     return filters;
+  }
+
+  private toStartOfDay(value: string): Date {
+    const date = new Date(`${value}T00:00:00.000Z`);
+    return date;
+  }
+
+  private toEndOfDay(value: string): Date {
+    const date = new Date(`${value}T23:59:59.999Z`);
+    return date;
   }
 
   private toAiLogItem(row: typeof aiLogs.$inferSelect): AiLogItem {
