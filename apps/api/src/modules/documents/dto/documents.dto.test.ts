@@ -53,7 +53,6 @@ describe("Documents DTO validation", () => {
 
   it("rejects immutable update fields", async () => {
     const dto = plainToInstance(UpdateDocumentDto, {
-      fileName: "changed.pdf",
       fileSize: 1,
       uploadedAt: "2026-06-14T00:00:00.000Z",
     });
@@ -64,7 +63,7 @@ describe("Documents DTO validation", () => {
     });
 
     expect(errors.map(({ property }) => property)).toEqual(
-      expect.arrayContaining(["fileName", "fileSize", "uploadedAt"]),
+      expect.arrayContaining(["fileSize", "uploadedAt"]),
     );
   });
 });

@@ -1,7 +1,6 @@
 import { Type } from "class-transformer";
 import {
   ArrayMaxSize,
-  ArrayNotEmpty,
   IsArray,
   ValidateNested,
 } from "class-validator";
