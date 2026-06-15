@@ -1,26 +1,30 @@
-import { CalendarDays, SlidersHorizontal } from "lucide-react";
-
-import { Button } from "@repo/ui/components/button";
+import { DateRangePicker } from "@repo/ui/components/date-range-picker";
 import { SelectButton } from "@repo/ui/components/select-button";
 
 import { modelOptions, statusOptions } from "./constants";
 import type { AiLogFilterOption } from "./types";
 
 type Props = {
+  from: string;
   model: string;
   operation: string;
   operationOptions: AiLogFilterOption[];
   status: string;
+  to: string;
+  updateDateRange: (value: { from: string; to: string }) => void;
   updateModel: (value: string) => void;
   updateOperation: (value: string) => void;
   updateStatus: (value: string) => void;
 };
 
 export const AiLogsFilters = ({
+  from,
   model,
   operation,
   operationOptions,
   status,
+  to,
+  updateDateRange,
   updateModel,
   updateOperation,
   updateStatus,
@@ -56,19 +60,14 @@ export const AiLogsFilters = ({
         onValueChange={updateOperation}
       />
     </label>
-    <Button
-      className="h-11 min-w-40 justify-between bg-card text-primary-700"
-      variant="outline"
-    >
-      <CalendarDays />
-      May 24 – May 28
-    </Button>
-    <Button
-      className="h-11 min-w-36 bg-card text-primary-700"
-      variant="outline"
-    >
-      <SlidersHorizontal />
-      More filters
-    </Button>
+    <div className="min-w-48 flex-1 text-xs font-semibold text-ink-500">
+      Date
+      <DateRangePicker
+        buttonClassName="mt-1 w-full"
+        label="Logged period"
+        onChange={updateDateRange}
+        value={{ from, to }}
+      />
+    </div>
   </div>
 );

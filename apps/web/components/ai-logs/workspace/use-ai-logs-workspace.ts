@@ -1,18 +1,25 @@
 "use client";
 
 import * as React from "react";
-import type { AiLogsListResponse } from "@repo/shared";
+import type { AiLogsListResponse, AiLogsMetricsResponse } from "@repo/shared";
 
-import { mapAiLogListResponse, type AiLog } from "../ai-logs-data";
+import {
+  mapAiLogListResponse,
+  mapAiLogMetricsResponse,
+  type AiLog,
+  type AiLogMetricCard,
+} from "../ai-logs-data";
 import { DEFAULT_PAGE_SIZE } from "./constants";
 import type { AiLogFilterOption } from "./types";
 
 type UseAiLogsWorkspaceResult = {
   endItem: number;
   error: string | null;
+  from: string;
   isLoading: boolean;
   limit: number;
   logs: AiLog[];
+  metrics: AiLogMetricCard[];
   model: string;
   operation: string;
   operationOptions: AiLogFilterOption[];
@@ -23,8 +30,10 @@ type UseAiLogsWorkspaceResult = {
   setSelected: (log: AiLog | null) => void;
   startItem: number;
   status: string;
+  to: string;
   totalItems: number;
   totalPages: number;
+  updateDateRange: (value: { from: string; to: string }) => void;
   updateModel: (value: string) => void;
   updateOperation: (value: string) => void;
   updateStatus: (value: string) => void;
@@ -37,9 +46,12 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
   >(null);
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [metrics, setMetrics] = React.useState<AiLogMetricCard[]>([]);
   const [model, setModel] = React.useState("all");
   const [status, setStatus] = React.useState("all");
   const [operation, setOperation] = React.useState("all");
+  const [from, setFrom] = React.useState("");
+  const [to, setTo] = React.useState("");
   const [page, setPage] = React.useState(1);
   const [limit, setLimitState] = React.useState(DEFAULT_PAGE_SIZE);
   const [selected, setSelected] = React.useState<AiLog | null>(null);
@@ -58,30 +70,40 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
         if (model !== "all") searchParams.set("model", model);
         if (status !== "all") searchParams.set("status", status);
         if (operation !== "all") searchParams.set("operation", operation);
+        if (from) searchParams.set("from", from);
+        if (to) searchParams.set("to", to);
 
-        const response = await fetch(
-          `/api/ai-logs?${searchParams.toString()}`,
-          {
+        const [listResponse, metricsResponse] = await Promise.all([
+          fetch(`/api/ai-logs?${searchParams.toString()}`, {
             cache: "no-store",
-          },
-        );
-        const data = (await response.json()) as AiLogsListResponse;
+          }),
+          fetch(`/api/ai-logs/metrics?${searchParams.toString()}`, {
+            cache: "no-store",
+          }),
+        ]);
+        const [listData, metricsData] = (await Promise.all([
+          listResponse.json(),
+          metricsResponse.json(),
+        ])) as [AiLogsListResponse, AiLogsMetricsResponse];
 
-        if (!response.ok) {
+        if (!listResponse.ok || !metricsResponse.ok) {
           setError("Failed to load AI logs.");
           setLogs([]);
+          setMetrics([]);
           setPagination(null);
           setSelected(null);
           return;
         }
 
-        const mappedLogs = mapAiLogListResponse(data);
+        const mappedLogs = mapAiLogListResponse(listData);
         setLogs(mappedLogs);
-        setPagination(data.pagination);
+        setMetrics(mapAiLogMetricsResponse(metricsData));
+        setPagination(listData.pagination);
         setSelected(mappedLogs[0] ?? null);
       } catch {
         setError("Failed to load AI logs.");
         setLogs([]);
+        setMetrics([]);
         setPagination(null);
         setSelected(null);
       } finally {
@@ -90,7 +112,7 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
     };
 
     void loadLogs();
-  }, [limit, model, operation, page, status]);
+  }, [from, limit, model, operation, page, status, to]);
 
   const operationOptions = React.useMemo(
     () => [
@@ -128,12 +150,20 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
     setPage(1);
   };
 
+  const updateDateRange = (value: { from: string; to: string }): void => {
+    setFrom(value.from);
+    setTo(value.to);
+    setPage(1);
+  };
+
   return {
     endItem,
     error,
+    from,
     isLoading,
     limit,
     logs,
+    metrics,
     model,
     operation,
     operationOptions,
@@ -144,8 +174,10 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
     setSelected,
     startItem,
     status,
+    to,
     totalItems,
     totalPages,
+    updateDateRange,
     updateModel,
     updateOperation,
     updateStatus,

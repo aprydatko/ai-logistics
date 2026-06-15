@@ -26,11 +26,22 @@ export interface ListAiLogsQueryDto {
   model?: string;
   operation?: string;
   status?: AiLog["status"];
+  from?: string;
+  to?: string;
   page?: number;
   limit?: number;
 }
 
 export type AiLogListItem = AiLog;
+
+export interface AiLogMetricsPoint {
+  date: string;
+  requests: number;
+  avgLatencyMs: number;
+  errors: number;
+  tokens: number;
+  costUsd: number;
+}
 
 export interface AiLogsListResponse {
   success: true;
@@ -40,6 +51,27 @@ export interface AiLogsListResponse {
     limit: number;
     total: number;
     totalPages: number;
+  };
+}
+
+export interface AiLogsMetricsResponse {
+  success: true;
+  data: {
+    totals: {
+      requests: number;
+      avgLatencyMs: number;
+      errors: number;
+      tokens: number;
+      costUsd: number;
+    };
+    changesVsYesterday: {
+      requests: number;
+      avgLatencyMs: number;
+      errors: number;
+      tokens: number;
+      costUsd: number;
+    };
+    trend: AiLogMetricsPoint[];
   };
 }
 

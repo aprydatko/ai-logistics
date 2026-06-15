@@ -14,8 +14,6 @@ const allowedQueryParameters = new Set([
   "status",
   "from",
   "to",
-  "page",
-  "limit",
 ]);
 
 export async function GET(request: Request): Promise<NextResponse> {
@@ -39,7 +37,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       return response;
     }
 
-    const apiUrl = new URL(`${API_BASE_URL}/ai-logs`);
+    const apiUrl = new URL(`${API_BASE_URL}/ai-logs/metrics`);
     new URL(request.url).searchParams.forEach((value, key) => {
       if (allowedQueryParameters.has(key)) {
         apiUrl.searchParams.set(key, value);
@@ -65,7 +63,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     }
 
     const responseBody: unknown = await apiResponse.json().catch(() => ({
-      message: "Invalid AI logs response",
+      message: "Invalid AI logs metrics response",
     }));
     const response = NextResponse.json(responseBody, {
       status: apiResponse.status,
@@ -79,7 +77,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     return response;
   } catch {
     return NextResponse.json(
-      { message: "AI logs service unavailable" },
+      { message: "AI logs metrics service unavailable" },
       { status: 503 },
     );
   }
