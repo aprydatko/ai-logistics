@@ -11,6 +11,7 @@ const modelOptions = [
 
 type AssistantComposerProps = {
   draft: string;
+  isSubmitting?: boolean;
   model: string;
   onDraftChange: (value: string) => void;
   onModelChange: (value: string) => void;
@@ -19,6 +20,7 @@ type AssistantComposerProps = {
 
 export const AssistantComposer = ({
   draft,
+  isSubmitting = false,
   model,
   onDraftChange,
   onModelChange,
@@ -28,6 +30,7 @@ export const AssistantComposer = ({
     <textarea
       aria-label="Ask AI Assistant"
       className="min-h-16 w-full resize-none bg-transparent px-2 py-1 text-sm text-ink-900 outline-none placeholder:text-primary-700/70"
+      disabled={isSubmitting}
       onChange={(event) => onDraftChange(event.target.value)}
       onKeyDown={(event) => {
         if (event.key === "Enter" && !event.shiftKey) {
@@ -69,7 +72,7 @@ export const AssistantComposer = ({
         <Button
           aria-label="Send message"
           className="bg-primary-700 hover:bg-primary-600"
-          disabled={!draft.trim()}
+          disabled={!draft.trim() || isSubmitting}
           onClick={onSubmit}
           size="icon"
           type="button"

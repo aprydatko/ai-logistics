@@ -1,7 +1,14 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
-  "globalEnv": ["DATABASE_URL", "NODE_ENV", "API_BASE_URL", "CI"],
+  "globalEnv": [
+    "DATABASE_URL",
+    "NODE_ENV",
+    "API_BASE_URL",
+    "CI",
+    "OPENAI_API_KEY",
+    "OPENAI_MODEL"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
