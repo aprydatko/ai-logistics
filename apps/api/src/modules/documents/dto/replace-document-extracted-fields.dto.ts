@@ -1,9 +1,5 @@
 import { Type } from "class-transformer";
-import {
-  ArrayMaxSize,
-  IsArray,
-  ValidateNested,
-} from "class-validator";
+import { ArrayMaxSize, IsArray, ValidateNested } from "class-validator";
 
 import { UpdateDocumentExtractedFieldDto } from "./update-document-extracted-field.dto";
 
