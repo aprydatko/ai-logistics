@@ -43,7 +43,8 @@ export const HistoryTab = ({
                 </p>
               </div>
             </div>
-          ))}
+          ))
+      }
     </div>
   );
 };

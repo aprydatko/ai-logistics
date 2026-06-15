@@ -55,26 +55,44 @@ export class DriversService {
 
   async create(dto: CreateDriverDto): Promise<CreateDriverResponse> {
     try {
-      const [driver] = await this.databaseService.client
-        .insert(drivers)
-        .values({
-          ...dto,
-          firstName: dto.firstName.trim(),
-          lastName: dto.lastName.trim(),
-          email: dto.email.trim().toLowerCase(),
-          driverCode: dto.driverCode.trim().toUpperCase(),
-          phone: dto.phone.trim(),
-          address: dto.address?.trim() || null,
-          emergencyContact: dto.emergencyContact?.trim() || null,
-          emergencyPhone: dto.emergencyPhone?.trim() || null,
-          licenseNumber: dto.licenseNumber.trim(),
-          licenseState: dto.licenseState.trim(),
-          licenseType: dto.licenseType.trim(),
-          notes: dto.notes?.trim() || null,
-          truckNumber: dto.truckNumber?.trim() || null,
-          trailerNumber: dto.trailerNumber?.trim() || null,
-        })
-        .returning();
+      const driver = await this.databaseService.client.transaction(async (tx) => {
+        const [savedDriver] = await tx
+          .insert(drivers)
+          .values({
+            ...dto,
+            firstName: dto.firstName.trim(),
+            lastName: dto.lastName.trim(),
+            email: dto.email.trim().toLowerCase(),
+            driverCode: dto.driverCode.trim().toUpperCase(),
+            phone: dto.phone.trim(),
+            address: dto.address?.trim() || null,
+            emergencyContact: dto.emergencyContact?.trim() || null,
+            emergencyPhone: dto.emergencyPhone?.trim() || null,
+            licenseNumber: dto.licenseNumber.trim(),
+            licenseState: dto.licenseState.trim(),
+            licenseType: dto.licenseType.trim(),
+            notes: dto.notes?.trim() || null,
+            truckNumber: dto.truckNumber?.trim() || null,
+            trailerNumber: dto.trailerNumber?.trim() || null,
+          })
+          .returning();
+
+        if (!savedDriver) {
+          throw new InternalServerErrorException("Failed to create driver");
+        }
+
+        await tx.insert(driverActivity).values({
+          driverId: savedDriver.id,
+          type: "created",
+          description: `Driver ${savedDriver.firstName} ${savedDriver.lastName} was created`,
+          metadata: {
+            driverCode: savedDriver.driverCode,
+            status: savedDriver.status,
+          },
+        });
+
+        return savedDriver;
+      });
 
       if (!driver) {
         throw new InternalServerErrorException("Failed to create driver");
@@ -238,14 +256,55 @@ export class DriversService {
     }
 
     try {
-      const [driver] = await this.databaseService.client
-        .update(drivers)
-        .set({
-          ...dto,
-          updatedAt: new Date(),
-        })
-        .where(eq(drivers.id, id))
-        .returning();
+      const driver = await this.databaseService.client.transaction(async (tx) => {
+        const [currentDriver] = await tx
+          .select()
+          .from(drivers)
+          .where(eq(drivers.id, id))
+          .limit(1);
+
+        if (!currentDriver) {
+          throw new NotFoundException("Driver was not found");
+        }
+
+        const [updatedDriver] = await tx
+          .update(drivers)
+          .set({
+            ...dto,
+            updatedAt: new Date(),
+          })
+          .where(eq(drivers.id, id))
+          .returning();
+
+        if (!updatedDriver) {
+          throw new NotFoundException("Driver was not found");
+        }
+
+        const statusChanged =
+          dto.status !== undefined && dto.status !== currentDriver.status;
+        const changedFields = this.getUpdatedDriverFields(dto);
+
+        if (statusChanged) {
+          await tx.insert(driverActivity).values({
+            driverId: updatedDriver.id,
+            type: "status_changed",
+            description: `Status changed from ${currentDriver.status.replaceAll("_", " ")} to ${updatedDriver.status.replaceAll("_", " ")}`,
+            metadata: {
+              from: currentDriver.status,
+              to: updatedDriver.status,
+            },
+          });
+        } else if (changedFields.length > 0) {
+          await tx.insert(driverActivity).values({
+            driverId: updatedDriver.id,
+            type: "updated",
+            description: `Driver profile was updated: ${changedFields.join(", ")}`,
+            metadata: { fields: changedFields },
+          });
+        }
+
+        return updatedDriver;
+      });
 
       if (!driver) {
         throw new NotFoundException("Driver was not found");
@@ -338,6 +397,21 @@ export class DriversService {
   ): Promise<DeleteDriverDocumentResponse> {
     const document = await this.databaseService.client.transaction(
       async (tx) => {
+        const [existingDocument] = await tx
+          .select({
+            id: driverDocuments.id,
+            name: driverDocuments.name,
+            type: driverDocuments.type,
+          })
+          .from(driverDocuments)
+          .where(
+            and(
+              eq(driverDocuments.id, documentId),
+              eq(driverDocuments.driverId, driverId),
+            ),
+          )
+          .limit(1);
+
         const [deletedDocument] = await tx
           .delete(driverDocuments)
           .where(
@@ -350,6 +424,15 @@ export class DriversService {
 
         if (deletedDocument) {
           await tx.delete(documents).where(eq(documents.id, documentId));
+          await tx.insert(driverActivity).values({
+            driverId,
+            type: "updated",
+            description: `Document "${existingDocument?.name ?? "Unknown document"}" was removed`,
+            metadata: {
+              documentId,
+              documentType: existingDocument?.type ?? null,
+            },
+          });
         }
 
         return deletedDocument;
@@ -575,5 +658,34 @@ export class DriversService {
       "code" in error &&
       error.code === "23505"
     );
+  }
+
+  private getUpdatedDriverFields(dto: UpdateDriverDto): string[] {
+    const fieldLabels: Partial<Record<keyof UpdateDriverDto, string>> = {
+      userId: "linked user",
+      driverCode: "driver code",
+      firstName: "first name",
+      lastName: "last name",
+      email: "email",
+      phone: "phone",
+      avatarUrl: "avatar",
+      dateOfBirth: "date of birth",
+      address: "address",
+      hireDate: "hire date",
+      licenseType: "license type",
+      licenseNumber: "license number",
+      licenseExpirationDate: "license expiration date",
+      licenseState: "license state",
+      emergencyContact: "emergency contact",
+      emergencyPhone: "emergency phone",
+      notes: "notes",
+      truckNumber: "truck number",
+      trailerNumber: "trailer number",
+      isActive: "active flag",
+    };
+
+    return Object.entries(fieldLabels)
+      .filter(([field]) => dto[field as keyof UpdateDriverDto] !== undefined)
+      .map(([, label]) => label ?? "");
   }
 }

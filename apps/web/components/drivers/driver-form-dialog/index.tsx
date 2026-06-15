@@ -30,7 +30,6 @@ import { toast } from "@repo/ui/components/toaster";
 import { DialogFooter } from "./dialog-footer";
 import { DocumentsTab } from "./documents-tab";
 import { emptyDriverFormValues, toDriverFormValues } from "./form-values";
-import { HistoryTab } from "./history-tab";
 import { ProfileTab } from "./profile-tab";
 import { TruckTab } from "./truck-tab";
 
@@ -40,14 +39,12 @@ interface DriverFormDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type DriverTab = "info" | "truck" | "documents" | "trips" | "activity";
+type DriverTab = "info" | "truck" | "documents";
 
 const tabs: Array<{ id: DriverTab; label: string }> = [
   { id: "info", label: "Info" },
   { id: "truck", label: "Truck" },
   { id: "documents", label: "Docs" },
-  { id: "trips", label: "Trips" },
-  { id: "activity", label: "Activity" },
 ];
 
 export const DriverFormDialog = ({
@@ -174,12 +171,6 @@ export const DriverFormDialog = ({
                   onPendingDocumentChange={setPendingDocument}
                   pendingDocument={pendingDocument}
                 />
-              ) : null}
-              {tab === "trips" ? (
-                <HistoryTab details={detailsQuery.data} type="trips" />
-              ) : null}
-              {tab === "activity" ? (
-                <HistoryTab details={detailsQuery.data} type="activity" />
               ) : null}
             </div>
             <DialogFooter
