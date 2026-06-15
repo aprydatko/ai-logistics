@@ -286,10 +286,7 @@ export class LoadsService {
     };
   }
 
-  private toLoad(
-    load: LoadRecord,
-    driver: LoadItem["driver"],
-  ): LoadItem {
+  private toLoad(load: LoadRecord, driver: LoadItem["driver"]): LoadItem {
     return {
       ...load,
       pickupDate: load.pickupDate.toISOString(),

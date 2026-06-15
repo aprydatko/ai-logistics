@@ -35,8 +35,16 @@ export const TimelineTab = ({
         </p>
       ) : null}
       {fields.map((field, index) => (
-        <div className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2" key={field.id}>
-          <LoadInputField form={form} label="Event" name={`timeline.${index}.title`} required />
+        <div
+          className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2"
+          key={field.id}
+        >
+          <LoadInputField
+            form={form}
+            label="Event"
+            name={`timeline.${index}.title`}
+            required
+          />
           <FormField
             control={form.control}
             name={`timeline.${index}.dateTime`}
@@ -61,7 +69,9 @@ export const TimelineTab = ({
             render={({ field: descriptionField }) => (
               <FormItem className="sm:col-span-2">
                 <FormLabel color="gray">Description</FormLabel>
-                <FormControl><Textarea {...descriptionField} /></FormControl>
+                <FormControl>
+                  <Textarea {...descriptionField} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

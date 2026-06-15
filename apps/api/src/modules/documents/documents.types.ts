@@ -2,8 +2,20 @@ import type { DocumentRecord } from "../../db/schema";
 
 export type DocumentItem = Omit<
   DocumentRecord,
-  "createdAt" | "driverId" | "loadId" | "updatedAt" | "uploadedAt"
+  | "createdAt"
+  | "driverId"
+  | "loadId"
+  | "updatedAt"
+  | "uploadedAt"
+  | "uploadedByUserId"
 > & {
+  fileUrl: string | null;
+  mimeType: string | null;
+  uploadedBy: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  } | null;
   driver: {
     id: string;
     firstName: string;

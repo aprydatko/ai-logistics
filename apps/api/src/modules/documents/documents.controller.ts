@@ -12,6 +12,8 @@ import {
 } from "@nestjs/common";
 
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { CurrentUser } from "../auth/current-user.decorator";
+import type { AuthenticatedUser } from "../auth/auth.types";
 import { Roles } from "../auth/roles.decorator";
 import { RolesGuard } from "../auth/roles.guard";
 import { DocumentsService } from "./documents.service";
@@ -37,8 +39,11 @@ export class DocumentsController {
   @Post()
   @Roles("admin", "dispatcher")
   @UseGuards(RolesGuard)
-  create(@Body() dto: CreateDocumentDto): Promise<DocumentResult> {
-    return this.documentsService.create(dto);
+  create(
+    @Body() dto: CreateDocumentDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<DocumentResult> {
+    return this.documentsService.create(dto, user.id);
   }
 
   @Get(":id")

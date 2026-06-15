@@ -76,9 +76,11 @@ export const OverviewTab = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(Object.entries(incidentTypeLabels) as Array<
-                [IncidentFormValues["type"], string]
-              >).map(([type, label]) => (
+              {(
+                Object.entries(incidentTypeLabels) as Array<
+                  [IncidentFormValues["type"], string]
+                >
+              ).map(([type, label]) => (
                 <SelectItem key={type} value={type}>
                   <AlertTriangle className="text-destructive" />
                   {label}
@@ -98,20 +100,23 @@ export const OverviewTab = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(["critical", "high", "medium", "low"] as const).map((priority) => (
-                <SelectItem key={priority} value={priority}>
-                  <Circle
-                    className={
-                      priority === "critical" || priority === "high"
-                        ? "fill-red-500 text-red-500"
-                        : priority === "medium"
-                          ? "fill-amber-500 text-amber-500"
-                          : "fill-blue-500 text-blue-500"
-                    }
-                  />
-                  {priority[0]?.toUpperCase()}{priority.slice(1)}
-                </SelectItem>
-              ))}
+              {(["critical", "high", "medium", "low"] as const).map(
+                (priority) => (
+                  <SelectItem key={priority} value={priority}>
+                    <Circle
+                      className={
+                        priority === "critical" || priority === "high"
+                          ? "fill-red-500 text-red-500"
+                          : priority === "medium"
+                            ? "fill-amber-500 text-amber-500"
+                            : "fill-blue-500 text-blue-500"
+                      }
+                    />
+                    {priority[0]?.toUpperCase()}
+                    {priority.slice(1)}
+                  </SelectItem>
+                ),
+              )}
             </SelectContent>
           </Select>
         </Field>
@@ -141,9 +146,18 @@ export const OverviewTab = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(["open", "investigating", "monitoring", "resolved", "closed"] as const).map((status) => (
+              {(
+                [
+                  "open",
+                  "investigating",
+                  "monitoring",
+                  "resolved",
+                  "closed",
+                ] as const
+              ).map((status) => (
                 <SelectItem key={status} value={status}>
-                  {status[0]?.toUpperCase()}{status.slice(1)}
+                  {status[0]?.toUpperCase()}
+                  {status.slice(1)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -207,7 +221,9 @@ export const OverviewTab = ({
             className={fieldClassName}
             disabled
             value={(() => {
-              const driver = loads.find(({ id }) => id === values.loadId)?.driver;
+              const driver = loads.find(
+                ({ id }) => id === values.loadId,
+              )?.driver;
               return driver
                 ? `${driver.firstName} ${driver.lastName}`
                 : "No driver assigned to selected load";

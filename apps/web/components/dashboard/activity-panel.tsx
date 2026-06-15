@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 
-import { dashboardActivityQueryOptions } from '@/lib/dashboard/activity-query';
-import { Badge } from '@repo/ui/components/badge';
-import { Button } from '@repo/ui/components/button';
-import { useRouter } from 'next/navigation';
+import { dashboardActivityQueryOptions } from "@/lib/dashboard/activity-query";
+import { Badge } from "@repo/ui/components/badge";
+import { Button } from "@repo/ui/components/button";
+import { useRouter } from "next/navigation";
 
 export function ActivityPanel(): React.JSX.Element {
   const router = useRouter();
   const { data, isError, isLoading } = useQuery(
-    dashboardActivityQueryOptions()
+    dashboardActivityQueryOptions(),
   );
   const activities = data?.activities ?? [];
 
@@ -61,7 +61,7 @@ export function ActivityPanel(): React.JSX.Element {
         ))}
       </div>
       <Button
-        onClick={() => router.push('/ai-logs')}
+        onClick={() => router.push("/ai-logs")}
         className="h-auto p-0 text-blue-600"
         variant="link"
       >

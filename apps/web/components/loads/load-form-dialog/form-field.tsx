@@ -50,8 +50,7 @@ export const LoadInputField = ({
             step={step}
             type={type}
             value={
-              typeof field.value === "string" ||
-              typeof field.value === "number"
+              typeof field.value === "string" || typeof field.value === "number"
                 ? field.value
                 : ""
             }

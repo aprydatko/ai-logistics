@@ -26,8 +26,7 @@ const quickActions = [
 export function QuickActionsPanel(): React.JSX.Element {
   const [isAssignDriverOpen, setIsAssignDriverOpen] = React.useState(false);
   const [isCreateLoadOpen, setIsCreateLoadOpen] = React.useState(false);
-  const [isReportIncidentOpen, setIsReportIncidentOpen] =
-    React.useState(false);
+  const [isReportIncidentOpen, setIsReportIncidentOpen] = React.useState(false);
 
   return (
     <>

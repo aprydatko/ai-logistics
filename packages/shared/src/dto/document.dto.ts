@@ -18,7 +18,7 @@ export type ListDocumentsQueryDto = {
 
 export type CreateDocumentDto = Pick<
   Document,
-  "fileName" | "fileSize" | "status" | "type"
+  "fileName" | "fileSize" | "mimeType" | "status" | "type"
 > & {
   driverId?: string;
   loadId?: string;

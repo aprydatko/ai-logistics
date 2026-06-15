@@ -1,9 +1,9 @@
-import { Activity } from 'lucide-react';
+import { Activity } from "lucide-react";
 
-import type { DriverDetails } from '@/lib/drivers/drivers-query';
+import type { DriverDetails } from "@/lib/drivers/drivers-query";
 
-import { EmptyTab, PanelSection } from '../panel-section';
-import { formatTimestamp } from '../profile-formatters';
+import { EmptyTab, PanelSection } from "../panel-section";
+import { formatTimestamp } from "../profile-formatters";
 
 export const ActivityTab = ({
   details,

@@ -188,7 +188,11 @@ export const IncidentsFormDialog = ({
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-white px-7 py-5">
             <div>
-              {incident ? <span className="text-xs text-primary-700">ID: {incident.id}</span> : null}
+              {incident ? (
+                <span className="text-xs text-primary-700">
+                  ID: {incident.id}
+                </span>
+              ) : null}
             </div>
             <div className="flex gap-3">
               <DialogClose asChild>

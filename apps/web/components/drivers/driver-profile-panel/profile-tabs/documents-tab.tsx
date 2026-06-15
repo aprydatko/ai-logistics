@@ -3,19 +3,16 @@ import {
   FileBadge,
   FileText,
   type LucideIcon,
-} from 'lucide-react';
+} from "lucide-react";
 
-import type { DriverDetails } from '@/lib/drivers/drivers-query';
-import { StatusBadge } from '@repo/ui/components/status-badge';
+import type { DriverDetails } from "@/lib/drivers/drivers-query";
+import { StatusBadge } from "@repo/ui/components/status-badge";
 
-import { EmptyTab, PanelSection } from '../panel-section';
-import {
-  formatDate,
-  getDocumentStatus,
-} from '../profile-formatters';
+import { EmptyTab, PanelSection } from "../panel-section";
+import { formatDate, getDocumentStatus } from "../profile-formatters";
 
 const documentIcon: Record<
-  DriverDetails['documents'][number]['type'],
+  DriverDetails["documents"][number]["type"],
   LucideIcon
 > = {
   license: FileBadge,

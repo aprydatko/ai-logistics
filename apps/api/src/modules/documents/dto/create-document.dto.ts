@@ -26,6 +26,10 @@ export class CreateDocumentDto {
   @Max(5 * 1024 * 1024)
   fileSize!: number;
 
+  @IsString()
+  @IsIn(["application/pdf", "image/jpeg", "image/png", "image/webp"])
+  mimeType!: "application/pdf" | "image/jpeg" | "image/png" | "image/webp";
+
   @IsIn([
     "bill_of_lading",
     "proof_of_delivery",

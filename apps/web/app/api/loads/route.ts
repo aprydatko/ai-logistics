@@ -45,7 +45,8 @@ export async function proxyLoadRequest(
     const apiUrl = new URL(`${API_BASE_URL}/${path}`);
     if (method === "GET") {
       new URL(request.url).searchParams.forEach((value, key) => {
-        if (allowedQueryParameters.has(key)) apiUrl.searchParams.set(key, value);
+        if (allowedQueryParameters.has(key))
+          apiUrl.searchParams.set(key, value);
       });
     }
     const body = method === "GET" ? undefined : await request.text();

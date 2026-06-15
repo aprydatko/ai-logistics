@@ -43,7 +43,9 @@ export const LoadDetailsTab = ({
           name="status"
           render={({ field }) => (
             <FormItem>
-              <FormLabel color="gray" required>Status</FormLabel>
+              <FormLabel color="gray" required>
+                Status
+              </FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger className="h-10 w-full bg-white">
@@ -51,21 +53,35 @@ export const LoadDetailsTab = ({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {["pending", "assigned", "in_transit", "delivered", "cancelled"].map(
-                    (status) => (
-                      <SelectItem key={status} value={status}>
-                        {status.replace("_", " ")}
-                      </SelectItem>
-                    ),
-                  )}
+                  {[
+                    "pending",
+                    "assigned",
+                    "in_transit",
+                    "delivered",
+                    "cancelled",
+                  ].map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status.replace("_", " ")}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormMessage />
             </FormItem>
           )}
         />
-        <LoadInputField form={form} label="Pickup address" name="pickupAddress" required />
-        <LoadInputField form={form} label="Delivery address" name="deliveryAddress" required />
+        <LoadInputField
+          form={form}
+          label="Pickup address"
+          name="pickupAddress"
+          required
+        />
+        <LoadInputField
+          form={form}
+          label="Delivery address"
+          name="deliveryAddress"
+          required
+        />
         {(["pickupDate", "deliveryDate"] as const).map((name) => (
           <FormField
             control={form.control}
@@ -87,18 +103,53 @@ export const LoadDetailsTab = ({
             )}
           />
         ))}
-        <LoadInputField form={form} label="Weight (lb)" name="weight" required type="number" />
-        <LoadInputField form={form} label="Distance (mi)" name="miles" required type="number" />
-        <LoadInputField form={form} label="Price (USD)" name="price" required step="0.01" type="number" />
+        <LoadInputField
+          form={form}
+          label="Weight (lb)"
+          name="weight"
+          required
+          type="number"
+        />
+        <LoadInputField
+          form={form}
+          label="Distance (mi)"
+          name="miles"
+          required
+          type="number"
+        />
+        <LoadInputField
+          form={form}
+          label="Price (USD)"
+          name="price"
+          required
+          step="0.01"
+          type="number"
+        />
       </div>
     </section>
 
     <section className="border-t border-border pt-5">
       <h3 className="mb-4 text-sm font-bold text-ink-900">Broker</h3>
       <div className="grid gap-4 sm:grid-cols-2">
-        <LoadInputField form={form} label="Broker ID" name="brokerId" required />
-        <LoadInputField form={form} label="Company" name="brokerCompanyName" required />
-        <LoadInputField form={form} label="Phone" name="brokerPhone" required type="tel" />
+        <LoadInputField
+          form={form}
+          label="Broker ID"
+          name="brokerId"
+          required
+        />
+        <LoadInputField
+          form={form}
+          label="Company"
+          name="brokerCompanyName"
+          required
+        />
+        <LoadInputField
+          form={form}
+          label="Phone"
+          name="brokerPhone"
+          required
+          type="tel"
+        />
       </div>
     </section>
 

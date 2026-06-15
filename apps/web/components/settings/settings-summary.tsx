@@ -77,7 +77,11 @@ export const SettingsSummary = (): React.JSX.Element => {
       <SummaryCard className="xl:col-span-2" title="Profile & security">
         <dl className="space-y-3">
           <DetailRow action label="Name" value="Alex Dispatcher" />
-          <DetailRow action label="Email" value="alex.dispatcher@ailogistics.com" />
+          <DetailRow
+            action
+            label="Email"
+            value="alex.dispatcher@ailogistics.com"
+          />
           <DetailRow action label="Password" value="••••••••" />
           <DetailRow
             action
@@ -94,7 +98,11 @@ export const SettingsSummary = (): React.JSX.Element => {
       <SummaryCard className="xl:col-span-2" title="Role / admin settings">
         <dl className="space-y-3">
           <DetailRow action label="Role" value="Dispatcher" />
-          <DetailRow action label="Permissions" value="View and manage operations" />
+          <DetailRow
+            action
+            label="Permissions"
+            value="View and manage operations"
+          />
           <DetailRow action label="Team" value="Operations" />
         </dl>
       </SummaryCard>
@@ -117,7 +125,10 @@ export const SettingsSummary = (): React.JSX.Element => {
       <SummaryCard className="xl:col-span-3" title="System notifications">
         <dl className="space-y-3">
           <DetailRow label="Maintenance mode" value="Off" />
-          <DetailRow label="Scheduled maintenance" value="May 31, 02:00 – 04:00" />
+          <DetailRow
+            label="Scheduled maintenance"
+            value="May 31, 02:00 – 04:00"
+          />
           <DetailRow
             label="Status page"
             value={

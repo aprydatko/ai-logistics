@@ -18,8 +18,7 @@ export const calculateLoadEta = ({
     0,
     Math.ceil(drivingHours / MAX_DRIVING_HOURS_PER_SHIFT) - 1,
   );
-  const totalHours =
-    drivingHours + completedShifts * REST_HOURS_BETWEEN_SHIFTS;
+  const totalHours = drivingHours + completedShifts * REST_HOURS_BETWEEN_SHIFTS;
 
   return new Date(pickupDate.getTime() + totalHours * MILLISECONDS_PER_HOUR);
 };

@@ -41,13 +41,18 @@ const getPages = (
   currentPage: number,
   totalPages: number,
 ): Array<number | "ellipsis"> => {
-  const pages = Array.from({ length: totalPages }, (_, index) => index + 1).filter(
+  const pages = Array.from(
+    { length: totalPages },
+    (_, index) => index + 1,
+  ).filter(
     (page) =>
       page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1,
   );
   return pages.flatMap((page, index) => {
     const previous = pages[index - 1];
-    return previous && page - previous > 1 ? ["ellipsis" as const, page] : [page];
+    return previous && page - previous > 1
+      ? ["ellipsis" as const, page]
+      : [page];
   });
 };
 
@@ -135,7 +140,9 @@ export const LoadsTable = (): React.JSX.Element => {
                   <TableHead className="text-center">
                     <Checkbox
                       aria-label="Select all loads"
-                      checked={isPartiallySelected ? "indeterminate" : isAllSelected}
+                      checked={
+                        isPartiallySelected ? "indeterminate" : isAllSelected
+                      }
                       onCheckedChange={(checked) =>
                         setSelectedIds(
                           checked === true
@@ -151,7 +158,9 @@ export const LoadsTable = (): React.JSX.Element => {
                   <TableHead>Route</TableHead>
                   <TableHead>ETA</TableHead>
                   <TableHead>Trip</TableHead>
-                  <TableHead><span className="sr-only">Actions</span></TableHead>
+                  <TableHead>
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -194,11 +203,17 @@ export const LoadsTable = (): React.JSX.Element => {
           <DataPagination
             ariaLabel="Loads pagination"
             currentPage={filters.page}
-            endItem={Math.min(filters.page * filters.limit, pagination?.total ?? 0)}
+            endItem={Math.min(
+              filters.page * filters.limit,
+              pagination?.total ?? 0,
+            )}
             itemName="loads"
             onPageChange={(page) => updateFilters({ page })}
             onPageSizeChange={(limit) => updateFilters({ limit })}
-            pages={getPages(filters.page, Math.max(1, pagination?.totalPages ?? 1))}
+            pages={getPages(
+              filters.page,
+              Math.max(1, pagination?.totalPages ?? 1),
+            )}
             pageSize={filters.limit}
             pageSizeOptions={[10, 15, 20]}
             startItem={

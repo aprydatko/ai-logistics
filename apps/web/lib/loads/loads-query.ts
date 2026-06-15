@@ -99,7 +99,8 @@ export const fetchLoads = async (
 
   const body: unknown = await response.json();
   const parsed = loadsResponseSchema.safeParse(body);
-  if (!parsed.success) throw new Error("The loads response has an invalid format");
+  if (!parsed.success)
+    throw new Error("The loads response has an invalid format");
 
   return parsed.data;
 };

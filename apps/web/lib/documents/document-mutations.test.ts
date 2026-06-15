@@ -6,8 +6,14 @@ const document = {
   id: "10000000-0000-4000-8000-000000000001",
   fileName: "bill-of-lading.pdf",
   fileSize: 2048,
+  fileUrl: null,
+  mimeType: "application/pdf",
+  pageCount: null,
+  extractionModel: null,
+  processingTimeMs: null,
   type: "proof_of_delivery",
   status: "needs_review",
+  uploadedBy: null,
   driver: null,
   load: null,
   uploadedAt: "2026-06-14T10:00:00.000Z",
@@ -17,9 +23,11 @@ const document = {
 
 describe("document mutations", () => {
   it("patches editable document fields", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ success: true, data: document })),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ success: true, data: document })),
+      );
     vi.stubGlobal("fetch", fetchMock);
     const updates = {
       type: "proof_of_delivery",
@@ -39,11 +47,13 @@ describe("document mutations", () => {
   });
 
   it("hard deletes a document", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({ success: true, data: { id: document.id } }),
-      ),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ success: true, data: { id: document.id } }),
+        ),
+      );
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(deleteDocument(document.id)).resolves.toEqual({

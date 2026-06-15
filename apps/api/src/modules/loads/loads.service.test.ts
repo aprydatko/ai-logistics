@@ -57,7 +57,9 @@ describe("LoadsService", () => {
   it("updates and serializes a load", async () => {
     const { service, updateChain } = createUpdateService([load]);
 
-    await expect(service.update(load.id, { status: "assigned" })).resolves.toEqual({
+    await expect(
+      service.update(load.id, { status: "assigned" }),
+    ).resolves.toEqual({
       success: true,
       data: {
         ...load,

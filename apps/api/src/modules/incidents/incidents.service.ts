@@ -80,7 +80,11 @@ export class IncidentsService {
     return {
       success: true,
       data: rows.map((row) =>
-        this.toIncident(row.incident, row.load, row.driver?.id ? row.driver : null),
+        this.toIncident(
+          row.incident,
+          row.load,
+          row.driver?.id ? row.driver : null,
+        ),
       ),
       pagination: {
         page: query.page,
@@ -123,7 +127,8 @@ export class IncidentsService {
         ...dto,
         title: dto.title?.trim(),
         description: dto.description?.trim(),
-        location: dto.location?.trim() || (dto.location === "" ? null : undefined),
+        location:
+          dto.location?.trim() || (dto.location === "" ? null : undefined),
         occurredAt: dto.occurredAt ? new Date(dto.occurredAt) : undefined,
         resolvedAt: dto.status
           ? this.isResolved(dto.status)

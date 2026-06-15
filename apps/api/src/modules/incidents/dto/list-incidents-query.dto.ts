@@ -22,8 +22,21 @@ export class ListIncidentsQueryDto {
   search?: string;
 
   @IsOptional()
-  @IsIn(["flat_tire", "delay", "accident", "fuel_issue", "maintenance", "other"])
-  type?: "flat_tire" | "delay" | "accident" | "fuel_issue" | "maintenance" | "other";
+  @IsIn([
+    "flat_tire",
+    "delay",
+    "accident",
+    "fuel_issue",
+    "maintenance",
+    "other",
+  ])
+  type?:
+    | "flat_tire"
+    | "delay"
+    | "accident"
+    | "fuel_issue"
+    | "maintenance"
+    | "other";
 
   @IsOptional()
   @IsIn(["low", "medium", "high", "critical"])

@@ -20,7 +20,8 @@ export const RouteTab = ({
   });
   const points = form.watch("routePoints");
   const route = points.map(
-    (point) => [Number(point.longitude), Number(point.latitude)] as [number, number],
+    (point) =>
+      [Number(point.longitude), Number(point.latitude)] as [number, number],
   );
 
   return (
@@ -37,10 +38,30 @@ export const RouteTab = ({
         zoom={5}
       />
       {fields.map((field, index) => (
-        <div className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-[1fr_8rem_8rem_auto]" key={field.id}>
-          <LoadInputField form={form} label="Point" name={`routePoints.${index}.label`} required />
-          <LoadInputField form={form} label="Latitude" name={`routePoints.${index}.latitude`} required type="number" />
-          <LoadInputField form={form} label="Longitude" name={`routePoints.${index}.longitude`} required type="number" />
+        <div
+          className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-[1fr_8rem_8rem_auto]"
+          key={field.id}
+        >
+          <LoadInputField
+            form={form}
+            label="Point"
+            name={`routePoints.${index}.label`}
+            required
+          />
+          <LoadInputField
+            form={form}
+            label="Latitude"
+            name={`routePoints.${index}.latitude`}
+            required
+            type="number"
+          />
+          <LoadInputField
+            form={form}
+            label="Longitude"
+            name={`routePoints.${index}.longitude`}
+            required
+            type="number"
+          />
           <Button
             aria-label="Remove route point"
             className="self-end"

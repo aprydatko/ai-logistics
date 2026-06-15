@@ -74,7 +74,16 @@ export const DashboardPreview = () => (
         <div className={styles.chartCard}>
           <strong>Product performance</strong>
           <div className={styles.chart}>
-            <span className={styles.yAxis}>100<br />75<br />50<br />25<br />0</span>
+            <span className={styles.yAxis}>
+              100
+              <br />
+              75
+              <br />
+              50
+              <br />
+              25
+              <br />0
+            </span>
             <svg viewBox="0 0 460 180" preserveAspectRatio="none">
               <line x1="0" y1="180" x2="460" y2="180" />
               <polyline points="35,135 160,103 280,70 425,31" />
@@ -82,8 +91,12 @@ export const DashboardPreview = () => (
               <circle cx="425" cy="31" r="8" />
             </svg>
             <div className={styles.months}>
-              <span>Jan</span><span>Feb</span><span>Mar</span>
-              <span>Apr</span><span>May</span><span>Jun</span>
+              <span>Jan</span>
+              <span>Feb</span>
+              <span>Mar</span>
+              <span>Apr</span>
+              <span>May</span>
+              <span>Jun</span>
             </div>
           </div>
         </div>

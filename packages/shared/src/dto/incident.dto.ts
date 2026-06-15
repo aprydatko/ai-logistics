@@ -7,12 +7,7 @@ import type {
 
 export type CreateIncidentDto = Pick<
   Incident,
-  | "description"
-  | "loadId"
-  | "occurredAt"
-  | "priority"
-  | "title"
-  | "type"
+  "description" | "loadId" | "occurredAt" | "priority" | "title" | "type"
 > &
   Partial<Pick<Incident, "location" | "photos" | "status" | "timeline">>;
 

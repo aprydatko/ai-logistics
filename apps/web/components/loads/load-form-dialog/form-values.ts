@@ -28,9 +28,7 @@ export const emptyLoadFormValues: LoadFormValues = {
   timeline: [],
 };
 
-export const toLoadFormValues = (
-  load: LoadApiItem | null,
-): LoadFormValues => {
+export const toLoadFormValues = (load: LoadApiItem | null): LoadFormValues => {
   if (!load) return emptyLoadFormValues;
 
   return {

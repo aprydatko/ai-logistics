@@ -1,9 +1,9 @@
-import { Route } from 'lucide-react';
+import { Route } from "lucide-react";
 
-import type { DriverDetails } from '@/lib/drivers/drivers-query';
-import { StatusBadge } from '@repo/ui/components/status-badge';
+import type { DriverDetails } from "@/lib/drivers/drivers-query";
+import { StatusBadge } from "@repo/ui/components/status-badge";
 
-import { EmptyTab, PanelSection } from '../panel-section';
+import { EmptyTab, PanelSection } from "../panel-section";
 
 export const TripsTab = ({
   details,
@@ -25,9 +25,9 @@ export const TripsTab = ({
               </p>
             </div>
             <StatusBadge
-              tone={trip.status === 'delivered' ? 'success' : 'warning'}
+              tone={trip.status === "delivered" ? "success" : "warning"}
             >
-              {trip.status.replaceAll('_', ' ')}
+              {trip.status.replaceAll("_", " ")}
             </StatusBadge>
           </div>
         ))}

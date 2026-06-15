@@ -166,7 +166,9 @@ export const TimelineTab = ({
                         label: "Edit event",
                         onSelect: () => {
                           setDraft({
-                            time: new Date(event.dateTime).toTimeString().slice(0, 5),
+                            time: new Date(event.dateTime)
+                              .toTimeString()
+                              .slice(0, 5),
                             title: event.title,
                             description: event.description,
                             type: event.type,

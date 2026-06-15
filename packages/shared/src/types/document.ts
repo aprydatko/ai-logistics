@@ -19,11 +19,23 @@ export type DocumentLoadSummary = {
   referenceNumber: string;
 };
 
+export type DocumentUploaderSummary = {
+  id: string;
+  firstName: string;
+  lastName: string;
+};
+
 export interface Document extends BaseEntity {
   fileName: string;
   fileSize: number;
+  fileUrl: string | null;
+  mimeType: string | null;
+  pageCount: number | null;
+  extractionModel: string | null;
+  processingTimeMs: number | null;
   type: DocumentType;
   status: DocumentStatus;
+  uploadedBy: DocumentUploaderSummary | null;
   driver: DocumentDriverSummary | null;
   load: DocumentLoadSummary | null;
   uploadedAt: ISODateString;

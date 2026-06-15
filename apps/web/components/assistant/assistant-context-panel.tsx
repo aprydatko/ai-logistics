@@ -56,8 +56,16 @@ export const AssistantContextPanel = ({
 }: AssistantContextPanelProps): React.JSX.Element => (
   <aside className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xs xl:h-full">
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
-      <h2 className="text-base font-bold text-ink-900">Context &amp; sources</h2>
-      <Button aria-label="Close context panel" onClick={onClose} size="icon-sm" type="button" variant="ghost">
+      <h2 className="text-base font-bold text-ink-900">
+        Context &amp; sources
+      </h2>
+      <Button
+        aria-label="Close context panel"
+        onClick={onClose}
+        size="icon-sm"
+        type="button"
+        variant="ghost"
+      >
         <X />
       </Button>
     </header>
@@ -90,7 +98,9 @@ export const AssistantContextPanel = ({
           {sources.map(({ count, icon: Icon, label }) => (
             <div className="flex h-10 items-center gap-3" key={label}>
               <Icon className="size-4 text-primary-700" />
-              <span className="flex-1 text-xs font-medium text-ink-900">{label}</span>
+              <span className="flex-1 text-xs font-medium text-ink-900">
+                {label}
+              </span>
               <span className="min-w-8 rounded-full bg-surface-100 px-2 py-1 text-center text-[0.65rem] font-bold text-primary-700">
                 {count}
               </span>
@@ -111,8 +121,12 @@ export const AssistantContextPanel = ({
             >
               <Icon className="size-4 shrink-0 text-primary-700" />
               <span className="min-w-0 flex-1">
-                <strong className="block truncate text-xs text-ink-900">{label}</strong>
-                <span className="mt-0.5 block truncate text-[0.65rem] text-primary-700">{detail}</span>
+                <strong className="block truncate text-xs text-ink-900">
+                  {label}
+                </strong>
+                <span className="mt-0.5 block truncate text-[0.65rem] text-primary-700">
+                  {detail}
+                </span>
               </span>
               <span className="rounded-full bg-emerald-50 px-2 py-1 text-[0.65rem] font-semibold text-emerald-700">
                 Open

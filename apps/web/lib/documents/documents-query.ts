@@ -24,8 +24,20 @@ export const documentSchema: z.ZodType<Document> = z.object({
   id: z.string().uuid(),
   fileName: z.string(),
   fileSize: z.number().int().nonnegative(),
+  fileUrl: z.string().nullable(),
+  mimeType: z.string().nullable(),
+  pageCount: z.number().int().positive().nullable(),
+  extractionModel: z.string().nullable(),
+  processingTimeMs: z.number().int().nonnegative().nullable(),
   type: documentTypeSchema,
   status: documentStatusSchema,
+  uploadedBy: z
+    .object({
+      id: z.string().uuid(),
+      firstName: z.string(),
+      lastName: z.string(),
+    })
+    .nullable(),
   driver: z
     .object({
       id: z.string().uuid(),
@@ -82,9 +94,7 @@ export const fetchDocuments = async (
   return documentsListResponseSchema.parse(await response.json());
 };
 
-export const fetchDocument = async (
-  documentId: string,
-): Promise<Document> => {
+export const fetchDocument = async (documentId: string): Promise<Document> => {
   const response = await fetch(`/api/documents/${documentId}`);
   if (!response.ok) throw new Error("Unable to load document");
   return documentResponseSchema.parse(await response.json()).data;

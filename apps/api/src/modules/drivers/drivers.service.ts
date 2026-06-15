@@ -266,6 +266,7 @@ export class DriversService {
   async addDocument(
     driverId: string,
     dto: CreateDriverDocumentDto,
+    uploadedByUserId: string,
   ): Promise<CreateDriverDocumentResponse> {
     await this.assertDriverExists(driverId);
     const fileSize = Buffer.byteLength(dto.content, "base64");
@@ -299,8 +300,10 @@ export class DriversService {
           id: savedDocument.id,
           fileName: savedDocument.name,
           fileSize,
+          mimeType: savedDocument.mimeType,
           type: "driver_license",
           status: "complete",
+          uploadedByUserId,
           driverId,
           uploadedAt: savedDocument.createdAt,
         });
