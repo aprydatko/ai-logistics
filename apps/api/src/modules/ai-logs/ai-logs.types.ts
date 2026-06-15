@@ -21,6 +21,34 @@ export type AiLogsListResponse = {
   };
 };
 
+export type AiLogsMetricsResponse = {
+  success: true;
+  data: {
+    totals: {
+      requests: number;
+      avgLatencyMs: number;
+      errors: number;
+      tokens: number;
+      costUsd: number;
+    };
+    changesVsYesterday: {
+      requests: number;
+      avgLatencyMs: number;
+      errors: number;
+      tokens: number;
+      costUsd: number;
+    };
+    trend: Array<{
+      date: string;
+      requests: number;
+      avgLatencyMs: number;
+      errors: number;
+      tokens: number;
+      costUsd: number;
+    }>;
+  };
+};
+
 export type CreateAiLogResponse = {
   success: true;
   data: AiLogItem;

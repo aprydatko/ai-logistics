@@ -17,6 +17,7 @@ export const AiLogsWorkspace = (): React.JSX.Element => {
     isLoading,
     limit,
     logs,
+    metrics,
     model,
     operation,
     operationOptions,
@@ -39,7 +40,7 @@ export const AiLogsWorkspace = (): React.JSX.Element => {
   return (
     <section className="flex h-full min-h-0 flex-col gap-5 overflow-hidden">
       <AiLogsHeader />
-      <AiLogsMetrics />
+      <AiLogsMetrics isLoading={isLoading} metrics={metrics} />
       <AiLogsFilters
         from={from}
         model={model}

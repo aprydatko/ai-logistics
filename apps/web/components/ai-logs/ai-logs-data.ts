@@ -1,4 +1,4 @@
-import type { AiLogsListResponse } from "@repo/shared";
+import type { AiLogsListResponse, AiLogsMetricsResponse } from "@repo/shared";
 
 export type AiLogStatus = "Failed" | "Success";
 
@@ -23,6 +23,16 @@ export type AiLog = {
   response: string;
 };
 
+export type AiLogMetricCard = {
+  change: string;
+  color: string;
+  data: number[];
+  direction: "down" | "up";
+  favorable: boolean;
+  title: string;
+  value: string;
+};
+
 const formatDate = (value: string): string =>
   new Intl.DateTimeFormat("en-US", {
     day: "numeric",
@@ -39,6 +49,15 @@ const formatTokens = (value: number): string =>
   new Intl.NumberFormat("en-US").format(value);
 
 const formatCost = (value: number): string => `$${value.toFixed(3)}`;
+
+const formatCompactNumber = (value: number): string =>
+  new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 1,
+    notation: value >= 1000 ? "compact" : "standard",
+  }).format(value);
+
+const formatChange = (value: number): string =>
+  `${Math.abs(value).toFixed(1).replace(/\.0$/, "")}%`;
 
 const getInitials = (name: string): string =>
   name
@@ -76,50 +95,56 @@ export const mapAiLogListResponse = (response: AiLogsListResponse): AiLog[] =>
     response: log.responseOutput ?? log.errorMessage ?? "No response captured.",
   }));
 
-export const metricData = [
-  {
-    title: "AI Requests",
-    value: "Live data soon",
-    change: "0%",
-    direction: "up",
-    favorable: true,
-    color: "#0891b2",
-    data: [10, 12, 11, 15, 14, 16, 13, 18],
-  },
-  {
-    title: "Avg Latency",
-    value: "From logs",
-    change: "0%",
-    direction: "down",
-    favorable: true,
-    color: "#0f766e",
-    data: [18, 16, 14, 17, 13, 15, 12, 10],
-  },
-  {
-    title: "Errors",
-    value: "Tracked",
-    change: "0%",
-    direction: "up",
-    favorable: false,
-    color: "#dc2626",
-    data: [3, 4, 2, 5, 4, 3, 2, 4],
-  },
-  {
-    title: "Tokens Used",
-    value: "Tracked",
-    change: "0%",
-    direction: "up",
-    favorable: false,
-    color: "#5b5fc7",
-    data: [12, 10, 14, 16, 13, 17, 18, 20],
-  },
-  {
-    title: "Estimated Cost",
-    value: "Tracked",
-    change: "0%",
-    direction: "up",
-    favorable: false,
-    color: "#d97706",
-    data: [9, 8, 10, 12, 11, 13, 12, 14],
-  },
-] as const;
+export const mapAiLogMetricsResponse = (
+  response: AiLogsMetricsResponse,
+): AiLogMetricCard[] => {
+  const { changesVsYesterday, totals, trend } = response.data;
+
+  return [
+    {
+      title: "AI Requests",
+      value: formatCompactNumber(totals.requests),
+      change: formatChange(changesVsYesterday.requests),
+      direction: changesVsYesterday.requests >= 0 ? "up" : "down",
+      favorable: changesVsYesterday.requests >= 0,
+      color: "#0891b2",
+      data: trend.map((point) => point.requests),
+    },
+    {
+      title: "Avg Latency",
+      value: formatLatency(totals.avgLatencyMs),
+      change: formatChange(changesVsYesterday.avgLatencyMs),
+      direction: changesVsYesterday.avgLatencyMs >= 0 ? "up" : "down",
+      favorable: changesVsYesterday.avgLatencyMs <= 0,
+      color: "#0f766e",
+      data: trend.map((point) => Math.round(point.avgLatencyMs)),
+    },
+    {
+      title: "Errors",
+      value: formatCompactNumber(totals.errors),
+      change: formatChange(changesVsYesterday.errors),
+      direction: changesVsYesterday.errors >= 0 ? "up" : "down",
+      favorable: changesVsYesterday.errors <= 0,
+      color: "#dc2626",
+      data: trend.map((point) => point.errors),
+    },
+    {
+      title: "Tokens Used",
+      value: formatCompactNumber(totals.tokens),
+      change: formatChange(changesVsYesterday.tokens),
+      direction: changesVsYesterday.tokens >= 0 ? "up" : "down",
+      favorable: changesVsYesterday.tokens >= 0,
+      color: "#5b5fc7",
+      data: trend.map((point) => point.tokens),
+    },
+    {
+      title: "Estimated Cost",
+      value: formatCost(totals.costUsd),
+      change: formatChange(changesVsYesterday.costUsd),
+      direction: changesVsYesterday.costUsd >= 0 ? "up" : "down",
+      favorable: changesVsYesterday.costUsd <= 0,
+      color: "#d97706",
+      data: trend.map((point) => Number(point.costUsd.toFixed(3))),
+    },
+  ];
+};

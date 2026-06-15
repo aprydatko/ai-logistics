@@ -1,9 +1,14 @@
 "use client";
 
 import * as React from "react";
-import type { AiLogsListResponse } from "@repo/shared";
+import type { AiLogsListResponse, AiLogsMetricsResponse } from "@repo/shared";
 
-import { mapAiLogListResponse, type AiLog } from "../ai-logs-data";
+import {
+  mapAiLogListResponse,
+  mapAiLogMetricsResponse,
+  type AiLog,
+  type AiLogMetricCard,
+} from "../ai-logs-data";
 import { DEFAULT_PAGE_SIZE } from "./constants";
 import type { AiLogFilterOption } from "./types";
 
@@ -14,6 +19,7 @@ type UseAiLogsWorkspaceResult = {
   isLoading: boolean;
   limit: number;
   logs: AiLog[];
+  metrics: AiLogMetricCard[];
   model: string;
   operation: string;
   operationOptions: AiLogFilterOption[];
@@ -40,6 +46,7 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
   >(null);
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [metrics, setMetrics] = React.useState<AiLogMetricCard[]>([]);
   const [model, setModel] = React.useState("all");
   const [status, setStatus] = React.useState("all");
   const [operation, setOperation] = React.useState("all");
@@ -66,29 +73,37 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
         if (from) searchParams.set("from", from);
         if (to) searchParams.set("to", to);
 
-        const response = await fetch(
-          `/api/ai-logs?${searchParams.toString()}`,
-          {
+        const [listResponse, metricsResponse] = await Promise.all([
+          fetch(`/api/ai-logs?${searchParams.toString()}`, {
             cache: "no-store",
-          },
-        );
-        const data = (await response.json()) as AiLogsListResponse;
+          }),
+          fetch(`/api/ai-logs/metrics?${searchParams.toString()}`, {
+            cache: "no-store",
+          }),
+        ]);
+        const [listData, metricsData] = (await Promise.all([
+          listResponse.json(),
+          metricsResponse.json(),
+        ])) as [AiLogsListResponse, AiLogsMetricsResponse];
 
-        if (!response.ok) {
+        if (!listResponse.ok || !metricsResponse.ok) {
           setError("Failed to load AI logs.");
           setLogs([]);
+          setMetrics([]);
           setPagination(null);
           setSelected(null);
           return;
         }
 
-        const mappedLogs = mapAiLogListResponse(data);
+        const mappedLogs = mapAiLogListResponse(listData);
         setLogs(mappedLogs);
-        setPagination(data.pagination);
+        setMetrics(mapAiLogMetricsResponse(metricsData));
+        setPagination(listData.pagination);
         setSelected(mappedLogs[0] ?? null);
       } catch {
         setError("Failed to load AI logs.");
         setLogs([]);
+        setMetrics([]);
         setPagination(null);
         setSelected(null);
       } finally {
@@ -148,6 +163,7 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
     isLoading,
     limit,
     logs,
+    metrics,
     model,
     operation,
     operationOptions,
