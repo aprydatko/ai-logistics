@@ -12,22 +12,6 @@ import type {
   CreateAiLogResponse,
 } from "./ai-logs.types";
 
-type MetricBucketKey =
-  | "avgLatencyMs"
-  | "costUsd"
-  | "errors"
-  | "requests"
-  | "tokens";
-
-type MetricsSourceRow = {
-  completedAt: Date | null;
-  createdAt: Date;
-  estimatedCostUsd: string;
-  latencyMs: number;
-  status: "failed" | "success";
-  totalTokens: number;
-};
-
 @Injectable()
 export class AiLogsService {
   constructor(private readonly databaseService: DatabaseService) {}
