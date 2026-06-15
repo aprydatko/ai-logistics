@@ -254,7 +254,8 @@ export class LoadsService {
         ) {
           await tx.insert(driverActivity).values({
             driverId: updatedLoad.driverId,
-            type: dto.status === "delivered" ? "trip_completed" : "status_changed",
+            type:
+              dto.status === "delivered" ? "trip_completed" : "status_changed",
             description:
               dto.status === "delivered"
                 ? `Completed load ${updatedLoad.referenceNumber}`

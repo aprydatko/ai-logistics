@@ -10,16 +10,16 @@ import {
   Star,
   Truck,
   type LucideIcon,
-} from 'lucide-react';
+} from "lucide-react";
 
-import type { DriverDetails } from '@/lib/drivers/drivers-query';
-import { Button } from '@repo/ui/components/button';
-import { StatusBadge } from '@repo/ui/components/status-badge';
+import type { DriverDetails } from "@/lib/drivers/drivers-query";
+import { Button } from "@repo/ui/components/button";
+import { StatusBadge } from "@repo/ui/components/status-badge";
 
-import { driverStatusTone } from '../../driver-styles';
-import type { DriverRow } from '../../types';
-import { PanelSection } from '../panel-section';
-import { formatDate } from '../profile-formatters';
+import { driverStatusTone } from "../../driver-styles";
+import type { DriverRow } from "../../types";
+import { PanelSection } from "../panel-section";
+import { formatDate } from "../profile-formatters";
 
 type ProfileTabViewProps = {
   details: DriverDetails;
@@ -33,10 +33,10 @@ export const ProfileTabView = ({
   onEdit,
 }: ProfileTabViewProps): React.JSX.Element => {
   const completedTrips = details.tripsHistory.filter(
-    (trip) => trip.status === 'delivered'
+    (trip) => trip.status === "delivered",
   ).length;
   const activeTrips = details.tripsHistory.filter(
-    (trip) => trip.status === 'assigned' || trip.status === 'in_transit'
+    (trip) => trip.status === "assigned" || trip.status === "in_transit",
   ).length;
   const validDocuments = details.documents.filter((document) => {
     if (!document.expiresAt) return true;
@@ -106,12 +106,12 @@ export const ProfileTabView = ({
           <MetricCard
             icon={Truck}
             label="Assigned truck"
-            value={truckLabel ?? 'Not assigned'}
+            value={truckLabel ?? "Not assigned"}
           />
           <MetricCard
             icon={Hash}
             label="Trailer"
-            value={details.trailerNumber ?? 'Not assigned'}
+            value={details.trailerNumber ?? "Not assigned"}
           />
           <MetricCard
             icon={CalendarDays}
@@ -126,7 +126,7 @@ export const ProfileTabView = ({
             helper={
               expiringDocuments > 0
                 ? `${expiringDocuments} expiring soon`
-                : 'No documents expiring soon'
+                : "No documents expiring soon"
             }
           />
         </dl>
@@ -153,7 +153,7 @@ const DriverInformation = ({
     details.truckNumber ||
     details.trailerNumber ||
     details.currentLocation ||
-    details.notes
+    details.notes,
   );
 
   if (!hasInfo) return null;
@@ -181,14 +181,14 @@ const DriverInformation = ({
           <InfoItem
             icon={ShieldCheck}
             label="License number"
-            value={`${details.licenseNumber}${details.licenseState ? ` · ${details.licenseState}` : ''}`}
+            value={`${details.licenseNumber}${details.licenseState ? ` · ${details.licenseState}` : ""}`}
           />
         ) : null}
         {details.emergencyContact ? (
           <InfoItem
             icon={Phone}
             label="Emergency contact"
-            value={`${details.emergencyContact}${details.emergencyPhone ? ` · ${details.emergencyPhone}` : ''}`}
+            value={`${details.emergencyContact}${details.emergencyPhone ? ` · ${details.emergencyPhone}` : ""}`}
           />
         ) : null}
         {details.truckNumber ? (
@@ -263,7 +263,7 @@ const InfoItem = ({
   value,
 }: InfoItemProps): React.JSX.Element => (
   <div
-    className={`flex min-h-24 items-center gap-3 rounded-md border border-border bg-white p-3 ${className ?? ''}`}
+    className={`flex min-h-24 items-center gap-3 rounded-md border border-border bg-white p-3 ${className ?? ""}`}
   >
     <div className="flex size-11 shrink-0 items-center justify-center rounded-md bg-surface-100 text-primary-700">
       <Icon className="size-5" />

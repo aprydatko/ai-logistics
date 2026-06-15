@@ -47,7 +47,9 @@ export const DocumentsTab = ({
           const status = getDocumentStatus(document.expiresAt);
           const metadata = [
             document.documentNumber ?? document.type.replaceAll("_", " "),
-            document.issuedAt ? `Issued ${formatDate(document.issuedAt)}` : null,
+            document.issuedAt
+              ? `Issued ${formatDate(document.issuedAt)}`
+              : null,
             document.expiresAt
               ? `Expires ${formatDate(document.expiresAt)}`
               : null,
@@ -69,11 +71,7 @@ export const DocumentsTab = ({
                 <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
                 {document.fileUrl ? (
                   <Button asChild size="sm" type="button" variant="outline">
-                    <a
-                      href={document.fileUrl}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
+                    <a href={document.fileUrl} rel="noreferrer" target="_blank">
                       Open
                     </a>
                   </Button>

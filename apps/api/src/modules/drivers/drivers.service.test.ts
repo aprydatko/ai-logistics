@@ -61,15 +61,27 @@ const createService = (selectResult: unknown[], insertResult: unknown[]) => {
   };
   insertChain.values.mockReturnValue(insertChain);
 
+  const activityInsertChain = {
+    values: vi.fn().mockResolvedValue(undefined),
+  };
+
   const client = {
     select: vi.fn().mockReturnValue(selectChain),
     insert: vi.fn().mockReturnValue(insertChain),
+    transaction: vi.fn(async (callback) =>
+      callback({
+        insert: vi
+          .fn()
+          .mockReturnValueOnce(insertChain)
+          .mockReturnValueOnce(activityInsertChain),
+      }),
+    ),
   };
   const service = new DriversService({
     client,
   } as unknown as ConstructorParameters<typeof DriversService>[0]);
 
-  return { insertChain, service };
+  return { client, insertChain, service };
 };
 
 describe("DriversService.create", () => {
@@ -106,18 +118,9 @@ describe("DriversService.create", () => {
   });
 
   it("returns conflict for duplicate driver data", async () => {
-    const { service } = createService([], []);
+    const { client, service } = createService([], []);
     const error = Object.assign(new Error("duplicate"), { code: "23505" });
-    const insert = (
-      service as unknown as {
-        databaseService: { client: { insert: ReturnType<typeof vi.fn> } };
-      }
-    ).databaseService.client.insert;
-    insert.mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        returning: vi.fn().mockRejectedValue(error),
-      }),
-    });
+    client.transaction.mockRejectedValue(error);
 
     await expect(service.create(dto)).rejects.toThrow(ConflictException);
   });

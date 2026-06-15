@@ -39,6 +39,14 @@ const driver: DriverRecord = {
 };
 
 const createService = (updateResult: unknown[]) => {
+  const currentDriverChain = {
+    from: vi.fn(),
+    where: vi.fn(),
+    limit: vi.fn().mockResolvedValue(updateResult.length ? [driver] : []),
+  };
+  currentDriverChain.from.mockReturnValue(currentDriverChain);
+  currentDriverChain.where.mockReturnValue(currentDriverChain);
+
   const updateChain = {
     set: vi.fn(),
     where: vi.fn(),
@@ -47,15 +55,25 @@ const createService = (updateResult: unknown[]) => {
   updateChain.set.mockReturnValue(updateChain);
   updateChain.where.mockReturnValue(updateChain);
 
+  const activityInsertChain = {
+    values: vi.fn().mockResolvedValue(undefined),
+  };
+
   const client = {
-    update: vi.fn().mockReturnValue(updateChain),
-    select: vi.fn(),
+    select: vi.fn().mockReturnValue(currentDriverChain),
+    transaction: vi.fn(async (callback) =>
+      callback({
+        select: vi.fn().mockReturnValue(currentDriverChain),
+        update: vi.fn().mockReturnValue(updateChain),
+        insert: vi.fn().mockReturnValue(activityInsertChain),
+      }),
+    ),
   };
   const service = new DriversService({
     client,
   } as unknown as ConstructorParameters<typeof DriversService>[0]);
 
-  return { service, updateChain };
+  return { client, service, updateChain };
 };
 
 describe("DriversService.update", () => {
@@ -98,8 +116,8 @@ describe("DriversService.update", () => {
   });
 
   it("returns conflict for duplicate values", async () => {
-    const { service, updateChain } = createService([]);
-    updateChain.returning.mockRejectedValue(
+    const { client, service } = createService([driver]);
+    client.transaction.mockRejectedValue(
       Object.assign(new Error("duplicate"), { code: "23505" }),
     );
 

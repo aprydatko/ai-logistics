@@ -30,8 +30,7 @@ export function QuickActionsPanel(): React.JSX.Element {
   const [isAssignDriverOpen, setIsAssignDriverOpen] = React.useState(false);
   const [isCreateLoadOpen, setIsCreateLoadOpen] = React.useState(false);
   const [isReportIncidentOpen, setIsReportIncidentOpen] = React.useState(false);
-  const [isUploadDocumentOpen, setIsUploadDocumentOpen] =
-    React.useState(false);
+  const [isUploadDocumentOpen, setIsUploadDocumentOpen] = React.useState(false);
 
   const handleQuickActionClick = (label: QuickActionLabel): void => {
     switch (label) {

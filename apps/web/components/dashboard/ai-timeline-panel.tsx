@@ -117,7 +117,10 @@ export function AiTimelinePanel(): React.JSX.Element {
     ...incidentTimelineQueryOptions(featuredIncident?.id ?? ""),
     enabled: Boolean(featuredIncident?.id),
   });
-  useIncidentTimelineLive(featuredIncident?.id ?? null, Boolean(featuredIncident));
+  useIncidentTimelineLive(
+    featuredIncident?.id ?? null,
+    Boolean(featuredIncident),
+  );
 
   if (incidentsQuery.isError) {
     return (
@@ -198,7 +201,9 @@ export function AiTimelinePanel(): React.JSX.Element {
         </span>
         <span className="text-[0.65rem] text-primary-700">
           Updated{" "}
-          {formatTimestamp(timelineQuery.data?.updatedAt ?? featuredIncident.updatedAt)}
+          {formatTimestamp(
+            timelineQuery.data?.updatedAt ?? featuredIncident.updatedAt,
+          )}
         </span>
       </div>
 

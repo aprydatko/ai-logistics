@@ -38,13 +38,16 @@ export async function POST(): Promise<NextResponse> {
       return response;
     }
 
-    const socketTokenResponse = await fetch(`${API_BASE_URL}/auth/socket-token`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
+    const socketTokenResponse = await fetch(
+      `${API_BASE_URL}/auth/socket-token`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        cache: "no-store",
       },
-      cache: "no-store",
-    });
+    );
 
     if (!socketTokenResponse.ok) {
       const response = NextResponse.json(
