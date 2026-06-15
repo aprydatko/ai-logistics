@@ -1,10 +1,14 @@
 import {
   CalendarDays,
   Edit3,
+  Hash,
+  Mail,
   MapPin,
   NotebookText,
   Phone,
+  ShieldCheck,
   Star,
+  Truck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,6 +35,22 @@ export const ProfileTabView = ({
   const completedTrips = details.tripsHistory.filter(
     (trip) => trip.status === "delivered",
   ).length;
+  const activeTrips = details.tripsHistory.filter(
+    (trip) => trip.status === "assigned" || trip.status === "in_transit",
+  ).length;
+  const validDocuments = details.documents.filter((document) => {
+    if (!document.expiresAt) return true;
+    return new Date(document.expiresAt) >= new Date();
+  }).length;
+  const expiringDocuments = details.documents.filter((document) => {
+    if (!document.expiresAt) return false;
+    const expiresAt = new Date(document.expiresAt);
+    const daysUntilExpiry =
+      (expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+
+    return daysUntilExpiry >= 0 && daysUntilExpiry <= 30;
+  }).length;
+  const truckLabel = details.currentVehicle?.unitNumber ?? details.truckNumber;
 
   return (
     <>
@@ -81,6 +101,36 @@ export const ProfileTabView = ({
           </div>
         </div>
       </PanelSection>
+      <PanelSection title="Operational snapshot">
+        <dl className="grid grid-cols-2 gap-3 px-4 lg:grid-cols-4">
+          <MetricCard
+            icon={Truck}
+            label="Assigned truck"
+            value={truckLabel ?? "Not assigned"}
+          />
+          <MetricCard
+            icon={Hash}
+            label="Trailer"
+            value={details.trailerNumber ?? "Not assigned"}
+          />
+          <MetricCard
+            icon={CalendarDays}
+            label="Active trips"
+            value={`${activeTrips}`}
+            helper={`${details.tripsHistory.length} total trips in history`}
+          />
+          <MetricCard
+            icon={ShieldCheck}
+            label="Documents"
+            value={`${validDocuments}/${details.documents.length}`}
+            helper={
+              expiringDocuments > 0
+                ? `${expiringDocuments} expiring soon`
+                : "No documents expiring soon"
+            }
+          />
+        </dl>
+      </PanelSection>
       <DriverInformation details={details} />
     </>
   );
@@ -92,10 +142,17 @@ const DriverInformation = ({
   details: DriverDetails;
 }): React.JSX.Element | null => {
   const hasInfo = Boolean(
+    details.email ||
+    details.phone ||
     details.address ||
     details.hireDate ||
     details.dateOfBirth ||
+    details.licenseNumber ||
+    details.licenseState ||
     details.emergencyContact ||
+    details.truckNumber ||
+    details.trailerNumber ||
+    details.currentLocation ||
     details.notes,
   );
 
@@ -118,11 +175,41 @@ const DriverInformation = ({
             value={formatDate(details.dateOfBirth)}
           />
         ) : null}
+        <InfoItem icon={Mail} label="Email" value={details.email} />
+        <InfoItem icon={Phone} label="Phone" value={details.phone} />
+        {details.licenseNumber ? (
+          <InfoItem
+            icon={ShieldCheck}
+            label="License number"
+            value={`${details.licenseNumber}${details.licenseState ? ` · ${details.licenseState}` : ""}`}
+          />
+        ) : null}
         {details.emergencyContact ? (
           <InfoItem
             icon={Phone}
             label="Emergency contact"
             value={`${details.emergencyContact}${details.emergencyPhone ? ` · ${details.emergencyPhone}` : ""}`}
+          />
+        ) : null}
+        {details.truckNumber ? (
+          <InfoItem
+            icon={Truck}
+            label="Truck number"
+            value={details.truckNumber}
+          />
+        ) : null}
+        {details.trailerNumber ? (
+          <InfoItem
+            icon={Hash}
+            label="Trailer number"
+            value={details.trailerNumber}
+          />
+        ) : null}
+        {details.currentLocation ? (
+          <InfoItem
+            icon={MapPin}
+            label="Current location"
+            value={`${details.currentLocation.latitude.toFixed(4)}, ${details.currentLocation.longitude.toFixed(4)}`}
           />
         ) : null}
         {details.address ? (
@@ -140,6 +227,27 @@ const DriverInformation = ({
     </PanelSection>
   );
 };
+
+const MetricCard = ({
+  helper,
+  icon: Icon,
+  label,
+  value,
+}: {
+  helper?: string;
+  icon: LucideIcon;
+  label: string;
+  value: string;
+}): React.JSX.Element => (
+  <div className="rounded-md border border-border bg-white p-3">
+    <div className="flex items-center gap-2 text-primary-700">
+      <Icon className="size-4" />
+      <p className="text-sm">{label}</p>
+    </div>
+    <p className="mt-3 text-base font-bold text-ink-900">{value}</p>
+    {helper ? <p className="mt-1 text-xs text-primary-700">{helper}</p> : null}
+  </div>
+);
 
 type InfoItemProps = {
   className?: string;

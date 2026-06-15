@@ -148,10 +148,44 @@
               ]
             }
           },
+          "description": "Returns the full driver profile payload used by the dashboard side panel, including current vehicle, documents, trips history, and activity.",
+          "response": []
+        },
+        {
+          "name": "Driver Candidates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/drivers/candidates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drivers",
+                "candidates"
+              ]
+            }
+          },
+          "description": "Lists active driver-role users who are not yet linked to a driver profile.",
           "response": []
         },
         {
           "name": "Create Driver",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data?.id) pm.collectionVariables.set('driverId', body.data.id);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -502,6 +536,34 @@
               "path": ["incidents", "{{incidentId}}"]
             }
           },
+          "response": []
+        },
+        {
+          "name": "Incident Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidents/{{incidentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["incidents", "{{incidentId}}"]
+            }
+          },
+          "description": "Returns a single incident with load, driver, and full timeline data.",
+          "response": []
+        },
+        {
+          "name": "Incident Timeline Feed",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidents/{{incidentId}}/timeline",
+              "host": ["{{baseUrl}}"],
+              "path": ["incidents", "{{incidentId}}", "timeline"]
+            }
+          },
+          "description": "Returns the compact timeline feed used by dashboard polling: incidentId, updatedAt, status, priority, and ordered items.",
           "response": []
         },
         {

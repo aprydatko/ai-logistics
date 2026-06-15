@@ -217,7 +217,7 @@ export const AssignDriverQuickActionDialog = ({
             ) : null}
           </div>
 
-          <div className="flex justify-end gap-3 border-t border-border bg-white px-7 py-4">
+          <div className="flex justify-end gap-3 border-t border-border  px-7 py-4">
             <DialogClose asChild>
               <Button type="button" variant="outline">
                 Cancel

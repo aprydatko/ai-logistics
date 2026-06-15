@@ -34,6 +34,14 @@ const load: LoadRecord = {
 };
 
 const createUpdateService = (updateResult: unknown[]) => {
+  const currentLoadChain = {
+    from: vi.fn(),
+    where: vi.fn(),
+    limit: vi.fn().mockResolvedValue(updateResult.length ? [load] : []),
+  };
+  currentLoadChain.from.mockReturnValue(currentLoadChain);
+  currentLoadChain.where.mockReturnValue(currentLoadChain);
+
   const updateChain = {
     set: vi.fn(),
     where: vi.fn(),
@@ -42,10 +50,18 @@ const createUpdateService = (updateResult: unknown[]) => {
   updateChain.set.mockReturnValue(updateChain);
   updateChain.where.mockReturnValue(updateChain);
   const client = {
-    update: vi.fn().mockReturnValue(updateChain),
+    select: vi.fn().mockReturnValue(currentLoadChain),
+    transaction: vi.fn(async (callback) =>
+      callback({
+        select: vi.fn().mockReturnValue(currentLoadChain),
+        update: vi.fn().mockReturnValue(updateChain),
+        insert: vi.fn(),
+      }),
+    ),
   };
 
   return {
+    client,
     service: new LoadsService({
       client,
     } as unknown as ConstructorParameters<typeof LoadsService>[0]),
@@ -101,8 +117,8 @@ describe("LoadsService", () => {
   });
 
   it("returns conflict for a duplicate reference number", async () => {
-    const { service, updateChain } = createUpdateService([]);
-    updateChain.returning.mockRejectedValue(
+    const { client, service } = createUpdateService([load]);
+    client.transaction.mockRejectedValue(
       Object.assign(new Error("duplicate"), { code: "23505" }),
     );
 

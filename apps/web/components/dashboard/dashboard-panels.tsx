@@ -1,3 +1,4 @@
+import { AiTimelinePanel } from "./ai-timeline-panel";
 import { ActivityPanel } from "./activity-panel";
 import { IncidentsPanel } from "./incidents-panel";
 import { MapPlaceholder } from "./map-placeholder";
@@ -12,6 +13,7 @@ export function DashboardPanels(): React.JSX.Element {
         <ActivityPanel />
       </div>
       <div className="grid gap-5">
+        <AiTimelinePanel />
         <IncidentsPanel />
         <QuickActionsPanel />
         <SuggestionsPanel />

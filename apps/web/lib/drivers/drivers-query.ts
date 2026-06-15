@@ -115,6 +115,20 @@ const driverTripSchema = z.object({
     companyName: z.string(),
     phone: z.string(),
   }),
+  routePoints: z.array(
+    z.object({
+      label: z.string(),
+      latitude: z.number(),
+      longitude: z.number(),
+    }),
+  ),
+  timeline: z.array(
+    z.object({
+      title: z.string(),
+      description: z.string(),
+      dateTime: z.string(),
+    }),
+  ),
   driverId: z.string().uuid().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),

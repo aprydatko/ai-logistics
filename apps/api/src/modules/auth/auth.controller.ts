@@ -13,6 +13,7 @@ import type {
   AuthenticatedUser,
   LoginResponse,
   PublicUser,
+  SocketTokenResponse,
 } from "./auth.types";
 import { CurrentUser } from "./current-user.decorator";
 import { LoginDto, RefreshTokenDto, RegisterDto } from "./dto";
@@ -45,6 +46,14 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   getMe(@CurrentUser() user: AuthenticatedUser): AuthenticatedUser {
     return user;
+  }
+
+  @Post("socket-token")
+  @UseGuards(JwtAuthGuard)
+  createSocketToken(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<SocketTokenResponse> {
+    return this.authService.createSocketToken(user);
   }
 
   @Get("operations")

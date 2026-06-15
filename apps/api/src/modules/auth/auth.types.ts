@@ -30,7 +30,19 @@ export interface AccessTokenPayload {
   tokenType: "access";
 }
 
+export interface SocketTokenPayload {
+  sub: string;
+  email: string;
+  role: UserRecord["role"];
+  tokenType: "socket";
+}
+
 export interface RefreshTokenPayload {
   sub: string;
   tokenType: "refresh";
+}
+
+export interface SocketTokenResponse {
+  token: string;
+  expiresAt: string;
 }

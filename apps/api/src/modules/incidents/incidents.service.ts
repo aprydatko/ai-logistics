@@ -25,6 +25,7 @@ import {
   type IncidentRecord,
 } from "../../db/schema";
 import type { CreateIncidentDto } from "./dto/create-incident.dto";
+import { IncidentsGateway } from "./incidents.gateway";
 import type { ListIncidentsQueryDto } from "./dto/list-incidents-query.dto";
 import type { UpdateIncidentStatusDto } from "./dto/update-incident-status.dto";
 import type { UpdateIncidentTimelineDto } from "./dto/update-incident-timeline.dto";
@@ -32,12 +33,16 @@ import type { UpdateIncidentDto } from "./dto/update-incident.dto";
 import type {
   IncidentItem,
   IncidentResponse,
+  IncidentTimelineResponse,
   IncidentsListResponse,
 } from "./incidents.types";
 
 @Injectable()
 export class IncidentsService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly incidentsGateway: IncidentsGateway,
+  ) {}
 
   async findAll(query: ListIncidentsQueryDto): Promise<IncidentsListResponse> {
     const filters = this.buildFilters(query);
@@ -91,6 +96,29 @@ export class IncidentsService {
         limit: query.limit,
         total,
         totalPages: Math.ceil(total / query.limit),
+      },
+    };
+  }
+
+  async findOne(id: string): Promise<IncidentResponse> {
+    return { success: true, data: await this.findIncident(id) };
+  }
+
+  async findTimeline(id: string): Promise<IncidentTimelineResponse> {
+    const incident = await this.findIncident(id);
+
+    return {
+      success: true,
+      data: {
+        incidentId: incident.id,
+        updatedAt: incident.updatedAt,
+        status: incident.status,
+        priority: incident.priority,
+        items: [...incident.timeline].sort(
+          (left, right) =>
+            new Date(right.dateTime).getTime() -
+            new Date(left.dateTime).getTime(),
+        ),
       },
     };
   }
@@ -155,7 +183,14 @@ export class IncidentsService {
       .returning({ id: incidents.id });
 
     if (!incident) throw new NotFoundException("Incident was not found");
-    return { success: true, data: await this.findIncident(incident.id) };
+    const response: IncidentResponse = {
+      success: true,
+      data: await this.findIncident(incident.id),
+    };
+    this.incidentsGateway.emitTimelineUpdated(
+      this.toTimelineFeed(response.data),
+    );
+    return response;
   }
 
   async updateStatus(
@@ -173,7 +208,12 @@ export class IncidentsService {
       .returning({ id: incidents.id });
 
     if (!incident) throw new NotFoundException("Incident was not found");
-    return { success: true, data: await this.findIncident(incident.id) };
+    const response: IncidentResponse = {
+      success: true,
+      data: await this.findIncident(incident.id),
+    };
+    this.incidentsGateway.emitStatusUpdated(this.toTimelineFeed(response.data));
+    return response;
   }
 
   private buildFilters(query: ListIncidentsQueryDto): SQL[] {
@@ -276,5 +316,21 @@ export class IncidentsService {
 
   private isResolved(status: CreateIncidentDto["status"]): boolean {
     return status === "resolved" || status === "closed";
+  }
+
+  private toTimelineFeed(
+    incident: IncidentItem,
+  ): IncidentTimelineResponse["data"] {
+    return {
+      incidentId: incident.id,
+      updatedAt: incident.updatedAt,
+      status: incident.status,
+      priority: incident.priority,
+      items: [...incident.timeline].sort(
+        (left, right) =>
+          new Date(right.dateTime).getTime() -
+          new Date(left.dateTime).getTime(),
+      ),
+    };
   }
 }

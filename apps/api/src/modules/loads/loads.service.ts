@@ -218,23 +218,58 @@ export class LoadsService {
     await this.assertUpdatedDateOrder(id, dto);
 
     try {
-      const [load] = await this.databaseService.client
-        .update(loads)
-        .set({
-          ...dto,
-          referenceNumber: dto.referenceNumber?.trim().toUpperCase(),
-          pickupAddress: dto.pickupAddress?.trim(),
-          deliveryAddress: dto.deliveryAddress?.trim(),
-          pickupDate: dto.pickupDate ? new Date(dto.pickupDate) : undefined,
-          deliveryDate: dto.deliveryDate
-            ? new Date(dto.deliveryDate)
-            : undefined,
-          price: dto.price === undefined ? undefined : String(dto.price),
-          notes: dto.notes?.trim() || (dto.notes === "" ? null : undefined),
-          updatedAt: new Date(),
-        })
-        .where(eq(loads.id, id))
-        .returning();
+      const load = await this.databaseService.client.transaction(async (tx) => {
+        const [currentLoad] = await tx
+          .select()
+          .from(loads)
+          .where(eq(loads.id, id))
+          .limit(1);
+
+        if (!currentLoad) throw new NotFoundException("Load was not found");
+
+        const [updatedLoad] = await tx
+          .update(loads)
+          .set({
+            ...dto,
+            referenceNumber: dto.referenceNumber?.trim().toUpperCase(),
+            pickupAddress: dto.pickupAddress?.trim(),
+            deliveryAddress: dto.deliveryAddress?.trim(),
+            pickupDate: dto.pickupDate ? new Date(dto.pickupDate) : undefined,
+            deliveryDate: dto.deliveryDate
+              ? new Date(dto.deliveryDate)
+              : undefined,
+            price: dto.price === undefined ? undefined : String(dto.price),
+            notes: dto.notes?.trim() || (dto.notes === "" ? null : undefined),
+            updatedAt: new Date(),
+          })
+          .where(eq(loads.id, id))
+          .returning();
+
+        if (!updatedLoad) throw new NotFoundException("Load was not found");
+
+        if (
+          updatedLoad.driverId &&
+          dto.status !== undefined &&
+          dto.status !== currentLoad.status
+        ) {
+          await tx.insert(driverActivity).values({
+            driverId: updatedLoad.driverId,
+            type:
+              dto.status === "delivered" ? "trip_completed" : "status_changed",
+            description:
+              dto.status === "delivered"
+                ? `Completed load ${updatedLoad.referenceNumber}`
+                : `Load ${updatedLoad.referenceNumber} status changed to ${updatedLoad.status.replaceAll("_", " ")}`,
+            metadata: {
+              loadId: updatedLoad.id,
+              from: currentLoad.status,
+              to: updatedLoad.status,
+            },
+          });
+        }
+
+        return updatedLoad;
+      });
 
       if (!load) throw new NotFoundException("Load was not found");
       const driver = load.driverId

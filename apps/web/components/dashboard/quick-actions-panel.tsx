@@ -13,6 +13,7 @@ import {
 
 import { IncidentsFormDialog } from "@/components/incidents/incidents-form-dialog";
 import { LoadFormDialog } from "@/components/loads/load-form-dialog";
+import { DocumentCreateDialog } from "@/components/documents/document-create-dialog";
 
 import { AssignDriverQuickActionDialog } from "./modals/assign-driver-quick-action-dialog";
 
@@ -23,10 +24,30 @@ const quickActions = [
   { icon: FileUp, label: "Upload document" },
 ] as const;
 
+type QuickActionLabel = (typeof quickActions)[number]["label"];
+
 export function QuickActionsPanel(): React.JSX.Element {
   const [isAssignDriverOpen, setIsAssignDriverOpen] = React.useState(false);
   const [isCreateLoadOpen, setIsCreateLoadOpen] = React.useState(false);
   const [isReportIncidentOpen, setIsReportIncidentOpen] = React.useState(false);
+  const [isUploadDocumentOpen, setIsUploadDocumentOpen] = React.useState(false);
+
+  const handleQuickActionClick = (label: QuickActionLabel): void => {
+    switch (label) {
+      case "Assign driver":
+        setIsAssignDriverOpen(true);
+        return;
+      case "Create load":
+        setIsCreateLoadOpen(true);
+        return;
+      case "Report incident":
+        setIsReportIncidentOpen(true);
+        return;
+      case "Upload document":
+        setIsUploadDocumentOpen(true);
+        return;
+    }
+  };
 
   return (
     <>
@@ -39,15 +60,7 @@ export function QuickActionsPanel(): React.JSX.Element {
             <Button
               className="h-17 flex-col gap-2 rounded-lg text-ink-900"
               key={label}
-              onClick={
-                label === "Assign driver"
-                  ? () => setIsAssignDriverOpen(true)
-                  : label === "Create load"
-                    ? () => setIsCreateLoadOpen(true)
-                    : label === "Report incident"
-                      ? () => setIsReportIncidentOpen(true)
-                      : undefined
-              }
+              onClick={() => handleQuickActionClick(label)}
               type="button"
               variant="outline"
             >
@@ -71,6 +84,10 @@ export function QuickActionsPanel(): React.JSX.Element {
         incident={null}
         isOpen={isReportIncidentOpen}
         onOpenChange={setIsReportIncidentOpen}
+      />
+      <DocumentCreateDialog
+        isOpen={isUploadDocumentOpen}
+        onOpenChange={setIsUploadDocumentOpen}
       />
     </>
   );

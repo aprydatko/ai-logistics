@@ -1,15 +1,14 @@
 "use client";
 
-import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
-  AlertTriangle,
   FileText,
   ListChecks,
   MessageSquareText,
   Paperclip,
 } from "lucide-react";
+import * as React from "react";
 
 import { Button } from "@repo/ui/components/button";
 import {
@@ -113,9 +112,6 @@ export const IncidentsFormDialog = ({
       <DialogContent className="flex h-[min(58rem,calc(100svh-2rem))] max-w-[44rem] flex-col">
         <div className="shrink-0 px-7 pt-6 pr-14">
           <div className="flex items-start gap-4">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
-              <AlertTriangle className="size-6 fill-red-600 text-red-600" />
-            </div>
             <div>
               <DialogTitle>
                 {incident ? "Edit incident" : "Create incident"}
@@ -186,7 +182,7 @@ export const IncidentsFormDialog = ({
               </div>
             ) : null}
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-white px-7 py-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-7 py-5">
             <div>
               {incident ? (
                 <span className="text-xs text-primary-700">

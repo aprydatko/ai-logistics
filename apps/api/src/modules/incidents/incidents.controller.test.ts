@@ -21,3 +21,20 @@ describe("IncidentsController mutations", () => {
     },
   );
 });
+
+describe("IncidentsController reads", () => {
+  it.each(["findAll", "findOne", "findTimeline"] as const)(
+    "does not restrict %s to operations roles",
+    (method) => {
+      expect(
+        Reflect.getMetadata(ROLES_KEY, IncidentsController.prototype[method]),
+      ).toBeUndefined();
+      expect(
+        Reflect.getMetadata(
+          GUARDS_METADATA,
+          IncidentsController.prototype[method],
+        ) ?? [],
+      ).not.toContain(RolesGuard);
+    },
+  );
+});

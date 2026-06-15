@@ -21,6 +21,7 @@ import { UpdateIncidentDto } from "./dto/update-incident.dto";
 import { IncidentsService } from "./incidents.service";
 import type {
   IncidentResponse,
+  IncidentTimelineResponse,
   IncidentsListResponse,
 } from "./incidents.types";
 
@@ -34,6 +35,20 @@ export class IncidentsController {
     @Query() query: ListIncidentsQueryDto,
   ): Promise<IncidentsListResponse> {
     return this.incidentsService.findAll(query);
+  }
+
+  @Get(":id")
+  findOne(
+    @Param("id", new ParseUUIDPipe()) id: string,
+  ): Promise<IncidentResponse> {
+    return this.incidentsService.findOne(id);
+  }
+
+  @Get(":id/timeline")
+  findTimeline(
+    @Param("id", new ParseUUIDPipe()) id: string,
+  ): Promise<IncidentTimelineResponse> {
+    return this.incidentsService.findTimeline(id);
   }
 
   @Post()
