@@ -13,10 +13,7 @@ describe("LoadsController mutations", () => {
         Reflect.getMetadata(ROLES_KEY, LoadsController.prototype[method]),
       ).toEqual(["admin", "dispatcher"]);
       expect(
-        Reflect.getMetadata(
-          GUARDS_METADATA,
-          LoadsController.prototype[method],
-        ),
+        Reflect.getMetadata(GUARDS_METADATA, LoadsController.prototype[method]),
       ).toContain(RolesGuard);
     },
   );

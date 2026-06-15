@@ -10,8 +10,13 @@ const document: DocumentRecord = {
   id: "11111111-1111-4111-8111-111111111111",
   fileName: "bol-1001.pdf",
   fileSize: 2048,
+  mimeType: "application/pdf",
   type: "bill_of_lading",
   status: "needs_review",
+  uploadedByUserId: "44444444-4444-4444-8444-444444444444",
+  pageCount: 2,
+  extractionModel: "Document Extractor v2.1",
+  processingTimeMs: 4200,
   driverId: "22222222-2222-4222-8222-222222222222",
   loadId: "33333333-3333-4333-8333-333333333333",
   uploadedAt: new Date("2026-06-10T10:00:00.000Z"),
@@ -21,6 +26,13 @@ const document: DocumentRecord = {
 
 const joined = {
   document,
+  fileUrl: null,
+  driverDocumentMimeType: null,
+  uploadedBy: {
+    id: document.uploadedByUserId,
+    firstName: "Alex",
+    lastName: "Dispatcher",
+  },
   driver: {
     id: document.driverId,
     firstName: "Alex",
@@ -80,8 +92,14 @@ describe("DocumentsService", () => {
           id: document.id,
           fileName: document.fileName,
           fileSize: document.fileSize,
+          fileUrl: null,
+          mimeType: document.mimeType,
+          pageCount: document.pageCount,
+          extractionModel: document.extractionModel,
+          processingTimeMs: document.processingTimeMs,
           type: document.type,
           status: document.status,
+          uploadedBy: joined.uploadedBy,
           driver: joined.driver,
           load: joined.load,
           uploadedAt: document.uploadedAt.toISOString(),
@@ -187,7 +205,11 @@ describe("DocumentsService", () => {
   });
 
   it("maps missing joined relations to null", async () => {
-    const row = { document: { ...document, driverId: null, loadId: null }, driver: null, load: null };
+    const row = {
+      document: { ...document, driverId: null, loadId: null },
+      driver: null,
+      load: null,
+    };
     const select = makeSelectChain([row]);
     const client = { select: vi.fn().mockReturnValue(select) };
     const service = new DocumentsService({ client } as never);
@@ -202,7 +224,9 @@ describe("DocumentsService", () => {
     const client = { select: vi.fn().mockReturnValue(makeSelectChain([])) };
     const service = new DocumentsService({ client } as never);
 
-    await expect(service.findOne(document.id)).rejects.toThrow(NotFoundException);
+    await expect(service.findOne(document.id)).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it("returns not found for an unknown related driver", async () => {
@@ -292,6 +316,8 @@ describe("DocumentsService", () => {
     const client = { delete: vi.fn().mockReturnValue(deleteChain) };
     const service = new DocumentsService({ client } as never);
 
-    await expect(service.remove(document.id)).rejects.toThrow(NotFoundException);
+    await expect(service.remove(document.id)).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

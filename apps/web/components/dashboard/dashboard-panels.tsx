@@ -1,9 +1,8 @@
-
-import { ActivityPanel } from './activity-panel';
-import { IncidentsPanel } from './incidents-panel';
-import { MapPlaceholder } from './map-placeholder';
-import { QuickActionsPanel } from './quick-actions-panel';
-import { SuggestionsPanel } from './suggestions-panel';
+import { ActivityPanel } from "./activity-panel";
+import { IncidentsPanel } from "./incidents-panel";
+import { MapPlaceholder } from "./map-placeholder";
+import { QuickActionsPanel } from "./quick-actions-panel";
+import { SuggestionsPanel } from "./suggestions-panel";
 
 export function DashboardPanels(): React.JSX.Element {
   return (

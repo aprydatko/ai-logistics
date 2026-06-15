@@ -66,9 +66,7 @@ export const DateTimePickerField = ({
           <Input
             className="h-9"
             onChange={(event) =>
-              onChange(
-                toLocalValue(selected ?? new Date(), event.target.value),
-              )
+              onChange(toLocalValue(selected ?? new Date(), event.target.value))
             }
             type="time"
             value={time}

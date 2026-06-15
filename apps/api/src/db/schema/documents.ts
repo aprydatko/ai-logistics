@@ -10,6 +10,7 @@ import {
 
 import { drivers } from "./drivers";
 import { loads } from "./loads";
+import { users } from "./users";
 
 export const documentTypeEnum = pgEnum("document_type", [
   "bill_of_lading",
@@ -30,8 +31,15 @@ export const documents = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     fileName: varchar("file_name", { length: 255 }).notNull(),
     fileSize: integer("file_size").notNull(),
+    mimeType: varchar("mime_type", { length: 100 }),
     type: documentTypeEnum("type").notNull(),
     status: documentStatusEnum("status").notNull(),
+    uploadedByUserId: uuid("uploaded_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    pageCount: integer("page_count"),
+    extractionModel: varchar("extraction_model", { length: 100 }),
+    processingTimeMs: integer("processing_time_ms"),
     driverId: uuid("driver_id").references(() => drivers.id, {
       onDelete: "set null",
     }),
@@ -51,6 +59,7 @@ export const documents = pgTable(
     index("documents_load_id_idx").on(table.loadId),
     index("documents_type_idx").on(table.type),
     index("documents_status_idx").on(table.status),
+    index("documents_uploaded_by_user_id_idx").on(table.uploadedByUserId),
     index("documents_uploaded_at_idx").on(table.uploadedAt),
   ],
 );

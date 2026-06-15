@@ -56,9 +56,11 @@ export const NotificationCenter = (): React.JSX.Element => {
             value={type}
           >
             <option>All types</option>
-            {[...new Set(notifications.map(({ type: itemType }) => itemType))].map(
-              (itemType) => <option key={itemType}>{itemType}</option>,
-            )}
+            {[
+              ...new Set(notifications.map(({ type: itemType }) => itemType)),
+            ].map((itemType) => (
+              <option key={itemType}>{itemType}</option>
+            ))}
           </select>
           <ChevronDown className="pointer-events-none absolute top-3 right-3 size-4" />
         </label>

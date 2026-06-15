@@ -72,7 +72,8 @@ export const AssignDriverDialog = ({
       <DialogContent className="max-w-md">
         <DialogTitle>Assign driver</DialogTitle>
         <DialogDescription>
-          Select an available driver. ETA is recalculated from distance and average speed.
+          Select an available driver. ETA is recalculated from distance and
+          average speed.
         </DialogDescription>
         <div className="space-y-4 py-4">
           <Select onValueChange={setDriverId} value={driverId}>
@@ -97,7 +98,9 @@ export const AssignDriverDialog = ({
             <Input
               max={75}
               min={35}
-              onChange={(event) => setAverageSpeedMph(Number(event.target.value))}
+              onChange={(event) =>
+                setAverageSpeedMph(Number(event.target.value))
+              }
               type="number"
               value={averageSpeedMph}
             />
@@ -105,12 +108,15 @@ export const AssignDriverDialog = ({
         </div>
         <div className="flex justify-end gap-3">
           <DialogClose asChild>
-            <Button type="button" variant="outline">Cancel</Button>
+            <Button type="button" variant="outline">
+              Cancel
+            </Button>
           </DialogClose>
           <Button
             disabled={!driverId || mutation.isPending || !load}
             onClick={() => {
-              if (load) mutation.mutate({ loadId: load.id, driverId, averageSpeedMph });
+              if (load)
+                mutation.mutate({ loadId: load.id, driverId, averageSpeedMph });
             }}
             type="button"
           >

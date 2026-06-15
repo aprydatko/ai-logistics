@@ -40,10 +40,20 @@ export const AssistantComposer = ({
     />
     <div className="flex items-center justify-between gap-3">
       <div className="flex items-center">
-        <Button aria-label="Attach file" size="icon-sm" type="button" variant="ghost">
+        <Button
+          aria-label="Attach file"
+          size="icon-sm"
+          type="button"
+          variant="ghost"
+        >
           <Paperclip />
         </Button>
-        <Button aria-label="Add chart" size="icon-sm" type="button" variant="ghost">
+        <Button
+          aria-label="Add chart"
+          size="icon-sm"
+          type="button"
+          variant="ghost"
+        >
           <BarChart3 />
         </Button>
       </div>

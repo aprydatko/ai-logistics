@@ -1,11 +1,11 @@
-import { ChevronRight, Truck } from 'lucide-react';
-import Image from 'next/image';
+import { ChevronRight, Truck } from "lucide-react";
+import Image from "next/image";
 
-import type { DriverDetails } from '@/lib/drivers/drivers-query';
-import { StatusBadge } from '@repo/ui/components/status-badge';
+import type { DriverDetails } from "@/lib/drivers/drivers-query";
+import { StatusBadge } from "@repo/ui/components/status-badge";
 
-import { EmptyTab, PanelSection } from '../panel-section';
-import { formatDate } from '../profile-formatters';
+import { EmptyTab, PanelSection } from "../panel-section";
+import { formatDate } from "../profile-formatters";
 
 export const TruckTab = ({
   details,
@@ -17,13 +17,13 @@ export const TruckTab = ({
   const vehicle = details.currentVehicle;
   const vehicleName = [vehicle.year, vehicle.make, vehicle.model]
     .filter(Boolean)
-    .join(' ');
+    .join(" ");
   const statusTone =
-    vehicle.status === 'active'
-      ? 'success'
-      : vehicle.status === 'maintenance'
-        ? 'warning'
-        : 'neutral';
+    vehicle.status === "active"
+      ? "success"
+      : vehicle.status === "maintenance"
+        ? "warning"
+        : "neutral";
 
   return (
     <PanelSection title="Truck info">
@@ -49,7 +49,7 @@ export const TruckTab = ({
               Truck {vehicle.unitNumber}
             </h3>
             <StatusBadge size="sm" tone={statusTone}>
-              {vehicle.status.replaceAll('_', ' ')}
+              {vehicle.status.replaceAll("_", " ")}
             </StatusBadge>
           </div>
           {vehicleName ? (
@@ -65,7 +65,7 @@ export const TruckTab = ({
           <div>
             <dt className="text-sm text-primary-700">Plate</dt>
             <dd className="mt-0.5 truncate font-semibold text-ink-900">
-              {vehicle.licensePlate || 'Not specified'}
+              {vehicle.licensePlate || "Not specified"}
             </dd>
           </div>
           <div>
@@ -73,7 +73,7 @@ export const TruckTab = ({
             <dd className="mt-0.5 truncate font-semibold text-ink-900">
               {vehicle.odometerMiles !== null
                 ? `${vehicle.odometerMiles.toLocaleString()} mi`
-                : 'Not specified'}
+                : "Not specified"}
             </dd>
           </div>
           <div>
@@ -81,7 +81,7 @@ export const TruckTab = ({
             <dd className="mt-0.5 truncate font-semibold text-ink-900">
               {vehicle.lastServiceAt
                 ? formatDate(vehicle.lastServiceAt)
-                : 'Not specified'}
+                : "Not specified"}
             </dd>
           </div>
         </dl>

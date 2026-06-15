@@ -73,9 +73,7 @@ const incidentsResponseSchema = z.object({
 });
 
 export type IncidentApiItem = z.infer<typeof incidentSchema>;
-export type IncidentTimelineEvent = z.infer<
-  typeof incidentTimelineEventSchema
->;
+export type IncidentTimelineEvent = z.infer<typeof incidentTimelineEventSchema>;
 export type IncidentsFilters = {
   search: string;
   priority: IncidentApiItem["priority"] | "all";

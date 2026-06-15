@@ -22,24 +22,38 @@ export const SuggestedActions = ({
       Suggested next actions
     </h2>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      {suggestedActions.map(({ action, description, icon: Icon, title, tone }) => (
-        <article className="flex min-h-44 flex-col rounded-xl border border-border bg-card p-4 shadow-xs" key={title}>
-          <div className="flex items-start gap-3">
-            <span className={cn("grid size-9 shrink-0 place-items-center rounded-xl", toneClasses[tone])}>
-              <Icon className="size-4" />
-            </span>
-            <h3 className="text-sm font-bold leading-5 text-ink-900">{title}</h3>
-          </div>
-          <p className="mt-3 flex-1 text-xs leading-5 text-primary-700">{description}</p>
-          <Button
-            className="mt-4 w-full rounded-lg bg-info-soft-background text-primary-700 shadow-none hover:bg-blue-100"
-            onClick={() => onAction(`${action}: ${title}`)}
-            type="button"
+      {suggestedActions.map(
+        ({ action, description, icon: Icon, title, tone }) => (
+          <article
+            className="flex min-h-44 flex-col rounded-xl border border-border bg-card p-4 shadow-xs"
+            key={title}
           >
-            {action}
-          </Button>
-        </article>
-      ))}
+            <div className="flex items-start gap-3">
+              <span
+                className={cn(
+                  "grid size-9 shrink-0 place-items-center rounded-xl",
+                  toneClasses[tone],
+                )}
+              >
+                <Icon className="size-4" />
+              </span>
+              <h3 className="text-sm font-bold leading-5 text-ink-900">
+                {title}
+              </h3>
+            </div>
+            <p className="mt-3 flex-1 text-xs leading-5 text-primary-700">
+              {description}
+            </p>
+            <Button
+              className="mt-4 w-full rounded-lg bg-info-soft-background text-primary-700 shadow-none hover:bg-blue-100"
+              onClick={() => onAction(`${action}: ${title}`)}
+              type="button"
+            >
+              {action}
+            </Button>
+          </article>
+        ),
+      )}
     </div>
   </section>
 );

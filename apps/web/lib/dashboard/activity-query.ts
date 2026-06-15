@@ -1,6 +1,9 @@
 import { queryOptions } from "@tanstack/react-query";
 
-import { fetchIncidents, type IncidentApiItem } from "@/lib/incidents/incidents-query";
+import {
+  fetchIncidents,
+  type IncidentApiItem,
+} from "@/lib/incidents/incidents-query";
 import { fetchLoads, type LoadApiItem } from "@/lib/loads/loads-query";
 
 export type DashboardActivityItem = {
@@ -78,7 +81,8 @@ export const fetchDashboardActivity =
       .concat(incidents.data.map(toIncidentActivity))
       .sort(
         (left, right) =>
-          new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+          new Date(right.updatedAt).getTime() -
+          new Date(left.updatedAt).getTime(),
       )
       .slice(0, 5);
 

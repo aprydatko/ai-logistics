@@ -36,7 +36,13 @@ export const LoadDetailPanel = ({
   );
 
   return (
-    <SidePanel className="xl:w-[34rem]" isOpen mode="inline" onClose={onClose} title="Load detail">
+    <SidePanel
+      className="xl:w-[34rem]"
+      isOpen
+      mode="inline"
+      onClose={onClose}
+      title="Load detail"
+    >
       <div className="space-y-5 p-5">
         <header>
           <div className="flex items-center gap-3">
@@ -55,7 +61,9 @@ export const LoadDetailPanel = ({
           {(["overview", "route", "timeline"] as const).map((item) => (
             <button
               className={`border-b-2 pb-2 text-xs font-semibold capitalize ${
-                tab === item ? "border-primary-700" : "border-transparent text-primary-700"
+                tab === item
+                  ? "border-primary-700"
+                  : "border-transparent text-primary-700"
               }`}
               key={item}
               onClick={() => setTab(item)}
@@ -66,49 +74,63 @@ export const LoadDetailPanel = ({
           ))}
         </div>
 
-        {tab === "overview" ? <><div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <OverviewCard label="Driver">
-            {load.driver
-              ? `${load.driver.firstName} ${load.driver.lastName}`
-              : "Unassigned"}
-          </OverviewCard>
-          <OverviewCard label="Truck">
-            {load.driver?.truckNumber ?? "Not assigned"}
-          </OverviewCard>
-          <OverviewCard label="ETA">{formatDate(load.deliveryDate)}</OverviewCard>
-          <OverviewCard label="Distance">{load.miles.toLocaleString()} mi</OverviewCard>
-          <OverviewCard label="Weight">{load.weight.toLocaleString()} lb</OverviewCard>
-          <OverviewCard label="Price">${load.price.toLocaleString()}</OverviewCard>
-        </div>
+        {tab === "overview" ? (
+          <>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <OverviewCard label="Driver">
+                {load.driver
+                  ? `${load.driver.firstName} ${load.driver.lastName}`
+                  : "Unassigned"}
+              </OverviewCard>
+              <OverviewCard label="Truck">
+                {load.driver?.truckNumber ?? "Not assigned"}
+              </OverviewCard>
+              <OverviewCard label="ETA">
+                {formatDate(load.deliveryDate)}
+              </OverviewCard>
+              <OverviewCard label="Distance">
+                {load.miles.toLocaleString()} mi
+              </OverviewCard>
+              <OverviewCard label="Weight">
+                {load.weight.toLocaleString()} lb
+              </OverviewCard>
+              <OverviewCard label="Price">
+                ${load.price.toLocaleString()}
+              </OverviewCard>
+            </div>
 
-        <section className="rounded-md border border-border p-4">
-          <h4 className="text-sm font-bold">Schedule</h4>
-          <dl className="mt-4 grid grid-cols-[6rem_1fr] gap-3 text-xs">
-            <dt className="text-primary-700">Pickup</dt>
-            <dd>{formatDate(load.pickupDate)}</dd>
-            <dt className="text-primary-700">Delivery</dt>
-            <dd>{formatDate(load.deliveryDate)}</dd>
-          </dl>
-        </section>
+            <section className="rounded-md border border-border p-4">
+              <h4 className="text-sm font-bold">Schedule</h4>
+              <dl className="mt-4 grid grid-cols-[6rem_1fr] gap-3 text-xs">
+                <dt className="text-primary-700">Pickup</dt>
+                <dd>{formatDate(load.pickupDate)}</dd>
+                <dt className="text-primary-700">Delivery</dt>
+                <dd>{formatDate(load.deliveryDate)}</dd>
+              </dl>
+            </section>
 
-        <section className="rounded-md border border-border p-4">
-          <h4 className="text-sm font-bold">Broker</h4>
-          <dl className="mt-4 grid grid-cols-[6rem_1fr] gap-3 text-xs">
-            <dt className="text-primary-700">Company</dt>
-            <dd>{load.broker.companyName}</dd>
-            <dt className="text-primary-700">Broker ID</dt>
-            <dd>{load.broker.id}</dd>
-            <dt className="text-primary-700">Phone</dt>
-            <dd>{load.broker.phone}</dd>
-          </dl>
-        </section>
+            <section className="rounded-md border border-border p-4">
+              <h4 className="text-sm font-bold">Broker</h4>
+              <dl className="mt-4 grid grid-cols-[6rem_1fr] gap-3 text-xs">
+                <dt className="text-primary-700">Company</dt>
+                <dd>{load.broker.companyName}</dd>
+                <dt className="text-primary-700">Broker ID</dt>
+                <dd>{load.broker.id}</dd>
+                <dt className="text-primary-700">Phone</dt>
+                <dd>{load.broker.phone}</dd>
+              </dl>
+            </section>
 
-        {load.notes ? (
-          <section className="rounded-md border border-border p-4">
-            <h4 className="text-sm font-bold">Notes</h4>
-            <p className="mt-3 whitespace-pre-wrap text-sm text-primary-700">{load.notes}</p>
-          </section>
-        ) : null}</> : null}
+            {load.notes ? (
+              <section className="rounded-md border border-border p-4">
+                <h4 className="text-sm font-bold">Notes</h4>
+                <p className="mt-3 whitespace-pre-wrap text-sm text-primary-700">
+                  {load.notes}
+                </p>
+              </section>
+            ) : null}
+          </>
+        ) : null}
 
         {tab === "route" ? (
           load.routePoints.length >= 2 ? (
@@ -126,7 +148,9 @@ export const LoadDetailPanel = ({
               />
               {load.routePoints.map((point, index) => (
                 <p className="text-sm" key={`${point.label}-${index}`}>
-                  <span className="font-semibold">{index + 1}. {point.label}</span>
+                  <span className="font-semibold">
+                    {index + 1}. {point.label}
+                  </span>
                   <span className="ml-2 text-primary-700">
                     {point.latitude}, {point.longitude}
                   </span>
@@ -134,7 +158,9 @@ export const LoadDetailPanel = ({
               ))}
             </div>
           ) : (
-            <p className="text-sm text-primary-700">No route points available.</p>
+            <p className="text-sm text-primary-700">
+              No route points available.
+            </p>
           )
         ) : null}
 
@@ -143,22 +169,35 @@ export const LoadDetailPanel = ({
             {[...load.timeline]
               .sort((a, b) => a.dateTime.localeCompare(b.dateTime))
               .map((event, index) => (
-                <div className="border-l-2 border-primary-700 pl-4" key={`${event.dateTime}-${index}`}>
-                  <p className="text-xs text-primary-700">{formatDate(event.dateTime)}</p>
+                <div
+                  className="border-l-2 border-primary-700 pl-4"
+                  key={`${event.dateTime}-${index}`}
+                >
+                  <p className="text-xs text-primary-700">
+                    {formatDate(event.dateTime)}
+                  </p>
                   <p className="mt-1 text-sm font-semibold">{event.title}</p>
                   {event.description ? (
-                    <p className="mt-1 text-sm text-primary-700">{event.description}</p>
+                    <p className="mt-1 text-sm text-primary-700">
+                      {event.description}
+                    </p>
                   ) : null}
                 </div>
               ))}
             {load.timeline.length === 0 ? (
-              <p className="text-sm text-primary-700">No timeline events available.</p>
+              <p className="text-sm text-primary-700">
+                No timeline events available.
+              </p>
             ) : null}
           </div>
         ) : null}
 
         <div className="flex gap-3">
-          <Button onClick={() => onAssign(load)} type="button" variant="outline">
+          <Button
+            onClick={() => onAssign(load)}
+            type="button"
+            variant="outline"
+          >
             <UserRoundPlus className="size-4" /> Assign driver
           </Button>
           <Button onClick={() => onEdit(load)} type="button" variant="outline">

@@ -60,7 +60,11 @@ export const AssistantWorkspace = (): React.JSX.Element => {
             </p>
           </div>
           {!isContextOpen ? (
-            <Button onClick={() => setIsContextOpen(true)} type="button" variant="outline">
+            <Button
+              onClick={() => setIsContextOpen(true)}
+              type="button"
+              variant="outline"
+            >
               <PanelRightOpen className="size-4" />
               Context
             </Button>
@@ -85,7 +89,11 @@ export const AssistantWorkspace = (): React.JSX.Element => {
             </button>
           ))}
           {filters.length > 0 ? (
-            <button className="px-2 text-xs font-semibold text-blue-600 hover:text-blue-800" onClick={() => setFilters([])} type="button">
+            <button
+              className="px-2 text-xs font-semibold text-blue-600 hover:text-blue-800"
+              onClick={() => setFilters([])}
+              type="button"
+            >
               Clear all
             </button>
           ) : null}
@@ -108,7 +116,9 @@ export const AssistantWorkspace = (): React.JSX.Element => {
             <div className="space-y-5 pl-4">
               <AssistantResults />
               <SuggestedActions onAction={setDraft} />
-              <p className="text-right text-[0.65rem] text-primary-700">View ✓</p>
+              <p className="text-right text-[0.65rem] text-primary-700">
+                View ✓
+              </p>
             </div>
           </div>
 

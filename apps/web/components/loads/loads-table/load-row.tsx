@@ -84,7 +84,9 @@ export const LoadRow = ({
         <span className="truncate">{load.deliveryAddress}</span>
       </p>
     </TableCell>
-    <TableCell className="text-xs">{formatDateTime(load.deliveryDate)}</TableCell>
+    <TableCell className="text-xs">
+      {formatDateTime(load.deliveryDate)}
+    </TableCell>
     <TableCell className="text-xs">
       <p>{load.miles.toLocaleString()} mi</p>
       <p className="mt-1 text-[0.7rem] text-primary-700">
@@ -95,9 +97,17 @@ export const LoadRow = ({
       <ActionMenu
         ariaLabel={`Actions for ${load.referenceNumber}`}
         items={[
-          { icon: Eye, label: "View load", onSelect: () => onOpenDetails(load) },
+          {
+            icon: Eye,
+            label: "View load",
+            onSelect: () => onOpenDetails(load),
+          },
           { icon: Pencil, label: "Edit load", onSelect: () => onEdit(load) },
-          { icon: UserRoundPlus, label: "Assign driver", onSelect: () => onAssign(load) },
+          {
+            icon: UserRoundPlus,
+            label: "Assign driver",
+            onSelect: () => onAssign(load),
+          },
         ]}
         trigger={() => (
           <Button size="icon-sm" type="button" variant="ghost">

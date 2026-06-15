@@ -7,6 +7,7 @@ import type {
   UpdateDocumentDto,
 } from "@repo/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Save } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { updateDocument } from "@/lib/documents/document-mutations";
@@ -42,7 +43,14 @@ export const DocumentEditDialog = ({
   const queryClient = useQueryClient();
   const driversQuery = useQuery(driverCandidatesQueryOptions);
   const loadsQuery = useQuery(
-    loadsQueryOptions({ search: "", status: "all", pickupFrom: "", pickupTo: "", page: 1, limit: 100 }),
+    loadsQueryOptions({
+      search: "",
+      status: "all",
+      pickupFrom: "",
+      pickupTo: "",
+      page: 1,
+      limit: 100,
+    }),
   );
   const [values, setValues] = useState<UpdateDocumentDto>({});
   const mutation = useMutation({
@@ -72,35 +80,41 @@ export const DocumentEditDialog = ({
     resetMutation();
   }, [document, resetMutation]);
 
+  const isOpen = document !== null;
+
   return (
-    <Dialog open={document !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <div className="px-7 pt-6 pr-14">
+    <Dialog onOpenChange={onOpenChange} open={isOpen}>
+      <DialogContent className="flex max-h-[calc(100svh-2rem)] max-w-xl flex-col">
+        <div className="shrink-0 px-7 pt-7 pr-16 sm:px-9 sm:pt-8 sm:pr-16">
           <DialogTitle>Edit document</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="mt-2 text-base">
             Update document classification and linked records.
           </DialogDescription>
         </div>
-        <div className="grid gap-5 px-7 py-5">
-          <div className="grid gap-2">
+        <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto px-7 py-7 sm:gap-6 sm:px-9">
+          <div className="grid gap-2.5">
             <Label>Document type</Label>
             <SelectButton
+              className="h-12 w-full"
               onValueChange={(type) =>
                 setValues((current) => ({
                   ...current,
                   type: type as DocumentType,
                 }))
               }
-              options={(Object.entries(documentTypeLabels) as Array<
-                [DocumentType, string]
-              >).map(([value, label]) => ({ label, value }))}
+              options={(
+                Object.entries(documentTypeLabels) as Array<
+                  [DocumentType, string]
+                >
+              ).map(([value, label]) => ({ label, value }))}
               placeholder="Document type"
               value={values.type}
             />
           </div>
-          <div className="grid gap-2">
+          <div className="grid gap-2.5">
             <Label>Status</Label>
             <SelectButton
+              className="h-12 w-full"
               onValueChange={(status) =>
                 setValues((current) => ({
                   ...current,
@@ -112,9 +126,10 @@ export const DocumentEditDialog = ({
               value={values.status}
             />
           </div>
-          <div className="grid gap-2">
+          <div className="grid gap-2.5">
             <Label>Driver</Label>
             <SelectButton
+              className="h-12 w-full"
               onValueChange={(driverId) =>
                 setValues((current) => ({
                   ...current,
@@ -132,9 +147,10 @@ export const DocumentEditDialog = ({
               value={values.driverId ?? "unassigned"}
             />
           </div>
-          <div className="grid gap-2">
+          <div className="grid gap-2.5">
             <Label>Load</Label>
             <SelectButton
+              className="h-12 w-full"
               onValueChange={(loadId) =>
                 setValues((current) => ({
                   ...current,
@@ -153,11 +169,14 @@ export const DocumentEditDialog = ({
             />
           </div>
         </div>
-        <div className="flex justify-end gap-3 border-t px-7 py-4">
+        <div className="flex shrink-0 justify-end gap-3 border-t border-border bg-surface-50/50 px-7 py-5 sm:px-9">
           <DialogClose asChild>
-            <Button type="button" variant="outline">Cancel</Button>
+            <Button className="h-11 px-6" type="button" variant="outline">
+              Cancel
+            </Button>
           </DialogClose>
           <Button
+            className="h-11 px-6"
             disabled={!document || mutation.isPending}
             onClick={() => {
               if (document) {
@@ -166,6 +185,7 @@ export const DocumentEditDialog = ({
             }}
             type="button"
           >
+            <Save />
             {mutation.isPending ? "Saving..." : "Save changes"}
           </Button>
         </div>

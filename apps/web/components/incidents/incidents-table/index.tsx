@@ -41,13 +41,18 @@ const getPages = (
   currentPage: number,
   totalPages: number,
 ): Array<number | "ellipsis"> => {
-  const pages = Array.from({ length: totalPages }, (_, index) => index + 1).filter(
+  const pages = Array.from(
+    { length: totalPages },
+    (_, index) => index + 1,
+  ).filter(
     (page) =>
       page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1,
   );
   return pages.flatMap((page, index) => {
     const previous = pages[index - 1];
-    return previous && page - previous > 1 ? ["ellipsis" as const, page] : [page];
+    return previous && page - previous > 1
+      ? ["ellipsis" as const, page]
+      : [page];
   });
 };
 
@@ -55,7 +60,9 @@ export const IncidentsTable = (): React.JSX.Element => {
   const [filters, setFilters] = React.useState(DEFAULT_FILTERS);
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
-  const [detailIncident, setDetailIncident] = React.useState<Incident | null>(null);
+  const [detailIncident, setDetailIncident] = React.useState<Incident | null>(
+    null,
+  );
   const [formIncident, setFormIncident] = React.useState<Incident | null>(null);
   const [isFormOpen, setIsFormOpen] = React.useState(false);
 
@@ -116,10 +123,14 @@ export const IncidentsTable = (): React.JSX.Element => {
           <TableScrollArea className="min-h-0 flex-1 overflow-auto">
             <Table className="min-w-[980px] table-fixed">
               <colgroup>
-                <col className="w-10" /><col className="w-[19%]" />
-                <col className="w-[11%]" /><col className="w-[14%]" />
-                <col className="w-[18%]" /><col className="w-[11%]" />
-                <col className="w-[11%]" /><col className="w-[11%]" />
+                <col className="w-10" />
+                <col className="w-[19%]" />
+                <col className="w-[11%]" />
+                <col className="w-[14%]" />
+                <col className="w-[18%]" />
+                <col className="w-[11%]" />
+                <col className="w-[11%]" />
+                <col className="w-[11%]" />
                 <col className="w-14" />
               </colgroup>
               <TableHeader className="sticky top-0 z-10">
@@ -127,7 +138,9 @@ export const IncidentsTable = (): React.JSX.Element => {
                   <TableHead className="text-center">
                     <Checkbox
                       aria-label="Select all incidents"
-                      checked={partiallySelected ? "indeterminate" : allSelected}
+                      checked={
+                        partiallySelected ? "indeterminate" : allSelected
+                      }
                       onCheckedChange={(checked) =>
                         setSelectedIds(
                           checked === true
@@ -137,21 +150,37 @@ export const IncidentsTable = (): React.JSX.Element => {
                       }
                     />
                   </TableHead>
-                  {["Incident", "Priority", "Status", "Driver", "Load", "Time", "Updated"].map(
-                    (heading) => <TableHead key={heading}>{heading}</TableHead>,
-                  )}
-                  <TableHead><span className="sr-only">Actions</span></TableHead>
+                  {[
+                    "Incident",
+                    "Priority",
+                    "Status",
+                    "Driver",
+                    "Load",
+                    "Time",
+                    "Updated",
+                  ].map((heading) => (
+                    <TableHead key={heading}>{heading}</TableHead>
+                  ))}
+                  <TableHead>
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {incidentsQuery.isPending ? (
-                  <IncidentsTableSkeleton />
-                ) : null}
+                {incidentsQuery.isPending ? <IncidentsTableSkeleton /> : null}
                 {incidentsQuery.isError ? (
-                  <TableRow><TableCell className="py-12 text-center" colSpan={9}>Unable to load incidents. Please try again.</TableCell></TableRow>
+                  <TableRow>
+                    <TableCell className="py-12 text-center" colSpan={9}>
+                      Unable to load incidents. Please try again.
+                    </TableCell>
+                  </TableRow>
                 ) : null}
                 {incidentsQuery.isSuccess && incidents.length === 0 ? (
-                  <TableRow><TableCell className="py-12 text-center" colSpan={9}>No incidents found.</TableCell></TableRow>
+                  <TableRow>
+                    <TableCell className="py-12 text-center" colSpan={9}>
+                      No incidents found.
+                    </TableCell>
+                  </TableRow>
                 ) : null}
                 {incidents.map((incident) => (
                   <IncidentRow
@@ -179,14 +208,22 @@ export const IncidentsTable = (): React.JSX.Element => {
           <DataPagination
             ariaLabel="Incidents pagination"
             currentPage={filters.page}
-            endItem={Math.min(filters.page * filters.limit, pagination?.total ?? 0)}
+            endItem={Math.min(
+              filters.page * filters.limit,
+              pagination?.total ?? 0,
+            )}
             itemName="incidents"
             onPageChange={(page) => updateFilters({ page })}
             onPageSizeChange={(limit) => updateFilters({ limit })}
-            pages={getPages(filters.page, Math.max(1, pagination?.totalPages ?? 1))}
+            pages={getPages(
+              filters.page,
+              Math.max(1, pagination?.totalPages ?? 1),
+            )}
             pageSize={filters.limit}
             pageSizeOptions={[10, 15, 20]}
-            startItem={pagination?.total ? (filters.page - 1) * filters.limit + 1 : 0}
+            startItem={
+              pagination?.total ? (filters.page - 1) * filters.limit + 1 : 0
+            }
             totalItems={pagination?.total ?? 0}
             totalPages={Math.max(1, pagination?.totalPages ?? 1)}
           />

@@ -49,7 +49,8 @@ export const IncidentHeader = ({
             </p>
           </div>
           <StatusBadge size="lg" tone={priorityTone[incident.priority]}>
-            {incident.priority[0]?.toUpperCase()}{incident.priority.slice(1)}
+            {incident.priority[0]?.toUpperCase()}
+            {incident.priority.slice(1)}
           </StatusBadge>
         </div>
       </div>

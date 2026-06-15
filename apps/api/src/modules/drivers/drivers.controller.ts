@@ -13,6 +13,8 @@ import {
 } from "@nestjs/common";
 
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { CurrentUser } from "../auth/current-user.decorator";
+import type { AuthenticatedUser } from "../auth/auth.types";
 import { Roles } from "../auth/roles.decorator";
 import { RolesGuard } from "../auth/roles.guard";
 import { CreateDriverDto } from "./dto/create-driver.dto";
@@ -82,8 +84,9 @@ export class DriversController {
   addDocument(
     @Param("id", new ParseUUIDPipe()) id: string,
     @Body() dto: CreateDriverDocumentDto,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<CreateDriverDocumentResponse> {
-    return this.driversService.addDocument(id, dto);
+    return this.driversService.addDocument(id, dto, user.id);
   }
 
   @Delete(":id/documents/:documentId")

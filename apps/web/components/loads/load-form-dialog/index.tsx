@@ -100,10 +100,16 @@ export const LoadFormDialog = ({
             </div>
             <div className="flex justify-end gap-3 border-t border-border px-7 py-4">
               <DialogClose asChild>
-                <Button type="button" variant="outline">Cancel</Button>
+                <Button type="button" variant="outline">
+                  Cancel
+                </Button>
               </DialogClose>
               <Button disabled={mutation.isPending} type="submit">
-                {mutation.isPending ? "Saving..." : load ? "Save changes" : "Create load"}
+                {mutation.isPending
+                  ? "Saving..."
+                  : load
+                    ? "Save changes"
+                    : "Create load"}
               </Button>
             </div>
           </form>

@@ -39,7 +39,8 @@ export function MapPlaceholder(): React.JSX.Element {
           <h2 className="text-sm font-bold text-ink-900">Active loads map</h2>
           {data.primaryLoadReference ? (
             <p className="mt-1 text-xs text-primary-700">
-              Route shown for {data.primaryLoadReference}; markers show all active loads.
+              Route shown for {data.primaryLoadReference}; markers show all
+              active loads.
             </p>
           ) : null}
         </div>

@@ -1,23 +1,23 @@
-'use client';
+"use client";
 
-import type { DocumentStatus, DocumentType } from '@repo/shared';
-import { Plus, RotateCcw } from 'lucide-react';
+import type { DocumentStatus, DocumentType } from "@repo/shared";
+import { Plus, RotateCcw } from "lucide-react";
 
-import type { DriverCandidate } from '@/lib/drivers/driver-candidates-query';
-import { Button } from '@repo/ui/components/button';
-import { SearchField } from '@repo/ui/components/search-field';
-import { SelectButton } from '@repo/ui/components/select-button';
+import type { DriverCandidate } from "@/lib/drivers/driver-candidates-query";
+import { Button } from "@repo/ui/components/button";
+import { SearchField } from "@repo/ui/components/search-field";
+import { SelectButton } from "@repo/ui/components/select-button";
 
-import { documentTypeLabels, type DocumentFilters } from './types';
+import { documentTypeLabels, type DocumentFilters } from "./types";
 
 const statusOptions: Array<{
   label: string;
-  value: DocumentStatus | 'all';
+  value: DocumentStatus | "all";
 }> = [
-  { label: 'All statuses', value: 'all' },
-  { label: 'Complete', value: 'complete' },
-  { label: 'Processing', value: 'processing' },
-  { label: 'Needs review', value: 'needs_review' },
+  { label: "All statuses", value: "all" },
+  { label: "Complete", value: "complete" },
+  { label: "Processing", value: "processing" },
+  { label: "Needs review", value: "needs_review" },
 ];
 
 export const DocumentsToolbar = ({
@@ -34,10 +34,10 @@ export const DocumentsToolbar = ({
   onReset: () => void;
 }): React.JSX.Element => {
   const hasFilters =
-    filters.search !== '' ||
-    filters.driverId !== 'all' ||
-    filters.type !== 'all' ||
-    filters.status !== 'all';
+    filters.search !== "" ||
+    filters.driverId !== "all" ||
+    filters.type !== "all" ||
+    filters.status !== "all";
 
   return (
     <div className="flex flex-col gap-7 xl:justify-between">
@@ -61,7 +61,7 @@ export const DocumentsToolbar = ({
           className="sm:min-w-44"
           onValueChange={(driverId) => onChange({ driverId })}
           options={[
-            { label: 'All drivers', value: 'all' },
+            { label: "All drivers", value: "all" },
             ...driverOptions.map((driver) => ({
               label: `${driver.firstName} ${driver.lastName}`,
               value: driver.id,
@@ -73,10 +73,10 @@ export const DocumentsToolbar = ({
         <SelectButton
           className="sm:min-w-48"
           onValueChange={(type) =>
-            onChange({ type: type as DocumentFilters['type'] })
+            onChange({ type: type as DocumentFilters["type"] })
           }
           options={[
-            { label: 'All document types', value: 'all' },
+            { label: "All document types", value: "all" },
             ...(
               Object.entries(documentTypeLabels) as Array<
                 [DocumentType, string]
@@ -89,7 +89,7 @@ export const DocumentsToolbar = ({
         <SelectButton
           className="sm:min-w-40"
           onValueChange={(status) =>
-            onChange({ status: status as DocumentFilters['status'] })
+            onChange({ status: status as DocumentFilters["status"] })
           }
           options={statusOptions}
           placeholder="Status"

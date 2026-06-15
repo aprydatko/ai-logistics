@@ -89,6 +89,7 @@ export const DocumentCreateDialog = ({
     mutation.mutate({
       fileName: file.name,
       fileSize: file.size,
+      mimeType: file.type,
       type,
       status,
       driverId: driverId === "unassigned" ? undefined : driverId,

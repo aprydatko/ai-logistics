@@ -19,8 +19,10 @@ import {
 import { DatabaseService } from "../../db/database.service";
 import {
   documents,
+  driverDocuments,
   drivers,
   loads,
+  users,
   type DocumentRecord,
 } from "../../db/schema";
 import type { ListDocumentsQueryDto } from "./dto/list-documents-query.dto";
@@ -71,7 +73,14 @@ export class DocumentsService {
     return {
       success: true,
       data: rows.map((row) =>
-        this.toDocument(row.document, row.driver, row.load),
+        this.toDocument(
+          row.document,
+          row.driver,
+          row.load,
+          row.fileUrl,
+          row.document.mimeType ?? row.driverDocumentMimeType,
+          row.uploadedBy,
+        ),
       ),
       pagination: {
         page: query.page,
@@ -88,11 +97,21 @@ export class DocumentsService {
     if (!row) throw new NotFoundException("Document was not found");
     return {
       success: true,
-      data: this.toDocument(row.document, row.driver, row.load),
+      data: this.toDocument(
+        row.document,
+        row.driver,
+        row.load,
+        row.fileUrl,
+        row.document.mimeType ?? row.driverDocumentMimeType,
+        row.uploadedBy,
+      ),
     };
   }
 
-  async create(dto: CreateDocumentDto): Promise<DocumentResult> {
+  async create(
+    dto: CreateDocumentDto,
+    uploadedByUserId: string,
+  ): Promise<DocumentResult> {
     if (dto.driverId) {
       await this.assertRelationExists(drivers, dto.driverId, "Driver");
     }
@@ -105,8 +124,10 @@ export class DocumentsService {
       .values({
         fileName: dto.fileName,
         fileSize: dto.fileSize,
+        mimeType: dto.mimeType,
         type: dto.type,
         status: dto.status,
+        uploadedByUserId,
         driverId: dto.driverId,
         loadId: dto.loadId,
         uploadedAt: new Date(),
@@ -159,6 +180,13 @@ export class DocumentsService {
     return this.databaseService.client
       .select({
         document: documents,
+        fileUrl: driverDocuments.fileUrl,
+        driverDocumentMimeType: driverDocuments.mimeType,
+        uploadedBy: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+        },
         driver: {
           id: drivers.id,
           firstName: drivers.firstName,
@@ -170,6 +198,8 @@ export class DocumentsService {
         },
       })
       .from(documents)
+      .leftJoin(driverDocuments, eq(documents.id, driverDocuments.id))
+      .leftJoin(users, eq(documents.uploadedByUserId, users.id))
       .leftJoin(drivers, eq(documents.driverId, drivers.id))
       .leftJoin(loads, eq(documents.loadId, loads.id));
   }
@@ -214,13 +244,22 @@ export class DocumentsService {
     document: DocumentRecord,
     driver: DriverSummary,
     load: LoadSummary,
+    fileUrl: string | null = null,
+    mimeType: string | null = null,
+    uploadedBy: DocumentItem["uploadedBy"] = null,
   ): DocumentItem {
     return {
       id: document.id,
       fileName: document.fileName,
       fileSize: document.fileSize,
+      fileUrl,
+      mimeType,
+      pageCount: document.pageCount,
+      extractionModel: document.extractionModel,
+      processingTimeMs: document.processingTimeMs,
       type: document.type,
       status: document.status,
+      uploadedBy: uploadedBy?.id ? uploadedBy : null,
       driver: driver?.id ? driver : null,
       load: load?.id ? load : null,
       uploadedAt: document.uploadedAt.toISOString(),

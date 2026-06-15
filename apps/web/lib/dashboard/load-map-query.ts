@@ -2,7 +2,11 @@ import { queryOptions } from "@tanstack/react-query";
 
 import type { RouteMapMarker } from "@repo/ui/components/route-map";
 
-import { fetchLoads, type LoadApiItem, type LoadStatus } from "@/lib/loads/loads-query";
+import {
+  fetchLoads,
+  type LoadApiItem,
+  type LoadStatus,
+} from "@/lib/loads/loads-query";
 
 type Coordinates = [longitude: number, latitude: number];
 

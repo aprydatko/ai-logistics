@@ -10,8 +10,18 @@ const document = {
   id: "10000000-0000-4000-8000-000000000001",
   fileName: "bill-of-lading.pdf",
   fileSize: 2048,
+  fileUrl: "data:application/pdf;base64,JVBERi0xLjQ=",
+  mimeType: "application/pdf",
+  pageCount: 2,
+  extractionModel: "Document Extractor v2.1",
+  processingTimeMs: 4200,
   type: "bill_of_lading",
   status: "complete",
+  uploadedBy: {
+    id: "40000000-0000-4000-8000-000000000001",
+    firstName: "Alex",
+    lastName: "Dispatcher",
+  },
   driver: {
     id: "20000000-0000-4000-8000-000000000001",
     firstName: "Ada",
@@ -75,9 +85,7 @@ describe("documents query", () => {
         ),
     );
 
-    await expect(
-      fetchDocuments({ page: 1, limit: 10 }),
-    ).rejects.toThrow();
+    await expect(fetchDocuments({ page: 1, limit: 10 })).rejects.toThrow();
     await expect(fetchDocument(document.id)).resolves.toEqual(document);
   });
 

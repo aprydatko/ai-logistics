@@ -6,16 +6,16 @@ import {
   Phone,
   Star,
   type LucideIcon,
-} from 'lucide-react';
+} from "lucide-react";
 
-import type { DriverDetails } from '@/lib/drivers/drivers-query';
-import { Button } from '@repo/ui/components/button';
-import { StatusBadge } from '@repo/ui/components/status-badge';
+import type { DriverDetails } from "@/lib/drivers/drivers-query";
+import { Button } from "@repo/ui/components/button";
+import { StatusBadge } from "@repo/ui/components/status-badge";
 
-import { driverStatusTone } from '../../driver-styles';
-import type { DriverRow } from '../../types';
-import { PanelSection } from '../panel-section';
-import { formatDate } from '../profile-formatters';
+import { driverStatusTone } from "../../driver-styles";
+import type { DriverRow } from "../../types";
+import { PanelSection } from "../panel-section";
+import { formatDate } from "../profile-formatters";
 
 type ProfileTabViewProps = {
   details: DriverDetails;
@@ -29,7 +29,7 @@ export const ProfileTabView = ({
   onEdit,
 }: ProfileTabViewProps): React.JSX.Element => {
   const completedTrips = details.tripsHistory.filter(
-    (trip) => trip.status === 'delivered'
+    (trip) => trip.status === "delivered",
   ).length;
 
   return (
@@ -96,7 +96,7 @@ const DriverInformation = ({
     details.hireDate ||
     details.dateOfBirth ||
     details.emergencyContact ||
-    details.notes
+    details.notes,
   );
 
   if (!hasInfo) return null;
@@ -122,7 +122,7 @@ const DriverInformation = ({
           <InfoItem
             icon={Phone}
             label="Emergency contact"
-            value={`${details.emergencyContact}${details.emergencyPhone ? ` · ${details.emergencyPhone}` : ''}`}
+            value={`${details.emergencyContact}${details.emergencyPhone ? ` · ${details.emergencyPhone}` : ""}`}
           />
         ) : null}
         {details.address ? (
@@ -155,7 +155,7 @@ const InfoItem = ({
   value,
 }: InfoItemProps): React.JSX.Element => (
   <div
-    className={`flex min-h-24 items-center gap-3 rounded-md border border-border bg-white p-3 ${className ?? ''}`}
+    className={`flex min-h-24 items-center gap-3 rounded-md border border-border bg-white p-3 ${className ?? ""}`}
   >
     <div className="flex size-11 shrink-0 items-center justify-center rounded-md bg-surface-100 text-primary-700">
       <Icon className="size-5" />

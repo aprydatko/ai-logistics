@@ -1,79 +1,79 @@
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 import {
   CircleAlert,
   Clock3,
   PackageCheck,
   Truck,
   TruckIcon,
-} from 'lucide-react';
+} from "lucide-react";
 
-import { loadMetricsQueryOptions } from '@/lib/dashboard/load-metrics-query';
-import { DashboardPanels } from './dashboard-panels';
-import { MetricCard, type MetricCardProps } from './metric-card';
+import { loadMetricsQueryOptions } from "@/lib/dashboard/load-metrics-query";
+import { DashboardPanels } from "./dashboard-panels";
+import { MetricCard, type MetricCardProps } from "./metric-card";
 
 const fallbackMetrics: MetricCardProps[] = [
   {
     chartData: [0, 0, 0, 0, 0],
-    change: '--',
-    changeLabel: 'Loading loads',
+    change: "--",
+    changeLabel: "Loading loads",
     icon: Truck,
-    title: 'Active loads',
-    tone: 'teal',
-    value: '—',
+    title: "Active loads",
+    tone: "teal",
+    value: "—",
   },
   {
     chartData: [0, 0, 0, 0, 0],
-    change: '--',
-    changeLabel: 'Loading loads',
+    change: "--",
+    changeLabel: "Loading loads",
     icon: TruckIcon,
-    title: 'Pending loads',
-    tone: 'blue',
-    value: '—',
+    title: "Pending loads",
+    tone: "blue",
+    value: "—",
   },
   {
     chartData: [0, 0, 0, 0, 0],
-    change: '--',
-    changeLabel: 'Loading loads',
+    change: "--",
+    changeLabel: "Loading loads",
     icon: PackageCheck,
-    title: 'Delivered loads',
-    tone: 'red',
-    value: '—',
+    title: "Delivered loads",
+    tone: "red",
+    value: "—",
   },
   {
     chartData: [0, 0, 0, 0, 0],
-    change: '--',
-    changeLabel: 'Loading loads',
+    change: "--",
+    changeLabel: "Loading loads",
     icon: Clock3,
-    title: 'Cancelled loads',
-    tone: 'cyan',
-    value: '—',
+    title: "Cancelled loads",
+    tone: "cyan",
+    value: "—",
   },
 ];
 
 export function DashboardOverview(): React.JSX.Element {
   const { data, isError } = useQuery(loadMetricsQueryOptions());
 
-  const metricIcons: MetricCardProps['icon'][] = [
+  const metricIcons: MetricCardProps["icon"][] = [
     Truck,
     TruckIcon,
     PackageCheck,
     CircleAlert,
   ];
-  const metricTones: MetricCardProps['tone'][] = [
-    'teal',
-    'blue',
-    'cyan',
-    'red',
+  const metricTones: MetricCardProps["tone"][] = [
+    "teal",
+    "blue",
+    "cyan",
+    "red",
   ];
 
   const metrics = data
     ? data.metrics.map((metric, index) => ({
         ...metric,
-        changeLabel: 'of all loads',
+        changeLabel: "of all loads",
         icon: metricIcons[index] ?? Truck,
-        tone: metricTones[index] ?? 'teal',
+        tone: metricTones[index] ?? "teal",
       }))
     : fallbackMetrics;
 
