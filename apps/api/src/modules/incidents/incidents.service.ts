@@ -32,6 +32,7 @@ import type { UpdateIncidentDto } from "./dto/update-incident.dto";
 import type {
   IncidentItem,
   IncidentResponse,
+  IncidentTimelineResponse,
   IncidentsListResponse,
 } from "./incidents.types";
 
@@ -91,6 +92,29 @@ export class IncidentsService {
         limit: query.limit,
         total,
         totalPages: Math.ceil(total / query.limit),
+      },
+    };
+  }
+
+  async findOne(id: string): Promise<IncidentResponse> {
+    return { success: true, data: await this.findIncident(id) };
+  }
+
+  async findTimeline(id: string): Promise<IncidentTimelineResponse> {
+    const incident = await this.findIncident(id);
+
+    return {
+      success: true,
+      data: {
+        incidentId: incident.id,
+        updatedAt: incident.updatedAt,
+        status: incident.status,
+        priority: incident.priority,
+        items: [...incident.timeline].sort(
+          (left, right) =>
+            new Date(right.dateTime).getTime() -
+            new Date(left.dateTime).getTime(),
+        ),
       },
     };
   }

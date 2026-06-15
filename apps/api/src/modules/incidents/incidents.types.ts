@@ -38,3 +38,14 @@ export type IncidentsListResponse = {
 };
 
 export type IncidentResponse = { success: true; data: IncidentItem };
+
+export type IncidentTimelineResponse = {
+  success: true;
+  data: {
+    incidentId: string;
+    updatedAt: string;
+    status: IncidentItem["status"];
+    priority: IncidentItem["priority"];
+    items: IncidentItem["timeline"];
+  };
+};

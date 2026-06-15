@@ -72,8 +72,25 @@ const incidentsResponseSchema = z.object({
   }),
 });
 
+const incidentResponseSchema = z.object({
+  success: z.literal(true),
+  data: incidentSchema,
+});
+
+const incidentTimelineResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    incidentId: z.string().uuid(),
+    updatedAt: z.string(),
+    status: incidentStatusSchema,
+    priority: incidentPrioritySchema,
+    items: z.array(incidentTimelineEventSchema),
+  }),
+});
+
 export type IncidentApiItem = z.infer<typeof incidentSchema>;
 export type IncidentTimelineEvent = z.infer<typeof incidentTimelineEventSchema>;
+export type IncidentTimelineFeed = z.infer<typeof incidentTimelineResponseSchema>["data"];
 export type IncidentsFilters = {
   search: string;
   priority: IncidentApiItem["priority"] | "all";
@@ -107,9 +124,39 @@ export const fetchIncidents = async (
   return incidentsResponseSchema.parse(await response.json());
 };
 
+export const fetchIncident = async (
+  incidentId: string,
+): Promise<IncidentApiItem> => {
+  const response = await fetch(`/api/incidents/${incidentId}`);
+  if (!response.ok) throw new Error("Unable to load incident");
+  return incidentResponseSchema.parse(await response.json()).data;
+};
+
+export const fetchIncidentTimeline = async (
+  incidentId: string,
+): Promise<IncidentTimelineFeed> => {
+  const response = await fetch(`/api/incidents/${incidentId}/timeline`);
+  if (!response.ok) throw new Error("Unable to load incident timeline");
+  return incidentTimelineResponseSchema.parse(await response.json()).data;
+};
+
 export const incidentsQueryOptions = (filters: IncidentsFilters) =>
   queryOptions({
     placeholderData: keepPreviousData,
     queryKey: ["incidents", filters],
     queryFn: () => fetchIncidents(filters),
+  });
+
+export const incidentQueryOptions = (incidentId: string) =>
+  queryOptions({
+    queryKey: ["incidents", incidentId],
+    queryFn: () => fetchIncident(incidentId),
+  });
+
+export const incidentTimelineQueryOptions = (incidentId: string) =>
+  queryOptions({
+    queryKey: ["incidents", incidentId, "timeline"],
+    queryFn: () => fetchIncidentTimeline(incidentId),
+    refetchInterval: 15_000,
+    staleTime: 10_000,
   });
