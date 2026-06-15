@@ -1,46 +1,46 @@
-"use client";
+'use client';
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { LoaderCircle } from "lucide-react";
-import * as React from "react";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { LoaderCircle } from 'lucide-react';
+import * as React from 'react';
 
-import { driversQueryOptions } from "@/lib/drivers/drivers-query";
-import { assignLoadDriver } from "@/lib/loads/load-mutations";
+import { driversQueryOptions } from '@/lib/drivers/drivers-query';
+import { assignLoadDriver } from '@/lib/loads/load-mutations';
 import {
   loadsQueryOptions,
   type LoadApiItem,
   type LoadsFilters,
-} from "@/lib/loads/loads-query";
-import { Button } from "@repo/ui/components/button";
+} from '@/lib/loads/loads-query';
+import { Button } from '@repo/ui/components/button';
 import {
   Dialog,
   DialogClose,
   DialogContent,
   DialogDescription,
   DialogTitle,
-} from "@repo/ui/components/dialog";
-import { Input } from "@repo/ui/components/input";
+} from '@repo/ui/components/dialog';
+import { Input } from '@repo/ui/components/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@repo/ui/components/select";
-import { toast } from "@repo/ui/components/toaster";
+} from '@repo/ui/components/select';
+import { toast } from '@repo/ui/components/toaster';
 
 const loadFilters: LoadsFilters = {
-  search: "",
-  status: "all",
-  pickupFrom: "",
-  pickupTo: "",
+  search: '',
+  status: 'all',
+  pickupFrom: '',
+  pickupTo: '',
   page: 1,
   limit: 100,
 };
 
 const getAssignableLoads = (loads: LoadApiItem[]): LoadApiItem[] =>
   loads.filter(
-    (load) => load.status !== "delivered" && load.status !== "cancelled",
+    (load) => load.status !== 'delivered' && load.status !== 'cancelled'
   );
 
 export const AssignDriverQuickActionDialog = ({
@@ -51,61 +51,61 @@ export const AssignDriverQuickActionDialog = ({
   onOpenChange: (open: boolean) => void;
 }): React.JSX.Element => {
   const queryClient = useQueryClient();
-  const [loadId, setLoadId] = React.useState("");
-  const [driverId, setDriverId] = React.useState("");
+  const [loadId, setLoadId] = React.useState('');
+  const [driverId, setDriverId] = React.useState('');
   const [averageSpeedMph, setAverageSpeedMph] = React.useState(55);
 
   const loadsQuery = useQuery(loadsQueryOptions(loadFilters));
   const driversQuery = useQuery(
     driversQueryOptions({
-      search: "",
-      status: "available",
-      isActive: "true",
+      search: '',
+      status: 'available',
+      isActive: 'true',
       page: 1,
       limit: 100,
-    }),
+    })
   );
 
   const mutation = useMutation({
     mutationFn: assignLoadDriver,
     onError: (error) =>
-      toast.error("Unable to assign driver", { description: error.message }),
+      toast.error('Unable to assign driver', { description: error.message }),
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["loads"] }),
-        queryClient.invalidateQueries({ queryKey: ["drivers"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ['loads'] }),
+        queryClient.invalidateQueries({ queryKey: ['drivers'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
       ]);
       onOpenChange(false);
-      toast.success("Driver assigned and ETA recalculated");
+      toast.success('Driver assigned and ETA recalculated');
     },
   });
   const resetMutation = mutation.reset;
 
   const loads = React.useMemo(
     () => getAssignableLoads(loadsQuery.data?.data ?? []),
-    [loadsQuery.data],
+    [loadsQuery.data]
   );
   const drivers = React.useMemo(
     () =>
       (driversQuery.data?.data ?? []).filter((driver) => driver.truckNumber),
-    [driversQuery.data],
+    [driversQuery.data]
   );
   const selectedLoad = React.useMemo(
     () => loads.find((load) => load.id === loadId) ?? null,
-    [loadId, loads],
+    [loadId, loads]
   );
 
   React.useEffect(() => {
     if (!isOpen) return;
-    setLoadId("");
-    setDriverId("");
+    setLoadId('');
+    setDriverId('');
     setAverageSpeedMph(55);
     resetMutation();
   }, [isOpen, resetMutation]);
 
   React.useEffect(() => {
-    setDriverId(selectedLoad?.driverId ?? "");
+    setDriverId(selectedLoad?.driverId ?? '');
   }, [selectedLoad]);
 
   const isSubmitDisabled =
@@ -149,14 +149,14 @@ export const AssignDriverQuickActionDialog = ({
             {selectedLoad ? (
               <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-primary-700">
                 <p className="font-medium text-ink-900">
-                  {selectedLoad.pickupAddress} {"->"}{" "}
+                  {selectedLoad.pickupAddress} {'->'}{' '}
                   {selectedLoad.deliveryAddress}
                 </p>
                 <p className="mt-1">
-                  Current driver:{" "}
+                  Current driver:{' '}
                   {selectedLoad.driver
                     ? `${selectedLoad.driver.firstName} ${selectedLoad.driver.lastName}`
-                    : "Not assigned"}
+                    : 'Not assigned'}
                 </p>
               </div>
             ) : null}
@@ -174,7 +174,7 @@ export const AssignDriverQuickActionDialog = ({
                 <SelectContent>
                   {drivers.map((driver) => (
                     <SelectItem key={driver.id} value={driver.id}>
-                      {driver.firstName} {driver.lastName} ·{" "}
+                      {driver.firstName} {driver.lastName} ·{' '}
                       {driver.truckNumber}
                     </SelectItem>
                   ))}
@@ -217,7 +217,7 @@ export const AssignDriverQuickActionDialog = ({
             ) : null}
           </div>
 
-          <div className="flex justify-end gap-3 border-t border-border bg-white px-7 py-4">
+          <div className="flex justify-end gap-3 border-t border-border  px-7 py-4">
             <DialogClose asChild>
               <Button type="button" variant="outline">
                 Cancel
@@ -231,7 +231,7 @@ export const AssignDriverQuickActionDialog = ({
               {mutation.isPending ? (
                 <LoaderCircle className="animate-spin" />
               ) : null}
-              {mutation.isPending ? "Assigning..." : "Assign driver"}
+              {mutation.isPending ? 'Assigning...' : 'Assign driver'}
             </Button>
           </div>
         </form>
