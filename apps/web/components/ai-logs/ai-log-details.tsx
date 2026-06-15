@@ -25,9 +25,9 @@ const Detail = ({
 );
 
 export const AiLogDetails = ({ log, onClose }: Props): React.JSX.Element => {
-  const [copiedField, setCopiedField] = React.useState<"prompt" | "response" | null>(
-    null,
-  );
+  const [copiedField, setCopiedField] = React.useState<
+    "prompt" | "response" | null
+  >(null);
 
   const copyText = async (
     value: string,

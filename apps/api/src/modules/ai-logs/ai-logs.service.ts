@@ -12,7 +12,12 @@ import type {
   CreateAiLogResponse,
 } from "./ai-logs.types";
 
-type MetricBucketKey = "avgLatencyMs" | "costUsd" | "errors" | "requests" | "tokens";
+type MetricBucketKey =
+  | "avgLatencyMs"
+  | "costUsd"
+  | "errors"
+  | "requests"
+  | "tokens";
 
 type MetricsSourceRow = {
   completedAt: Date | null;
@@ -82,7 +87,13 @@ export class AiLogsService {
 
     const trendMap = new Map<
       string,
-      { costUsd: number; errors: number; latencyTotalMs: number; requests: number; tokens: number }
+      {
+        costUsd: number;
+        errors: number;
+        latencyTotalMs: number;
+        requests: number;
+        tokens: number;
+      }
     >();
 
     for (let offset = 0; offset < 7; offset += 1) {
@@ -118,7 +129,10 @@ export class AiLogsService {
       totals.tokens += row.totalTokens;
       totals.costUsd += costUsd;
 
-      if (loggedAtTime >= todayStart.getTime() && loggedAtTime < tomorrowStart.getTime()) {
+      if (
+        loggedAtTime >= todayStart.getTime() &&
+        loggedAtTime < tomorrowStart.getTime()
+      ) {
         todayTotals.requests += 1;
         todayTotals.latencyTotalMs += row.latencyMs;
         todayTotals.errors += errorCount;
@@ -135,7 +149,10 @@ export class AiLogsService {
         yesterdayTotals.costUsd += costUsd;
       }
 
-      if (loggedAtTime >= sevenDaysAgoStart.getTime() && loggedAtTime < tomorrowStart.getTime()) {
+      if (
+        loggedAtTime >= sevenDaysAgoStart.getTime() &&
+        loggedAtTime < tomorrowStart.getTime()
+      ) {
         const dayKey = this.toUtcDayKey(loggedAt);
         const bucket = trendMap.get(dayKey);
         if (bucket) {
@@ -172,7 +189,10 @@ export class AiLogsService {
           costUsd: Number(totals.costUsd.toFixed(6)),
         },
         changesVsYesterday: {
-          requests: this.getPercentChange(todayTotals.requests, yesterdayTotals.requests),
+          requests: this.getPercentChange(
+            todayTotals.requests,
+            yesterdayTotals.requests,
+          ),
           avgLatencyMs: this.getPercentChange(
             todayTotals.requests
               ? todayTotals.latencyTotalMs / todayTotals.requests
@@ -181,9 +201,18 @@ export class AiLogsService {
               ? yesterdayTotals.latencyTotalMs / yesterdayTotals.requests
               : 0,
           ),
-          errors: this.getPercentChange(todayTotals.errors, yesterdayTotals.errors),
-          tokens: this.getPercentChange(todayTotals.tokens, yesterdayTotals.tokens),
-          costUsd: this.getPercentChange(todayTotals.costUsd, yesterdayTotals.costUsd),
+          errors: this.getPercentChange(
+            todayTotals.errors,
+            yesterdayTotals.errors,
+          ),
+          tokens: this.getPercentChange(
+            todayTotals.tokens,
+            yesterdayTotals.tokens,
+          ),
+          costUsd: this.getPercentChange(
+            todayTotals.costUsd,
+            yesterdayTotals.costUsd,
+          ),
         },
         trend,
       },

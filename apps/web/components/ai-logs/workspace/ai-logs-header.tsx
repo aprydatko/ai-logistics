@@ -1,5 +1,3 @@
-
-
 export const AiLogsHeader = (): React.JSX.Element => (
   <header className="flex shrink-0 flex-col justify-between gap-4 lg:flex-row lg:items-end">
     <div>
