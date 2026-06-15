@@ -12,6 +12,12 @@ export type AssistantApiResponse = {
     message: string;
     model: string;
   };
+  linkedEntity?: {
+    recordId: string;
+    route?: string;
+    title: string;
+    type: string;
+  };
   status?: "placeholder" | "configured" | "error";
 };
 
