@@ -1,5 +1,7 @@
 import type {
   Document,
+  DocumentAuditEvent,
+  DocumentExtractedField,
   DocumentsListResponse,
   DocumentResponse,
   ListDocumentsQueryDto,
@@ -19,6 +21,51 @@ export const documentStatusSchema = z.enum([
   "processing",
   "needs_review",
 ]);
+
+const documentExtractedFieldStatusSchema = z.enum([
+  "extracted",
+  "edited",
+  "confirmed",
+  "rejected",
+  "missing",
+]);
+
+const documentExtractedFieldSchema: z.ZodType<DocumentExtractedField> =
+  z.object({
+    id: z.string().uuid(),
+    fieldKey: z.string(),
+    label: z.string(),
+    rawValue: z.string().nullable(),
+    normalizedValue: z.string().nullable(),
+    confidence: z.number().int().min(0).max(100).nullable(),
+    status: documentExtractedFieldStatusSchema,
+    extractedAt: z.string(),
+    reviewedAt: z.string().nullable(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  });
+
+const documentAuditEventToneSchema = z.enum(["green", "navy", "violet"]);
+const documentAuditEventKindSchema = z.enum([
+  "uploaded",
+  "ai_extraction",
+  "load_link",
+  "driver_link",
+  "custom",
+]);
+
+const documentAuditEventSchema: z.ZodType<DocumentAuditEvent> = z.object({
+  id: z.string().uuid(),
+  kind: documentAuditEventKindSchema,
+  label: z.string(),
+  actor: z.string(),
+  actorBadge: z.string(),
+  role: z.string(),
+  tone: documentAuditEventToneSchema,
+  timestamp: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
 
 export const documentSchema: z.ZodType<Document> = z.object({
   id: z.string().uuid(),
@@ -51,6 +98,8 @@ export const documentSchema: z.ZodType<Document> = z.object({
       referenceNumber: z.string(),
     })
     .nullable(),
+  extractedFields: z.array(documentExtractedFieldSchema),
+  auditEvents: z.array(documentAuditEventSchema),
   uploadedAt: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),

@@ -1,6 +1,47 @@
-import { IsIn, IsOptional, IsUUID } from "class-validator";
+import { Transform } from "class-transformer";
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  MaxLength,
+  Min,
+} from "class-validator";
+
+const trimString = ({ value }: { value: unknown }): unknown =>
+  typeof value === "string" ? value.trim() : value;
 
 export class UpdateDocumentDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  @Transform(trimString)
+  fileName?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(["application/pdf", "image/jpeg", "image/png", "image/webp"])
+  mimeType?: "application/pdf" | "image/jpeg" | "image/png" | "image/webp";
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  @Transform(trimString)
+  extractionModel?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  pageCount?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(60 * 60 * 1000)
+  processingTimeMs?: number | null;
+
   @IsOptional()
   @IsIn([
     "bill_of_lading",

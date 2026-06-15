@@ -3,6 +3,8 @@ import type {
   DeleteDocumentResponse,
   Document,
   DocumentResponse,
+  ReplaceDocumentAuditEventsDto,
+  ReplaceDocumentExtractedFieldsDto,
   UpdateDocumentDto,
 } from "@repo/shared";
 import { z } from "zod";
@@ -66,6 +68,52 @@ export const createDocument = async (
   if (!response.ok) {
     throw new Error(
       await extractDocumentApiError(response, "Unable to add document"),
+    );
+  }
+  return documentResponseSchema.parse(await response.json()).data;
+};
+
+export const replaceDocumentExtractedFields = async ({
+  documentId,
+  fields,
+}: {
+  documentId: string;
+  fields: ReplaceDocumentExtractedFieldsDto["fields"];
+}): Promise<Document> => {
+  const response = await fetch(
+    `/api/documents/${documentId}/extracted-fields`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fields }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await extractDocumentApiError(
+        response,
+        "Unable to save extracted fields",
+      ),
+    );
+  }
+  return documentResponseSchema.parse(await response.json()).data;
+};
+
+export const replaceDocumentAuditEvents = async ({
+  documentId,
+  events,
+}: {
+  documentId: string;
+  events: ReplaceDocumentAuditEventsDto["events"];
+}): Promise<Document> => {
+  const response = await fetch(`/api/documents/${documentId}/audit-events`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ events }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      await extractDocumentApiError(response, "Unable to save audit events"),
     );
   }
   return documentResponseSchema.parse(await response.json()).data;

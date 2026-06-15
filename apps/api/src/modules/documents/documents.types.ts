@@ -1,4 +1,27 @@
-import type { DocumentRecord } from "../../db/schema";
+import type {
+  DocumentAuditEventRecord,
+  DocumentExtractedFieldRecord,
+  DocumentRecord,
+} from "../../db/schema";
+
+export type DocumentAuditEventItem = Omit<
+  DocumentAuditEventRecord,
+  "createdAt" | "documentId" | "eventAt" | "updatedAt"
+> & {
+  timestamp: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DocumentExtractedFieldItem = Omit<
+  DocumentExtractedFieldRecord,
+  "createdAt" | "extractedAt" | "reviewedAt" | "updatedAt"
+> & {
+  extractedAt: string;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export type DocumentItem = Omit<
   DocumentRecord,
@@ -28,6 +51,8 @@ export type DocumentItem = Omit<
   uploadedAt: string;
   createdAt: string;
   updatedAt: string;
+  extractedFields: DocumentExtractedFieldItem[];
+  auditEvents: DocumentAuditEventItem[];
 };
 
 export type DocumentsListResult = {
