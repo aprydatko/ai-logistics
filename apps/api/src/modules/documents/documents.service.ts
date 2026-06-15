@@ -18,7 +18,9 @@ import {
 
 import { DatabaseService } from "../../db/database.service";
 import {
+  documentAuditEvents,
   documents,
+  documentExtractedFields,
   driverDocuments,
   drivers,
   loads,
@@ -27,8 +29,12 @@ import {
 } from "../../db/schema";
 import type { ListDocumentsQueryDto } from "./dto/list-documents-query.dto";
 import type { CreateDocumentDto } from "./dto/create-document.dto";
+import type { UpdateDocumentAuditEventDto } from "./dto/update-document-audit-event.dto";
 import type { UpdateDocumentDto } from "./dto/update-document.dto";
+import type { UpdateDocumentExtractedFieldDto } from "./dto/update-document-extracted-field.dto";
 import type {
+  DocumentAuditEventItem,
+  DocumentExtractedFieldItem,
   DeleteDocumentResult,
   DocumentItem,
   DocumentResult,
@@ -80,6 +86,8 @@ export class DocumentsService {
           row.fileUrl,
           row.document.mimeType ?? row.driverDocumentMimeType,
           row.uploadedBy,
+          [],
+          [],
         ),
       ),
       pagination: {
@@ -95,6 +103,17 @@ export class DocumentsService {
     const [row] = await this.baseSelect().where(eq(documents.id, id)).limit(1);
 
     if (!row) throw new NotFoundException("Document was not found");
+    const extractedFields = await this.databaseService.client
+      .select()
+      .from(documentExtractedFields)
+      .where(eq(documentExtractedFields.documentId, id))
+      .orderBy(asc(documentExtractedFields.createdAt));
+    const auditEvents = await this.databaseService.client
+      .select()
+      .from(documentAuditEvents)
+      .where(eq(documentAuditEvents.documentId, id))
+      .orderBy(asc(documentAuditEvents.createdAt));
+
     return {
       success: true,
       data: this.toDocument(
@@ -104,6 +123,8 @@ export class DocumentsService {
         row.fileUrl,
         row.document.mimeType ?? row.driverDocumentMimeType,
         row.uploadedBy,
+        extractedFields.map((field) => this.toDocumentExtractedField(field)),
+        auditEvents.map((event) => this.toDocumentAuditEvent(event)),
       ),
     };
   }
@@ -150,6 +171,15 @@ export class DocumentsService {
     }
 
     const values = {
+      ...(dto.fileName !== undefined && { fileName: dto.fileName }),
+      ...(dto.mimeType !== undefined && { mimeType: dto.mimeType }),
+      ...(dto.extractionModel !== undefined && {
+        extractionModel: dto.extractionModel,
+      }),
+      ...(dto.pageCount !== undefined && { pageCount: dto.pageCount }),
+      ...(dto.processingTimeMs !== undefined && {
+        processingTimeMs: dto.processingTimeMs,
+      }),
       ...(dto.type !== undefined && { type: dto.type }),
       ...(dto.status !== undefined && { status: dto.status }),
       ...(dto.driverId !== undefined && { driverId: dto.driverId }),
@@ -163,6 +193,72 @@ export class DocumentsService {
       .returning({ id: documents.id });
 
     if (!updated) throw new NotFoundException("Document was not found");
+    return this.findOne(id);
+  }
+
+  async replaceExtractedFields(
+    id: string,
+    fields: UpdateDocumentExtractedFieldDto[],
+  ): Promise<DocumentResult> {
+    await this.findOne(id);
+
+    await this.databaseService.client
+      .delete(documentExtractedFields)
+      .where(eq(documentExtractedFields.documentId, id));
+
+    if (fields.length > 0) {
+      const now = new Date();
+      await this.databaseService.client.insert(documentExtractedFields).values(
+        fields.map((field) => ({
+          documentId: id,
+          fieldKey: field.fieldKey,
+          label: field.label,
+          rawValue: field.rawValue ?? null,
+          normalizedValue: field.normalizedValue ?? null,
+          confidence: field.confidence ?? null,
+          status: field.status,
+          extractedAt: now,
+          reviewedAt:
+            field.status === "confirmed" || field.status === "rejected"
+              ? now
+              : null,
+          createdAt: now,
+          updatedAt: now,
+        })),
+      );
+    }
+
+    return this.findOne(id);
+  }
+
+  async replaceAuditEvents(
+    id: string,
+    events: UpdateDocumentAuditEventDto[],
+  ): Promise<DocumentResult> {
+    await this.findOne(id);
+
+    await this.databaseService.client
+      .delete(documentAuditEvents)
+      .where(eq(documentAuditEvents.documentId, id));
+
+    if (events.length > 0) {
+      const now = new Date();
+      await this.databaseService.client.insert(documentAuditEvents).values(
+        events.map((event) => ({
+          documentId: id,
+          kind: event.kind,
+          label: event.label,
+          actor: event.actor,
+          actorBadge: event.actorBadge,
+          role: event.role,
+          tone: event.tone,
+          eventAt: event.timestamp ? new Date(event.timestamp) : null,
+          createdAt: now,
+          updatedAt: now,
+        })),
+      );
+    }
+
     return this.findOne(id);
   }
 
@@ -247,6 +343,8 @@ export class DocumentsService {
     fileUrl: string | null = null,
     mimeType: string | null = null,
     uploadedBy: DocumentItem["uploadedBy"] = null,
+    extractedFields: DocumentExtractedFieldItem[] = [],
+    auditEvents: DocumentAuditEventItem[] = [],
   ): DocumentItem {
     return {
       id: document.id,
@@ -262,9 +360,40 @@ export class DocumentsService {
       uploadedBy: uploadedBy?.id ? uploadedBy : null,
       driver: driver?.id ? driver : null,
       load: load?.id ? load : null,
+      extractedFields,
+      auditEvents,
       uploadedAt: document.uploadedAt.toISOString(),
       createdAt: document.createdAt.toISOString(),
       updatedAt: document.updatedAt.toISOString(),
+    };
+  }
+
+  private toDocumentExtractedField(
+    field: typeof documentExtractedFields.$inferSelect,
+  ): DocumentExtractedFieldItem {
+    return {
+      ...field,
+      extractedAt: field.extractedAt.toISOString(),
+      reviewedAt: field.reviewedAt?.toISOString() ?? null,
+      createdAt: field.createdAt.toISOString(),
+      updatedAt: field.updatedAt.toISOString(),
+    };
+  }
+
+  private toDocumentAuditEvent(
+    event: typeof documentAuditEvents.$inferSelect,
+  ): DocumentAuditEventItem {
+    return {
+      id: event.id,
+      kind: event.kind,
+      label: event.label,
+      actor: event.actor,
+      actorBadge: event.actorBadge,
+      role: event.role,
+      tone: event.tone,
+      timestamp: event.eventAt?.toISOString() ?? null,
+      createdAt: event.createdAt.toISOString(),
+      updatedAt: event.updatedAt.toISOString(),
     };
   }
 

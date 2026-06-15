@@ -7,6 +7,19 @@ export type DocumentType =
   | "driver_license";
 
 export type DocumentStatus = "complete" | "processing" | "needs_review";
+export type DocumentExtractedFieldStatus =
+  | "extracted"
+  | "edited"
+  | "confirmed"
+  | "rejected"
+  | "missing";
+export type DocumentAuditEventTone = "green" | "navy" | "violet";
+export type DocumentAuditEventKind =
+  | "uploaded"
+  | "ai_extraction"
+  | "load_link"
+  | "driver_link"
+  | "custom";
 
 export type DocumentDriverSummary = {
   id: string;
@@ -25,6 +38,33 @@ export type DocumentUploaderSummary = {
   lastName: string;
 };
 
+export type DocumentExtractedField = {
+  id: string;
+  fieldKey: string;
+  label: string;
+  rawValue: string | null;
+  normalizedValue: string | null;
+  confidence: number | null;
+  status: DocumentExtractedFieldStatus;
+  extractedAt: ISODateString;
+  reviewedAt: ISODateString | null;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+};
+
+export type DocumentAuditEvent = {
+  id: string;
+  kind: DocumentAuditEventKind;
+  label: string;
+  actor: string;
+  actorBadge: string;
+  role: string;
+  tone: DocumentAuditEventTone;
+  timestamp: ISODateString | null;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+};
+
 export interface Document extends BaseEntity {
   fileName: string;
   fileSize: number;
@@ -38,5 +78,7 @@ export interface Document extends BaseEntity {
   uploadedBy: DocumentUploaderSummary | null;
   driver: DocumentDriverSummary | null;
   load: DocumentLoadSummary | null;
+  extractedFields: DocumentExtractedField[];
+  auditEvents: DocumentAuditEvent[];
   uploadedAt: ISODateString;
 }

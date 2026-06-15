@@ -25,8 +25,40 @@ export type CreateDocumentDto = Pick<
 };
 
 export type UpdateDocumentDto = Partial<Pick<Document, "type" | "status">> & {
+  fileName?: string;
+  mimeType?: string | null;
+  extractionModel?: string | null;
+  pageCount?: number | null;
+  processingTimeMs?: number | null;
   driverId?: string | null;
   loadId?: string | null;
+};
+
+export type UpdateDocumentExtractedFieldDto = {
+  fieldKey: string;
+  label: string;
+  rawValue?: string | null;
+  normalizedValue?: string | null;
+  confidence?: number | null;
+  status: Document["extractedFields"][number]["status"];
+};
+
+export type ReplaceDocumentExtractedFieldsDto = {
+  fields: UpdateDocumentExtractedFieldDto[];
+};
+
+export type UpdateDocumentAuditEventDto = {
+  kind: Document["auditEvents"][number]["kind"];
+  label: string;
+  actor: string;
+  actorBadge: string;
+  role: string;
+  tone: Document["auditEvents"][number]["tone"];
+  timestamp?: string | null;
+};
+
+export type ReplaceDocumentAuditEventsDto = {
+  events: UpdateDocumentAuditEventDto[];
 };
 
 export type DocumentsListResponse = {

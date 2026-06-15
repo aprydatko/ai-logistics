@@ -127,6 +127,20 @@
       "when": 1781472352607,
       "tag": "0017_absent_human_fly",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1781513009708,
+      "tag": "0018_lethal_carnage",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1781516037683,
+      "tag": "0019_flowery_glorian",
+      "breakpoints": true
     }
   ]
 }

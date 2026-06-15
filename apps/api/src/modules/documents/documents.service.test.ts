@@ -3,7 +3,11 @@ import type { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, it, vi } from "vitest";
 
-import type { DocumentRecord } from "../../db/schema";
+import type {
+  DocumentAuditEventRecord,
+  DocumentExtractedFieldRecord,
+  DocumentRecord,
+} from "../../db/schema";
 import { DocumentsService } from "./documents.service";
 
 const document: DocumentRecord = {
@@ -42,6 +46,37 @@ const joined = {
     id: document.loadId,
     referenceNumber: "LD-1001",
   },
+};
+
+const extractedField: DocumentExtractedFieldRecord = {
+  id: "55555555-5555-4555-8555-555555555555",
+  documentId: document.id,
+  fieldKey: "bol_number",
+  label: "BOL number",
+  rawValue: "78291",
+  normalizedValue: "78291",
+  confidence: 99,
+  status: "extracted",
+  extractedAt: new Date("2026-06-10T10:00:00.000Z"),
+  extractedByUserId: null,
+  reviewedAt: null,
+  reviewedByUserId: null,
+  createdAt: new Date("2026-06-10T10:00:00.000Z"),
+  updatedAt: new Date("2026-06-10T10:00:00.000Z"),
+};
+
+const auditEvent: DocumentAuditEventRecord = {
+  id: "66666666-6666-4666-8666-666666666666",
+  documentId: document.id,
+  kind: "custom",
+  label: "Reviewed by dispatcher",
+  actor: "Alex Dispatcher",
+  actorBadge: "AD",
+  role: "Operator",
+  tone: "navy",
+  eventAt: new Date("2026-06-10T10:05:00.000Z"),
+  createdAt: new Date("2026-06-10T10:05:00.000Z"),
+  updatedAt: new Date("2026-06-10T10:05:00.000Z"),
 };
 
 const makeSelectChain = (result: unknown) => {
@@ -102,6 +137,8 @@ describe("DocumentsService", () => {
           uploadedBy: joined.uploadedBy,
           driver: joined.driver,
           load: joined.load,
+          extractedFields: [],
+          auditEvents: [],
           uploadedAt: document.uploadedAt.toISOString(),
           createdAt: document.createdAt.toISOString(),
           updatedAt: document.updatedAt.toISOString(),
@@ -207,17 +244,87 @@ describe("DocumentsService", () => {
   it("maps missing joined relations to null", async () => {
     const row = {
       document: { ...document, driverId: null, loadId: null },
+      fileUrl: null,
+      driverDocumentMimeType: null,
+      uploadedBy: null,
       driver: null,
       load: null,
     };
-    const select = makeSelectChain([row]);
-    const client = { select: vi.fn().mockReturnValue(select) };
+    const detail = makeSelectChain([row]);
+    const fields = makeSelectChain([]);
+    const audits = makeSelectChain([]);
+    const client = {
+      select: vi
+        .fn()
+        .mockReturnValueOnce(detail)
+        .mockReturnValueOnce(fields)
+        .mockReturnValueOnce(audits),
+    };
     const service = new DocumentsService({ client } as never);
 
     const result = await service.findOne(document.id);
 
     expect(result.data.driver).toBeNull();
     expect(result.data.load).toBeNull();
+    expect(result.data.extractedFields).toEqual([]);
+    expect(result.data.auditEvents).toEqual([]);
+  });
+
+  it("returns extracted fields on detail responses", async () => {
+    const detail = makeSelectChain([joined]);
+    const fields = makeSelectChain([extractedField]);
+    const audits = makeSelectChain([]);
+    const client = {
+      select: vi
+        .fn()
+        .mockReturnValueOnce(detail)
+        .mockReturnValueOnce(fields)
+        .mockReturnValueOnce(audits),
+    };
+    const service = new DocumentsService({ client } as never);
+
+    const result = await service.findOne(document.id);
+
+    expect(result.data.extractedFields).toEqual([
+      {
+        ...extractedField,
+        extractedAt: extractedField.extractedAt.toISOString(),
+        reviewedAt: null,
+        createdAt: extractedField.createdAt.toISOString(),
+        updatedAt: extractedField.updatedAt.toISOString(),
+      },
+    ]);
+  });
+
+  it("returns audit events on detail responses", async () => {
+    const detail = makeSelectChain([joined]);
+    const fields = makeSelectChain([]);
+    const audits = makeSelectChain([auditEvent]);
+    const client = {
+      select: vi
+        .fn()
+        .mockReturnValueOnce(detail)
+        .mockReturnValueOnce(fields)
+        .mockReturnValueOnce(audits),
+    };
+    const service = new DocumentsService({ client } as never);
+
+    const result = await service.findOne(document.id);
+
+    expect(result.data.auditEvents).toEqual([
+      {
+        id: auditEvent.id,
+        kind: auditEvent.kind,
+        label: auditEvent.label,
+        actor: auditEvent.actor,
+        actorBadge: auditEvent.actorBadge,
+        role: auditEvent.role,
+        tone: auditEvent.tone,
+        timestamp: auditEvent.eventAt!.toISOString(),
+        createdAt: auditEvent.createdAt.toISOString(),
+        updatedAt: auditEvent.updatedAt.toISOString(),
+      },
+    ]);
   });
 
   it("returns not found for a missing document", async () => {
@@ -273,19 +380,36 @@ describe("DocumentsService", () => {
     updateChain.set.mockReturnValue(updateChain);
     updateChain.where.mockReturnValue(updateChain);
     const detail = makeSelectChain([joined]);
+    const fields = makeSelectChain([]);
+    const audits = makeSelectChain([]);
     const client = {
-      select: vi.fn().mockReturnValueOnce(relation).mockReturnValueOnce(detail),
+      select: vi
+        .fn()
+        .mockReturnValueOnce(relation)
+        .mockReturnValueOnce(detail)
+        .mockReturnValueOnce(fields)
+        .mockReturnValueOnce(audits),
       update: vi.fn().mockReturnValue(updateChain),
     };
     const service = new DocumentsService({ client } as never);
 
     await expect(
       service.update(document.id, {
+        fileName: "bol-1001-reviewed.pdf",
+        mimeType: "image/png",
+        extractionModel: "Document Extractor v3.0",
+        pageCount: 3,
+        processingTimeMs: 5100,
         status: "complete",
         driverId: document.driverId,
       }),
     ).resolves.toMatchObject({ success: true, data: { id: document.id } });
     expect(updateChain.set).toHaveBeenCalledWith({
+      fileName: "bol-1001-reviewed.pdf",
+      mimeType: "image/png",
+      extractionModel: "Document Extractor v3.0",
+      pageCount: 3,
+      processingTimeMs: 5100,
       status: "complete",
       driverId: document.driverId,
       updatedAt: expect.any(Date),
@@ -319,5 +443,117 @@ describe("DocumentsService", () => {
     await expect(service.remove(document.id)).rejects.toThrow(
       NotFoundException,
     );
+  });
+
+  it("replaces extracted fields and returns the refreshed document", async () => {
+    const detailBefore = makeSelectChain([joined]);
+    const fieldsBefore = makeSelectChain([]);
+    const auditsBefore = makeSelectChain([]);
+    const deleteChain = {
+      where: vi.fn().mockResolvedValue([]),
+    };
+    deleteChain.where.mockReturnValue(deleteChain);
+    const insertChain = {
+      values: vi.fn().mockResolvedValue([]),
+    };
+    const detailAfter = makeSelectChain([joined]);
+    const fieldsAfter = makeSelectChain([extractedField]);
+    const auditsAfter = makeSelectChain([]);
+    const client = {
+      select: vi
+        .fn()
+        .mockReturnValueOnce(detailBefore)
+        .mockReturnValueOnce(fieldsBefore)
+        .mockReturnValueOnce(auditsBefore)
+        .mockReturnValueOnce(detailAfter)
+        .mockReturnValueOnce(fieldsAfter)
+        .mockReturnValueOnce(auditsAfter),
+      delete: vi.fn().mockReturnValue(deleteChain),
+      insert: vi.fn().mockReturnValue(insertChain),
+    };
+    const service = new DocumentsService({ client } as never);
+
+    const result = await service.replaceExtractedFields(document.id, [
+      {
+        fieldKey: "bol_number",
+        label: "BOL number",
+        rawValue: "78291",
+        normalizedValue: "78291",
+        confidence: 99,
+        status: "edited",
+      },
+    ]);
+
+    expect(client.delete).toHaveBeenCalled();
+    expect(deleteChain.where).toHaveBeenCalled();
+    expect(client.insert).toHaveBeenCalled();
+    expect(insertChain.values).toHaveBeenCalledWith([
+      expect.objectContaining({
+        documentId: document.id,
+        fieldKey: "bol_number",
+        label: "BOL number",
+        rawValue: "78291",
+        normalizedValue: "78291",
+        confidence: 99,
+        status: "edited",
+      }),
+    ]);
+    expect(result.data.extractedFields).toHaveLength(1);
+  });
+
+  it("replaces audit events and returns the refreshed document", async () => {
+    const detailBefore = makeSelectChain([joined]);
+    const fieldsBefore = makeSelectChain([]);
+    const auditsBefore = makeSelectChain([]);
+    const deleteChain = {
+      where: vi.fn().mockResolvedValue([]),
+    };
+    deleteChain.where.mockReturnValue(deleteChain);
+    const insertChain = {
+      values: vi.fn().mockResolvedValue([]),
+    };
+    const detailAfter = makeSelectChain([joined]);
+    const fieldsAfter = makeSelectChain([]);
+    const auditsAfter = makeSelectChain([auditEvent]);
+    const client = {
+      select: vi
+        .fn()
+        .mockReturnValueOnce(detailBefore)
+        .mockReturnValueOnce(fieldsBefore)
+        .mockReturnValueOnce(auditsBefore)
+        .mockReturnValueOnce(detailAfter)
+        .mockReturnValueOnce(fieldsAfter)
+        .mockReturnValueOnce(auditsAfter),
+      delete: vi.fn().mockReturnValue(deleteChain),
+      insert: vi.fn().mockReturnValue(insertChain),
+    };
+    const service = new DocumentsService({ client } as never);
+
+    const result = await service.replaceAuditEvents(document.id, [
+      {
+        kind: "custom",
+        label: "Reviewed by dispatcher",
+        actor: "Alex Dispatcher",
+        actorBadge: "AD",
+        role: "Operator",
+        tone: "navy",
+        timestamp: "2026-06-10T10:05:00.000Z",
+      },
+    ]);
+
+    expect(client.delete).toHaveBeenCalled();
+    expect(client.insert).toHaveBeenCalled();
+    expect(insertChain.values).toHaveBeenCalledWith([
+      expect.objectContaining({
+        documentId: document.id,
+        kind: "custom",
+        label: "Reviewed by dispatcher",
+        actor: "Alex Dispatcher",
+        actorBadge: "AD",
+        role: "Operator",
+        tone: "navy",
+      }),
+    ]);
+    expect(result.data.auditEvents).toHaveLength(1);
   });
 });
