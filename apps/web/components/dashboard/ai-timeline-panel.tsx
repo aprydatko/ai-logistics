@@ -17,6 +17,7 @@ import {
   type IncidentApiItem,
   type IncidentTimelineEvent,
 } from "@/lib/incidents/incidents-query";
+import { useIncidentTimelineLive } from "@/lib/incidents/incident-timeline-live";
 import {
   incidentPriorityLabels,
   incidentStatusLabels,
@@ -116,6 +117,7 @@ export function AiTimelinePanel(): React.JSX.Element {
     ...incidentTimelineQueryOptions(featuredIncident?.id ?? ""),
     enabled: Boolean(featuredIncident?.id),
   });
+  useIncidentTimelineLive(featuredIncident?.id ?? null, Boolean(featuredIncident));
 
   if (incidentsQuery.isError) {
     return (
@@ -165,7 +167,7 @@ export function AiTimelinePanel(): React.JSX.Element {
             <h2 className="text-sm font-bold text-ink-900">AI timeline</h2>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-[0.65rem] font-semibold text-emerald-700">
               <span className="size-1.5 rounded-full bg-emerald-500" />
-              Polling live
+              Live
             </span>
           </div>
           <p className="mt-1 text-xs text-primary-700">
@@ -195,7 +197,8 @@ export function AiTimelinePanel(): React.JSX.Element {
           {incidentStatusLabels[featuredIncident.status]}
         </span>
         <span className="text-[0.65rem] text-primary-700">
-          Updated {formatTimestamp(featuredIncident.updatedAt)}
+          Updated{" "}
+          {formatTimestamp(timelineQuery.data?.updatedAt ?? featuredIncident.updatedAt)}
         </span>
       </div>
 

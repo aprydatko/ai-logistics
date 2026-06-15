@@ -14,9 +14,11 @@ import { DatabaseService } from "../../db/database.service";
 import { users, type UserRecord } from "../../db/schema";
 import type {
   AccessTokenPayload,
+  AuthenticatedUser,
   LoginResponse,
   PublicUser,
   RefreshTokenPayload,
+  SocketTokenResponse,
 } from "./auth.types";
 import { LoginDto, RefreshTokenDto, RegisterDto } from "./dto";
 
@@ -112,6 +114,27 @@ export class AuthService {
     return {
       ...tokens,
       user: this.toPublicUser(user),
+    };
+  }
+
+  async createSocketToken(
+    user: AuthenticatedUser,
+  ): Promise<SocketTokenResponse> {
+    const expiresInSeconds = 2 * 60;
+    const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
+    const token = await this.jwtService.signAsync(
+      {
+        sub: user.id,
+        email: user.email,
+        role: user.role,
+        tokenType: "socket",
+      },
+      { expiresIn: `${expiresInSeconds}s` },
+    );
+
+    return {
+      token,
+      expiresAt: expiresAt.toISOString(),
     };
   }
 
