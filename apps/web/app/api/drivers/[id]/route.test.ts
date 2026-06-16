@@ -34,16 +34,18 @@ describe("DELETE /api/drivers/:id", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(fetchMock).toHaveBeenCalledWith(
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBeInstanceOf(URL);
+    expect(fetchMock.mock.calls[0]?.[0]?.toString()).toBe(
       `http://localhost:3001/api/drivers/${driverId}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: "Bearer valid-access-token",
-        },
-        body: undefined,
-        cache: "no-store",
-      },
     );
+    expect(fetchMock.mock.calls[0]?.[1]).toEqual({
+      method: "DELETE",
+      headers: {
+        Authorization: "Bearer valid-access-token",
+      },
+      body: undefined,
+      cache: "no-store",
+    });
   });
 });
