@@ -34,7 +34,27 @@ export class DocumentVisionService {
     return this.openai !== null;
   }
 
-  async analyze(file: Express.Multer.File): Promise<DocumentVisionAnalysis | null> {
+  /**
+   * Analyzes a document file using OpenAI Vision API to extract structured data.
+   *
+   * This method converts the file to base64, formats it appropriately for PDF or image files,
+   * and sends it to OpenAI's vision model with a structured prompt for extracting logistics
+   * document fields. It handles both PDF and image formats with different content structures.
+   *
+   * @param file - The uploaded file to analyze
+   * @returns Analysis results with extracted fields, or null if service is disabled or analysis fails
+   *
+   * @example
+   * ```ts
+   * const analysis = await documentVisionService.analyze(uploadedFile);
+   * if (analysis) {
+   *   console.log(`Extracted ${analysis.extractedFields.length} fields`);
+   * }
+   * ```
+   */
+  async analyze(
+    file: Express.Multer.File,
+  ): Promise<DocumentVisionAnalysis | null> {
     if (!this.openai) return null;
 
     const content =
@@ -44,13 +64,13 @@ export class DocumentVisionService {
               type: "input_file" as const,
               filename: file.originalname,
               file_data: file.buffer.toString("base64"),
-              detail: "high" as const,
+              detail: "low" as const,
             },
           ]
         : [
             {
               type: "input_image" as const,
-              detail: "high" as const,
+              detail: "low" as const,
               image_url: `data:${file.mimetype};base64,${file.buffer.toString("base64")}`,
             },
           ];
@@ -100,6 +120,18 @@ export class DocumentVisionService {
     }
   }
 
+  /**
+   * Parses and validates the OpenAI Vision API response.
+   *
+   * This method safely parses the JSON response from OpenAI, validates the structure,
+   * and normalizes the extracted field data. It handles malformed responses gracefully
+   * by returning an empty array. The method performs type checking and data normalization
+   * including trimming strings, clamping confidence values to 0-100 range, and ensuring
+   * valid status values.
+   *
+   * @param outputText - Raw JSON response text from OpenAI
+   * @returns Array of validated and normalized extracted fields
+   */
   private parseResponse(outputText: string): VisionExtractedField[] {
     try {
       const parsed = JSON.parse(outputText) as {
@@ -107,12 +139,15 @@ export class DocumentVisionService {
       };
 
       return (parsed.fields ?? [])
-        .filter((field) => typeof field.fieldKey === "string" && typeof field.label === "string")
+        .filter(
+          (field) =>
+            typeof field.fieldKey === "string" &&
+            typeof field.label === "string",
+        )
         .map((field) => ({
           fieldKey: field.fieldKey!.trim(),
           label: field.label!.trim(),
-          rawValue:
-            typeof field.rawValue === "string" ? field.rawValue : null,
+          rawValue: typeof field.rawValue === "string" ? field.rawValue : null,
           normalizedValue:
             typeof field.normalizedValue === "string"
               ? field.normalizedValue

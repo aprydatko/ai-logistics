@@ -20,6 +20,27 @@ const allowedQueryParameters = new Set([
   "limit",
 ]);
 
+/**
+ * Proxies document API requests to the backend service with authentication handling.
+ *
+ * This function manages JWT token authentication, automatic token refresh, and session
+ * cookie management. It filters query parameters to only allow whitelisted values and
+ * handles request/response forwarding between the Next.js app and the backend API.
+ *
+ * @param request - The incoming Next.js request object
+ * @param path - The API endpoint path to proxy to (e.g., "documents", "documents/123")
+ * @param method - The HTTP method to use for the proxied request
+ * @returns A NextResponse with the proxied API response data and appropriate status code
+ *
+ * @example
+ * ```ts
+ * // Proxy a GET request to list documents
+ * const response = await proxyDocumentRequest(request, "documents", "GET");
+ *
+ * // Proxy a POST request to create a document
+ * const response = await proxyDocumentRequest(request, "documents", "POST");
+ * ```
+ */
 export const proxyDocumentRequest = async (
   request: Request,
   path: string,
@@ -31,9 +52,20 @@ export const proxyDocumentRequest = async (
     const refreshToken = cookieStore.get("refresh_token")?.value;
     let refreshedSession: Awaited<ReturnType<typeof refreshSession>> = null;
 
-    if (!accessToken && refreshToken) {
+    // Helper function to attempt token refresh
+    const attemptTokenRefresh = async (): Promise<boolean> => {
+      if (!refreshToken || refreshedSession) return false;
       refreshedSession = await refreshSession(refreshToken);
-      accessToken = refreshedSession?.accessToken;
+      if (refreshedSession?.accessToken) {
+        accessToken = refreshedSession.accessToken;
+        return true;
+      }
+      return false;
+    };
+
+    // Initial token check and refresh if needed
+    if (!accessToken && refreshToken) {
+      await attemptTokenRefresh();
     }
     if (!accessToken) {
       const response = NextResponse.json(
@@ -46,7 +78,8 @@ export const proxyDocumentRequest = async (
 
     const apiUrl = new URL(`${API_BASE_URL}/${path}`);
     if (method === "GET") {
-      new URL(request.url).searchParams.forEach((value, key) => {
+      const requestUrl = new URL(request.url);
+      requestUrl.searchParams.forEach((value, key) => {
         if (allowedQueryParameters.has(key))
           apiUrl.searchParams.set(key, value);
       });
@@ -56,6 +89,7 @@ export const proxyDocumentRequest = async (
       method === "POST" || method === "PATCH"
         ? Buffer.from(await request.arrayBuffer())
         : undefined;
+
     const sendRequest = (token: string): Promise<Response> =>
       fetch(apiUrl, {
         method,
@@ -68,10 +102,12 @@ export const proxyDocumentRequest = async (
       });
 
     let apiResponse = await sendRequest(accessToken);
+
+    // Retry with refreshed token if initial request fails with 401
     if (apiResponse.status === 401 && refreshToken && !refreshedSession) {
-      refreshedSession = await refreshSession(refreshToken);
-      if (refreshedSession) {
-        apiResponse = await sendRequest(refreshedSession.accessToken);
+      const refreshSuccess = await attemptTokenRefresh();
+      if (refreshSuccess) {
+        apiResponse = await sendRequest(accessToken);
       }
     }
 
@@ -93,8 +129,22 @@ export const proxyDocumentRequest = async (
   }
 };
 
+/**
+ * Handles GET requests to list documents.
+ * Proxies the request to the backend documents endpoint with query parameter filtering.
+ *
+ * @param request - The incoming Next.js request
+ * @returns A NextResponse with the documents list or error
+ */
 export const GET = (request: Request): Promise<NextResponse> =>
   proxyDocumentRequest(request, "documents", "GET");
 
+/**
+ * Handles POST requests to create a new document.
+ * Proxies the request to the backend documents endpoint with the document data.
+ *
+ * @param request - The incoming Next.js request with document data in the body
+ * @returns A NextResponse with the created document or error
+ */
 export const POST = (request: Request): Promise<NextResponse> =>
   proxyDocumentRequest(request, "documents", "POST");

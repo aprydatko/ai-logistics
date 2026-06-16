@@ -42,7 +42,9 @@ export const useAssistantWorkspace = (): UseAssistantWorkspaceResult => {
   const [draft, setDraft] = useState("");
   const [model, setModel] = useState(initialAssistantModel);
   const [isContextOpen, setIsContextOpen] = useState(true);
-  const [attachment, setAttachment] = useState<AssistantAttachment | null>(null);
+  const [attachment, setAttachment] = useState<AssistantAttachment | null>(
+    null,
+  );
   const [selectedSkill, setSelectedSkill] = useState<AssistantSkill | null>(
     null,
   );

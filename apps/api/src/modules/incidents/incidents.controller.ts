@@ -30,6 +30,12 @@ import type {
 export class IncidentsController {
   constructor(private readonly incidentsService: IncidentsService) {}
 
+  /**
+   * GET /incidents - Returns a paginated, filtered list of incidents.
+   *
+   * @param query - Pagination, search, sort, and filter parameters
+   * @returns Paginated incident list with load and driver summaries
+   */
   @Get()
   findAll(
     @Query() query: ListIncidentsQueryDto,
@@ -37,6 +43,12 @@ export class IncidentsController {
     return this.incidentsService.findAll(query);
   }
 
+  /**
+   * GET /incidents/:id - Fetches a single incident by ID.
+   *
+   * @param id - Incident UUID
+   * @returns Incident with load and driver summaries
+   */
   @Get(":id")
   findOne(
     @Param("id", new ParseUUIDPipe()) id: string,
@@ -44,6 +56,12 @@ export class IncidentsController {
     return this.incidentsService.findOne(id);
   }
 
+  /**
+   * GET /incidents/:id/timeline - Fetches the timeline for a specific incident.
+   *
+   * @param id - Incident UUID
+   * @returns Timeline with sorted items and incident metadata
+   */
   @Get(":id/timeline")
   findTimeline(
     @Param("id", new ParseUUIDPipe()) id: string,
@@ -51,6 +69,14 @@ export class IncidentsController {
     return this.incidentsService.findTimeline(id);
   }
 
+  /**
+   * POST /incidents - Creates a new incident.
+   *
+   * Requires admin or dispatcher role.
+   *
+   * @param dto - Incident creation payload
+   * @returns Created incident with load and driver summaries
+   */
   @Post()
   @Roles("admin", "dispatcher")
   @UseGuards(RolesGuard)
@@ -58,6 +84,15 @@ export class IncidentsController {
     return this.incidentsService.create(dto);
   }
 
+  /**
+   * PATCH /incidents/:id - Partially updates an incident.
+   *
+   * Requires admin or dispatcher role.
+   *
+   * @param id - Incident UUID
+   * @param dto - Partial update payload
+   * @returns Updated incident with load and driver summaries
+   */
   @Patch(":id")
   @Roles("admin", "dispatcher")
   @UseGuards(RolesGuard)
@@ -68,6 +103,16 @@ export class IncidentsController {
     return this.incidentsService.update(id, dto);
   }
 
+  /**
+   * PATCH /incidents/:id/timeline - Updates the timeline for an incident.
+   *
+   * Requires admin or dispatcher role. Emits WebSocket event to
+   * subscribed clients after successful update.
+   *
+   * @param id - Incident UUID
+   * @param dto - Timeline update payload with new timeline array
+   * @returns Updated incident with load and driver summaries
+   */
   @Patch(":id/timeline")
   @Roles("admin", "dispatcher")
   @UseGuards(RolesGuard)
@@ -78,6 +123,16 @@ export class IncidentsController {
     return this.incidentsService.updateTimeline(id, dto);
   }
 
+  /**
+   * PATCH /incidents/:id/status - Updates the status for an incident.
+   *
+   * Requires admin or dispatcher role. Emits WebSocket event to
+   * subscribed clients after successful update.
+   *
+   * @param id - Incident UUID
+   * @param dto - Status update payload with new status value
+   * @returns Updated incident with load and driver summaries
+   */
   @Patch(":id/status")
   @Roles("admin", "dispatcher")
   @UseGuards(RolesGuard)

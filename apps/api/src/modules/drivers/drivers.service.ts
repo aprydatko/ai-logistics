@@ -5,17 +5,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from "@nestjs/common";
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  ilike,
-  isNull,
-  or,
-  type SQL,
-} from "drizzle-orm";
+import { and, asc, count, desc, eq, isNull } from "drizzle-orm";
 
 import { DatabaseService } from "../../db/database.service";
 import {
@@ -24,9 +14,7 @@ import {
   driverActivity,
   driverDocuments,
   driverVehicleAssignments,
-  type DriverRecord,
   loads,
-  type LoadRecord,
   users,
   vehicles,
 } from "../../db/schema";
@@ -42,67 +30,81 @@ import type {
   DeleteDriverResponse,
   DriverDetailsResponse,
   DriverCandidatesResponse,
-  DriverListItem,
-  DriverTrip,
   DriversListResponse,
   UpdateDriverResponse,
   UpsertDriverVehicleResponse,
 } from "./drivers.types";
+import { assertDriverDocumentSize } from "./internal/driver-document";
+import { isPostgresUniqueViolation } from "./internal/driver.errors";
+import {
+  normalizeCreateDriverValues,
+  toDriverActivityItem,
+  toDriverDocumentItem,
+  toDriverListItem,
+  toDriverTrip,
+  toDriverVehicleItem,
+} from "./internal/driver.mapper";
+import { buildDriverFilters } from "./internal/driver.query";
+import {
+  assertDriverExists,
+  assertDriverUser,
+} from "./internal/driver.relations";
+import { getUpdatedDriverFields } from "./internal/driver.update";
+import {
+  assertTruckImageSize,
+  buildVehicleValues,
+} from "./internal/driver-vehicle";
 
 @Injectable()
 export class DriversService {
   constructor(private readonly databaseService: DatabaseService) {}
 
+  /**
+   * Creates a new driver profile with an initial activity log entry.
+   *
+   * Normalizes string fields (trim, lowercase email, uppercase driverCode),
+   * inserts the driver record and a "created" activity event inside a single
+   * transaction. Throws ConflictException if a unique constraint is violated
+   * (duplicate driver code, email, truck number, or trailer number).
+   *
+   * @param dto - Driver creation payload
+   * @returns Created driver mapped to the list-item shape
+   * @throws ConflictException if any unique field already exists
+   */
   async create(dto: CreateDriverDto): Promise<CreateDriverResponse> {
+    const client = this.databaseService.client;
+
     try {
-      const driver = await this.databaseService.client.transaction(
-        async (tx) => {
-          const [savedDriver] = await tx
-            .insert(drivers)
-            .values({
-              ...dto,
-              firstName: dto.firstName.trim(),
-              lastName: dto.lastName.trim(),
-              email: dto.email.trim().toLowerCase(),
-              driverCode: dto.driverCode.trim().toUpperCase(),
-              phone: dto.phone.trim(),
-              address: dto.address?.trim() || null,
-              emergencyContact: dto.emergencyContact?.trim() || null,
-              emergencyPhone: dto.emergencyPhone?.trim() || null,
-              licenseNumber: dto.licenseNumber.trim(),
-              licenseState: dto.licenseState.trim(),
-              licenseType: dto.licenseType.trim(),
-              notes: dto.notes?.trim() || null,
-              truckNumber: dto.truckNumber?.trim() || null,
-              trailerNumber: dto.trailerNumber?.trim() || null,
-            })
-            .returning();
+      const driver = await client.transaction(async (tx) => {
+        const [savedDriver] = await tx
+          .insert(drivers)
+          .values(normalizeCreateDriverValues(dto))
+          .returning();
 
-          if (!savedDriver) {
-            throw new InternalServerErrorException("Failed to create driver");
-          }
+        if (!savedDriver) {
+          throw new InternalServerErrorException("Failed to create driver");
+        }
 
-          await tx.insert(driverActivity).values({
-            driverId: savedDriver.id,
-            type: "created",
-            description: `Driver ${savedDriver.firstName} ${savedDriver.lastName} was created`,
-            metadata: {
-              driverCode: savedDriver.driverCode,
-              status: savedDriver.status,
-            },
-          });
+        await tx.insert(driverActivity).values({
+          driverId: savedDriver.id,
+          type: "created",
+          description: `Driver ${savedDriver.firstName} ${savedDriver.lastName} was created`,
+          metadata: {
+            driverCode: savedDriver.driverCode,
+            status: savedDriver.status,
+          },
+        });
 
-          return savedDriver;
-        },
-      );
+        return savedDriver;
+      });
 
       if (!driver) {
         throw new InternalServerErrorException("Failed to create driver");
       }
 
-      return { success: true, data: this.toDriver(driver) };
+      return { success: true, data: toDriverListItem(driver) };
     } catch (error: unknown) {
-      if (this.isUniqueViolation(error)) {
+      if (isPostgresUniqueViolation(error)) {
         throw new ConflictException(
           "Driver ID, email, truck number, or trailer number already exists",
         );
@@ -112,6 +114,15 @@ export class DriversService {
     }
   }
 
+  /**
+   * Returns users eligible to be linked to a new driver profile.
+   *
+   * A candidate is a user with the "driver" role, active account, and no
+   * existing driver record. Results are ordered alphabetically by last name
+   * then first name.
+   *
+   * @returns List of candidate users (id, firstName, lastName, email)
+   */
   async findCandidates(): Promise<DriverCandidatesResponse> {
     const candidates = await this.databaseService.client
       .select({
@@ -134,27 +145,35 @@ export class DriversService {
     return { success: true, data: candidates };
   }
 
+  /**
+   * Returns a paginated, filtered list of drivers.
+   *
+   * Executes data and count queries in parallel. Supported filters:
+   * free-text search across code, name, phone, truck/trailer numbers;
+   * `isActive`, `status`, `truckNumber`, `trailerNumber`.
+   *
+   * @param query - Pagination, search, and filter parameters
+   * @returns Paginated driver list with total count and page metadata
+   */
   async findAll(query: ListDriversQueryDto): Promise<DriversListResponse> {
-    const filters = this.buildFilters(query);
+    const filters = buildDriverFilters(query);
     const where = filters.length > 0 ? and(...filters) : undefined;
+    const client = this.databaseService.client;
     const [rows, countRows] = await Promise.all([
-      this.databaseService.client
+      client
         .select()
         .from(drivers)
         .where(where)
         .orderBy(asc(drivers.lastName), asc(drivers.firstName))
         .limit(query.limit)
         .offset((query.page - 1) * query.limit),
-      this.databaseService.client
-        .select({ total: count() })
-        .from(drivers)
-        .where(where),
+      client.select({ total: count() }).from(drivers).where(where),
     ]);
     const total = countRows[0]?.total ?? 0;
 
     return {
       success: true,
-      data: rows.map((driver) => this.toDriver(driver)),
+      data: rows.map(toDriverListItem),
       pagination: {
         page: query.page,
         limit: query.limit,
@@ -164,8 +183,20 @@ export class DriversService {
     };
   }
 
+  /**
+   * Returns full details for a single driver including related data.
+   *
+   * After fetching the driver record, executes four queries in parallel:
+   * trips history (loads), driver documents, activity log (last 20 entries),
+   * and the currently active primary vehicle assignment.
+   *
+   * @param id - Driver UUID
+   * @returns Driver details with vehicle, documents, trips, and activity
+   * @throws NotFoundException if the driver does not exist
+   */
   async findById(id: string): Promise<DriverDetailsResponse> {
-    const [driver] = await this.databaseService.client
+    const client = this.databaseService.client;
+    const [driver] = await client
       .select()
       .from(drivers)
       .where(eq(drivers.id, id))
@@ -175,74 +206,83 @@ export class DriversService {
       throw new NotFoundException("Driver was not found");
     }
 
-    const [tripsHistory, documents, activity, vehicleRows] = await Promise.all([
-      this.databaseService.client
-        .select()
-        .from(loads)
-        .where(eq(loads.driverId, id))
-        .orderBy(desc(loads.pickupDate), desc(loads.createdAt)),
-      this.databaseService.client
-        .select()
-        .from(driverDocuments)
-        .where(eq(driverDocuments.driverId, id))
-        .orderBy(
-          desc(driverDocuments.expiresAt),
-          desc(driverDocuments.createdAt),
-        ),
-      this.databaseService.client
-        .select()
-        .from(driverActivity)
-        .where(eq(driverActivity.driverId, id))
-        .orderBy(desc(driverActivity.createdAt))
-        .limit(20),
-      this.databaseService.client
-        .select({
-          vehicle: vehicles,
-          assignedAt: driverVehicleAssignments.assignedAt,
-        })
-        .from(driverVehicleAssignments)
-        .innerJoin(
-          vehicles,
-          eq(driverVehicleAssignments.vehicleId, vehicles.id),
-        )
-        .where(
-          and(
-            eq(driverVehicleAssignments.driverId, id),
-            isNull(driverVehicleAssignments.unassignedAt),
-            eq(driverVehicleAssignments.isPrimary, true),
+    const [tripsHistory, driverDocumentRows, activity, vehicleRows] =
+      await Promise.all([
+        client
+          .select()
+          .from(loads)
+          .where(eq(loads.driverId, id))
+          .orderBy(desc(loads.pickupDate), desc(loads.createdAt)),
+        client
+          .select()
+          .from(driverDocuments)
+          .where(eq(driverDocuments.driverId, id))
+          .orderBy(
+            desc(driverDocuments.expiresAt),
+            desc(driverDocuments.createdAt),
           ),
-        )
-        .orderBy(desc(driverVehicleAssignments.assignedAt))
-        .limit(1),
-    ]);
+        client
+          .select()
+          .from(driverActivity)
+          .where(eq(driverActivity.driverId, id))
+          .orderBy(desc(driverActivity.createdAt))
+          .limit(20),
+        client
+          .select({
+            vehicle: vehicles,
+            assignedAt: driverVehicleAssignments.assignedAt,
+          })
+          .from(driverVehicleAssignments)
+          .innerJoin(
+            vehicles,
+            eq(driverVehicleAssignments.vehicleId, vehicles.id),
+          )
+          .where(
+            and(
+              eq(driverVehicleAssignments.driverId, id),
+              isNull(driverVehicleAssignments.unassignedAt),
+              eq(driverVehicleAssignments.isPrimary, true),
+            ),
+          )
+          .orderBy(desc(driverVehicleAssignments.assignedAt))
+          .limit(1),
+      ]);
     const currentVehicle = vehicleRows[0];
 
     return {
       success: true,
       data: {
-        ...this.toDriver(driver),
+        ...toDriverListItem(driver),
         currentVehicle: currentVehicle
-          ? {
-              ...currentVehicle.vehicle,
-              assignedAt: currentVehicle.assignedAt.toISOString(),
-              createdAt: currentVehicle.vehicle.createdAt.toISOString(),
-              updatedAt: currentVehicle.vehicle.updatedAt.toISOString(),
-            }
+          ? toDriverVehicleItem(
+              currentVehicle.vehicle,
+              currentVehicle.assignedAt,
+            )
           : null,
-        documents: documents.map((document) => ({
-          ...document,
-          createdAt: document.createdAt.toISOString(),
-          updatedAt: document.updatedAt.toISOString(),
-        })),
-        tripsHistory: tripsHistory.map((trip) => this.toDriverTrip(trip)),
-        activity: activity.map((item) => ({
-          ...item,
-          createdAt: item.createdAt.toISOString(),
-        })),
+        documents: driverDocumentRows.map(toDriverDocumentItem),
+        tripsHistory: tripsHistory.map(toDriverTrip),
+        activity: activity.map(toDriverActivityItem),
       },
     };
   }
 
+  /**
+   * Partially updates a driver profile and logs the change as an activity event.
+   *
+   * Requires at least one field to be present in the payload. If `userId` is
+   * provided, validates that the user exists and has the "driver" role.
+   * The update and activity insert run inside a transaction. A status change
+   * produces a `status_changed` event; any other field update produces an
+   * `updated` event listing the changed fields by human-readable label.
+   * Throws ConflictException on unique constraint violations.
+   *
+   * @param id - Driver UUID
+   * @param dto - Partial update payload (at least one field required)
+   * @returns Updated driver mapped to the list-item shape
+   * @throws BadRequestException if no fields are provided
+   * @throws NotFoundException if the driver does not exist
+   * @throws ConflictException if a unique field conflicts with another record
+   */
   async update(
     id: string,
     dto: UpdateDriverDto,
@@ -253,70 +293,69 @@ export class DriversService {
       throw new BadRequestException("At least one field must be provided");
     }
 
+    const client = this.databaseService.client;
     if (dto.userId) {
-      await this.assertDriverUser(dto.userId);
+      await assertDriverUser(client, dto.userId);
     }
 
     try {
-      const driver = await this.databaseService.client.transaction(
-        async (tx) => {
-          const [currentDriver] = await tx
-            .select()
-            .from(drivers)
-            .where(eq(drivers.id, id))
-            .limit(1);
+      const driver = await client.transaction(async (tx) => {
+        const [currentDriver] = await tx
+          .select()
+          .from(drivers)
+          .where(eq(drivers.id, id))
+          .limit(1);
 
-          if (!currentDriver) {
-            throw new NotFoundException("Driver was not found");
-          }
+        if (!currentDriver) {
+          throw new NotFoundException("Driver was not found");
+        }
 
-          const [updatedDriver] = await tx
-            .update(drivers)
-            .set({
-              ...dto,
-              updatedAt: new Date(),
-            })
-            .where(eq(drivers.id, id))
-            .returning();
+        const [updatedDriver] = await tx
+          .update(drivers)
+          .set({
+            ...dto,
+            updatedAt: new Date(),
+          })
+          .where(eq(drivers.id, id))
+          .returning();
 
-          if (!updatedDriver) {
-            throw new NotFoundException("Driver was not found");
-          }
+        if (!updatedDriver) {
+          throw new NotFoundException("Driver was not found");
+        }
 
-          const statusChanged =
-            dto.status !== undefined && dto.status !== currentDriver.status;
-          const changedFields = this.getUpdatedDriverFields(dto);
+        const statusChanged =
+          dto.status !== undefined && dto.status !== currentDriver.status;
+        const changedFields = getUpdatedDriverFields(dto);
 
-          if (statusChanged) {
-            await tx.insert(driverActivity).values({
-              driverId: updatedDriver.id,
-              type: "status_changed",
-              description: `Status changed from ${currentDriver.status.replaceAll("_", " ")} to ${updatedDriver.status.replaceAll("_", " ")}`,
-              metadata: {
-                from: currentDriver.status,
-                to: updatedDriver.status,
-              },
-            });
-          } else if (changedFields.length > 0) {
-            await tx.insert(driverActivity).values({
-              driverId: updatedDriver.id,
-              type: "updated",
-              description: `Driver profile was updated: ${changedFields.join(", ")}`,
-              metadata: { fields: changedFields },
-            });
-          }
+        if (statusChanged) {
+          await tx.insert(driverActivity).values({
+            driverId: updatedDriver.id,
+            type: "status_changed",
+            description: `Status changed from ${currentDriver.status.replaceAll("_", " ")} to ${updatedDriver.status.replaceAll("_", " ")}`,
+            metadata: {
+              from: currentDriver.status,
+              to: updatedDriver.status,
+            },
+          });
+        } else if (changedFields.length > 0) {
+          await tx.insert(driverActivity).values({
+            driverId: updatedDriver.id,
+            type: "updated",
+            description: `Driver profile was updated: ${changedFields.join(", ")}`,
+            metadata: { fields: changedFields },
+          });
+        }
 
-          return updatedDriver;
-        },
-      );
+        return updatedDriver;
+      });
 
       if (!driver) {
         throw new NotFoundException("Driver was not found");
       }
 
-      return { success: true, data: this.toDriver(driver) };
+      return { success: true, data: toDriverListItem(driver) };
     } catch (error: unknown) {
-      if (this.isUniqueViolation(error)) {
+      if (isPostgresUniqueViolation(error)) {
         throw new ConflictException(
           "Driver, truck number, or trailer number already exists",
         );
@@ -326,75 +365,94 @@ export class DriversService {
     }
   }
 
+  /**
+   * Attaches a base64-encoded document to a driver profile.
+   *
+   * Validates driver existence and file size (max 5 MB decoded). Inside a
+   * transaction: inserts a `driverDocuments` record, mirrors it to the shared
+   * `documents` table (type `driver_license`, status `complete`), and logs a
+   * `document_added` activity event.
+   *
+   * @param driverId - Driver UUID
+   * @param dto - Document payload including base64 content, type, and metadata
+   * @param uploadedByUserId - ID of the authenticated user performing the upload
+   * @returns Newly created driver document record
+   * @throws NotFoundException if the driver does not exist
+   * @throws BadRequestException if the decoded file exceeds the size limit
+   */
   async addDocument(
     driverId: string,
     dto: CreateDriverDocumentDto,
     uploadedByUserId: string,
   ): Promise<CreateDriverDocumentResponse> {
-    await this.assertDriverExists(driverId);
-    const fileSize = Buffer.byteLength(dto.content, "base64");
+    const client = this.databaseService.client;
+    await assertDriverExists(client, driverId);
+    const fileSize = assertDriverDocumentSize(dto.content);
 
-    if (fileSize > 5 * 1024 * 1024) {
-      throw new BadRequestException("Document must be 5 MB or smaller");
-    }
-
-    const document = await this.databaseService.client.transaction(
-      async (tx) => {
-        const [savedDocument] = await tx
-          .insert(driverDocuments)
-          .values({
-            driverId,
-            type: dto.type,
-            name: dto.name.trim(),
-            documentNumber: dto.documentNumber?.trim() || null,
-            fileUrl: `data:${dto.mimeType};base64,${dto.content}`,
-            mimeType: dto.mimeType,
-            fileSize,
-            issuedAt: dto.issuedAt,
-            expiresAt: dto.expiresAt,
-          })
-          .returning();
-
-        if (!savedDocument) {
-          throw new InternalServerErrorException("Failed to save document");
-        }
-
-        await tx.insert(documents).values({
-          id: savedDocument.id,
-          fileName: savedDocument.name,
+    const document = await client.transaction(async (tx) => {
+      const [savedDocument] = await tx
+        .insert(driverDocuments)
+        .values({
+          driverId,
+          type: dto.type,
+          name: dto.name.trim(),
+          documentNumber: dto.documentNumber?.trim() || null,
+          fileUrl: `data:${dto.mimeType};base64,${dto.content}`,
+          mimeType: dto.mimeType,
           fileSize,
-          mimeType: savedDocument.mimeType,
-          type: "driver_license",
-          status: "complete",
-          uploadedByUserId,
-          driverId,
-          uploadedAt: savedDocument.createdAt,
-        });
+          issuedAt: dto.issuedAt,
+          expiresAt: dto.expiresAt,
+        })
+        .returning();
 
-        await tx.insert(driverActivity).values({
-          driverId,
-          type: "document_added",
-          description: `Document "${savedDocument.name}" was added`,
-          metadata: {
-            documentId: savedDocument.id,
-            documentType: savedDocument.type,
-          },
-        });
+      if (!savedDocument) {
+        throw new InternalServerErrorException("Failed to save document");
+      }
 
-        return savedDocument;
-      },
-    );
+      await tx.insert(documents).values({
+        id: savedDocument.id,
+        fileName: savedDocument.name,
+        fileSize,
+        mimeType: savedDocument.mimeType,
+        type: "driver_license",
+        status: "complete",
+        uploadedByUserId,
+        driverId,
+        uploadedAt: savedDocument.createdAt,
+      });
+
+      await tx.insert(driverActivity).values({
+        driverId,
+        type: "document_added",
+        description: `Document "${savedDocument.name}" was added`,
+        metadata: {
+          documentId: savedDocument.id,
+          documentType: savedDocument.type,
+        },
+      });
+
+      return savedDocument;
+    });
 
     return {
       success: true,
-      data: {
-        ...document,
-        createdAt: document.createdAt.toISOString(),
-        updatedAt: document.updatedAt.toISOString(),
-      },
+      data: toDriverDocumentItem(document),
     };
   }
 
+  /**
+   * Removes a driver document and its shared-documents mirror record.
+   *
+   * All operations run in a transaction: selects the document for its name/type
+   * (for the activity log), deletes it from `driverDocuments`, removes the
+   * corresponding row from `documents`, and inserts an activity event. The
+   * NotFoundException is thrown outside the transaction after it commits.
+   *
+   * @param driverId - Driver UUID (used to scope the deletion)
+   * @param documentId - Document UUID to delete
+   * @returns Success confirmation message
+   * @throws NotFoundException if the document does not exist for this driver
+   */
   async removeDocument(
     driverId: string,
     documentId: string,
@@ -450,21 +508,34 @@ export class DriversService {
     return { success: true, message: "Document deleted" };
   }
 
+  /**
+   * Creates or updates the primary vehicle assignment for a driver.
+   *
+   * Validates driver existence and truck image size (max 2 MB). Inside a
+   * transaction: checks for an existing active primary assignment.
+   * - **Existing assignment:** updates the vehicle record in place.
+   * - **No assignment:** inserts a new vehicle and creates an assignment record.
+   * In both cases syncs `drivers.truckNumber` and logs an activity event
+   * (`vehicle_assigned` or `updated`). Throws ConflictException on duplicate
+   * unit number or VIN.
+   *
+   * @param driverId - Driver UUID
+   * @param dto - Vehicle payload including unit number, type, and optional image
+   * @returns Updated or newly assigned vehicle with assignment timestamp
+   * @throws NotFoundException if the driver does not exist
+   * @throws BadRequestException if the truck image exceeds the size limit
+   * @throws ConflictException if the unit number or VIN already exists
+   */
   async upsertVehicle(
     driverId: string,
     dto: UpsertDriverVehicleDto,
   ): Promise<UpsertDriverVehicleResponse> {
-    await this.assertDriverExists(driverId);
-
-    if (dto.imageContent) {
-      const imageSize = Buffer.byteLength(dto.imageContent, "base64");
-      if (imageSize > 2 * 1024 * 1024) {
-        throw new BadRequestException("Truck image must be 2 MB or smaller");
-      }
-    }
+    const client = this.databaseService.client;
+    await assertDriverExists(client, driverId);
+    assertTruckImageSize(dto);
 
     try {
-      return await this.databaseService.client.transaction(async (tx) => {
+      return await client.transaction(async (tx) => {
         const [assignment] = await tx
           .select({
             vehicleId: driverVehicleAssignments.vehicleId,
@@ -479,23 +550,7 @@ export class DriversService {
             ),
           )
           .limit(1);
-        const vehicleValues = {
-          unitNumber: dto.unitNumber.trim().toUpperCase(),
-          type: dto.type.trim(),
-          make: dto.make?.trim() || null,
-          model: dto.model?.trim() || null,
-          year: dto.year,
-          licensePlate: dto.licensePlate?.trim().toUpperCase() || null,
-          odometerMiles: dto.odometerMiles,
-          status: dto.status,
-          lastServiceAt: dto.lastServiceAt,
-          ...(dto.imageContent && dto.imageMimeType
-            ? {
-                imageUrl: `data:${dto.imageMimeType};base64,${dto.imageContent}`,
-              }
-            : {}),
-          updatedAt: new Date(),
-        };
+        const vehicleValues = buildVehicleValues(dto);
         let vehicle;
         const assignedAt = assignment?.assignedAt ?? new Date();
 
@@ -540,16 +595,11 @@ export class DriversService {
 
         return {
           success: true,
-          data: {
-            ...vehicle,
-            assignedAt: assignedAt.toISOString(),
-            createdAt: vehicle.createdAt.toISOString(),
-            updatedAt: vehicle.updatedAt.toISOString(),
-          },
+          data: toDriverVehicleItem(vehicle, assignedAt),
         };
       });
     } catch (error: unknown) {
-      if (this.isUniqueViolation(error)) {
+      if (isPostgresUniqueViolation(error)) {
         throw new ConflictException(
           "Truck number or VIN is already assigned to another vehicle",
         );
@@ -558,6 +608,17 @@ export class DriversService {
     }
   }
 
+  /**
+   * Permanently deletes a driver record.
+   *
+   * Note: related records (documents, activity, vehicle assignments) are
+   * removed via database cascade constraints. The physical files stored in
+   * the shared `documents` table are not deleted from storage.
+   *
+   * @param id - Driver UUID
+   * @returns Success confirmation message
+   * @throws NotFoundException if the driver does not exist
+   */
   async remove(id: string): Promise<DeleteDriverResponse> {
     const [driver] = await this.databaseService.client
       .delete(drivers)
@@ -572,124 +633,5 @@ export class DriversService {
       success: true,
       message: "Driver deleted",
     };
-  }
-
-  private buildFilters(query: ListDriversQueryDto): SQL[] {
-    const filters: SQL[] = [];
-
-    if (query.search) {
-      const pattern = `%${query.search}%`;
-      const searchFilter = or(
-        ilike(drivers.driverCode, pattern),
-        ilike(drivers.firstName, pattern),
-        ilike(drivers.lastName, pattern),
-        ilike(drivers.phone, pattern),
-        ilike(drivers.truckNumber, pattern),
-        ilike(drivers.trailerNumber, pattern),
-      );
-
-      if (searchFilter) filters.push(searchFilter);
-    }
-
-    if (query.isActive !== undefined) {
-      filters.push(eq(drivers.isActive, query.isActive));
-    }
-
-    if (query.status) {
-      filters.push(eq(drivers.status, query.status));
-    }
-
-    if (query.truckNumber) {
-      filters.push(ilike(drivers.truckNumber, `%${query.truckNumber}%`));
-    }
-
-    if (query.trailerNumber) {
-      filters.push(ilike(drivers.trailerNumber, `%${query.trailerNumber}%`));
-    }
-
-    return filters;
-  }
-
-  private toDriver(driver: DriverRecord): DriverListItem {
-    return {
-      ...driver,
-      currentLocation: driver.currentLocation ?? undefined,
-      rating: Number(driver.rating),
-      createdAt: driver.createdAt.toISOString(),
-      updatedAt: driver.updatedAt.toISOString(),
-    };
-  }
-
-  private toDriverTrip(load: LoadRecord): DriverTrip {
-    return {
-      ...load,
-      pickupDate: load.pickupDate.toISOString(),
-      deliveryDate: load.deliveryDate.toISOString(),
-      price: Number(load.price),
-      createdAt: load.createdAt.toISOString(),
-      updatedAt: load.updatedAt.toISOString(),
-    };
-  }
-
-  private async assertDriverUser(userId: string): Promise<void> {
-    const [user] = await this.databaseService.client
-      .select({ id: users.id, role: users.role })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-
-    if (!user || user.role !== "driver") {
-      throw new BadRequestException("Driver user was not found");
-    }
-  }
-
-  private async assertDriverExists(driverId: string): Promise<void> {
-    const [driver] = await this.databaseService.client
-      .select({ id: drivers.id })
-      .from(drivers)
-      .where(eq(drivers.id, driverId))
-      .limit(1);
-
-    if (!driver) {
-      throw new NotFoundException("Driver was not found");
-    }
-  }
-
-  private isUniqueViolation(error: unknown): boolean {
-    return (
-      typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      error.code === "23505"
-    );
-  }
-
-  private getUpdatedDriverFields(dto: UpdateDriverDto): string[] {
-    const fieldLabels: Partial<Record<keyof UpdateDriverDto, string>> = {
-      userId: "linked user",
-      driverCode: "driver code",
-      firstName: "first name",
-      lastName: "last name",
-      email: "email",
-      phone: "phone",
-      avatarUrl: "avatar",
-      dateOfBirth: "date of birth",
-      address: "address",
-      hireDate: "hire date",
-      licenseType: "license type",
-      licenseNumber: "license number",
-      licenseExpirationDate: "license expiration date",
-      licenseState: "license state",
-      emergencyContact: "emergency contact",
-      emergencyPhone: "emergency phone",
-      notes: "notes",
-      truckNumber: "truck number",
-      trailerNumber: "trailer number",
-      isActive: "active flag",
-    };
-
-    return Object.entries(fieldLabels)
-      .filter(([field]) => dto[field as keyof UpdateDriverDto] !== undefined)
-      .map(([, label]) => label ?? "");
   }
 }

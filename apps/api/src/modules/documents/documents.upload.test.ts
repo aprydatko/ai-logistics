@@ -5,7 +5,11 @@ import { DocumentsService } from "./documents.service";
 
 describe("DocumentsService upload", () => {
   it("rejects missing file uploads", async () => {
-    const service = new DocumentsService({ client: {} } as never, {} as never, {} as never);
+    const service = new DocumentsService(
+      { client: {} } as never,
+      {} as never,
+      {} as never,
+    );
 
     await expect(
       service.upload(undefined, { type: "bill_of_lading" }, "user-id"),
@@ -13,9 +17,9 @@ describe("DocumentsService upload", () => {
   });
 
   it("creates a stored document with extracted fields", async () => {
-    const insertDocumentReturning = vi.fn().mockResolvedValue([
-      { id: "11111111-1111-4111-8111-111111111111" },
-    ]);
+    const insertDocumentReturning = vi
+      .fn()
+      .mockResolvedValue([{ id: "11111111-1111-4111-8111-111111111111" }]);
     const insertDocumentValues = vi.fn().mockReturnValue({
       returning: insertDocumentReturning,
     });
@@ -57,7 +61,10 @@ describe("DocumentsService upload", () => {
     );
     const findOneSpy = vi
       .spyOn(service, "findOne")
-      .mockResolvedValue({ success: true, data: { id: "11111111-1111-4111-8111-111111111111" } as never });
+      .mockResolvedValue({
+        success: true,
+        data: { id: "11111111-1111-4111-8111-111111111111" } as never,
+      });
 
     const file = {
       originalname: "bol.pdf",
@@ -92,6 +99,8 @@ describe("DocumentsService upload", () => {
         label: "BOL Number",
       }),
     ]);
-    expect(findOneSpy).toHaveBeenCalledWith("11111111-1111-4111-8111-111111111111");
+    expect(findOneSpy).toHaveBeenCalledWith(
+      "11111111-1111-4111-8111-111111111111",
+    );
   });
 });

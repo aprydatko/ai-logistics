@@ -44,6 +44,19 @@ export class IncidentsService {
     private readonly incidentsGateway: IncidentsGateway,
   ) {}
 
+  /**
+   * Returns a paginated, filtered list of incidents with load and driver summaries.
+   *
+   * Executes data and count queries in parallel using `Promise.all`. Performs
+   * an INNER JOIN with loads and LEFT JOIN with drivers to include related data.
+   * Supports sorting by multiple columns including priority (with custom ordering:
+   * low < medium < high < critical). Supported filters: free-text search (title,
+   * description, location, load referenceNumber), `type`, `priority`, `status`,
+   * `loadId`, `driverId`, and date range `occurredFrom`/`occurredTo`.
+   *
+   * @param query - Pagination, search, sort, and filter parameters
+   * @returns Paginated incident list with load and driver summaries
+   */
   async findAll(query: ListIncidentsQueryDto): Promise<IncidentsListResponse> {
     const filters = this.buildFilters(query);
     const where = filters.length > 0 ? and(...filters) : undefined;
@@ -100,10 +113,27 @@ export class IncidentsService {
     };
   }
 
+  /**
+   * Fetches a single incident by ID with load and driver summaries.
+   *
+   * @param id - Incident UUID
+   * @returns Incident with load and driver data
+   * @throws NotFoundException if incident does not exist
+   */
   async findOne(id: string): Promise<IncidentResponse> {
     return { success: true, data: await this.findIncident(id) };
   }
 
+  /**
+   * Fetches the timeline for a specific incident.
+   *
+   * Returns the incident's timeline items sorted by dateTime descending
+   * (most recent first). Includes incident metadata (id, updatedAt, status, priority).
+   *
+   * @param id - Incident UUID
+   * @returns Timeline with sorted items and incident metadata
+   * @throws NotFoundException if incident does not exist
+   */
   async findTimeline(id: string): Promise<IncidentTimelineResponse> {
     const incident = await this.findIncident(id);
 
@@ -123,6 +153,19 @@ export class IncidentsService {
     };
   }
 
+  /**
+   * Creates a new incident record.
+   *
+   * Validates that the referenced load exists. Normalizes string fields
+   * (trims whitespace). Sets resolvedAt to current timestamp if status is
+   * "resolved" or "closed", otherwise null. Defaults photos and timeline
+   * to empty arrays if not provided.
+   *
+   * @param dto - Incident creation payload
+   * @returns Created incident with load and driver summaries
+   * @throws NotFoundException if the referenced load does not exist
+   * @throws InternalServerErrorException if database insert fails
+   */
   async create(dto: CreateIncidentDto): Promise<IncidentResponse> {
     await this.assertLoadExists(dto.loadId);
     const [incident] = await this.databaseService.client
@@ -146,6 +189,20 @@ export class IncidentsService {
     return { success: true, data: await this.findIncident(incident.id) };
   }
 
+  /**
+   * Partially updates an incident record.
+   *
+   * Validates load existence if loadId is being changed. Normalizes string
+   * fields (trims whitespace). Automatically updates resolvedAt based on status:
+   * - If status is "resolved" or "closed", sets resolvedAt to now
+   * - Otherwise sets resolvedAt to null
+   * - If status is not being updated, resolvedAt remains unchanged
+   *
+   * @param id - Incident UUID
+   * @param dto - Partial update payload
+   * @returns Updated incident with load and driver summaries
+   * @throws NotFoundException if incident or load does not exist
+   */
   async update(id: string, dto: UpdateIncidentDto): Promise<IncidentResponse> {
     if (dto.loadId) await this.assertLoadExists(dto.loadId);
 
@@ -172,6 +229,18 @@ export class IncidentsService {
     return { success: true, data: await this.findIncident(incident.id) };
   }
 
+  /**
+   * Updates the timeline for an incident and notifies connected clients.
+   *
+   * Replaces the entire timeline with the provided array. After successful
+   * update, emits a WebSocket event to all clients subscribed to this incident's
+   * timeline room.
+   *
+   * @param id - Incident UUID
+   * @param dto - Timeline update payload with new timeline array
+   * @returns Updated incident with load and driver summaries
+   * @throws NotFoundException if incident does not exist
+   */
   async updateTimeline(
     id: string,
     dto: UpdateIncidentTimelineDto,
@@ -193,6 +262,19 @@ export class IncidentsService {
     return response;
   }
 
+  /**
+   * Updates the status for an incident and notifies connected clients.
+   *
+   * Updates the status field and automatically sets resolvedAt based on
+   * the new status (current timestamp for "resolved"/"closed", null otherwise).
+   * After successful update, emits a WebSocket event to all clients subscribed
+   * to this incident's timeline room.
+   *
+   * @param id - Incident UUID
+   * @param dto - Status update payload with new status value
+   * @returns Updated incident with load and driver summaries
+   * @throws NotFoundException if incident does not exist
+   */
   async updateStatus(
     id: string,
     dto: UpdateIncidentStatusDto,
@@ -216,6 +298,16 @@ export class IncidentsService {
     return response;
   }
 
+  /**
+   * Builds an array of Drizzle SQL filter conditions from query parameters.
+   *
+   * Supports free-text search across title, description, location, and load
+   * referenceNumber. Also filters by type, priority, status, loadId, driverId,
+   * and date range (occurredFrom/occurredTo).
+   *
+   * @param query - Query parameters from ListIncidentsQueryDto
+   * @returns Array of SQL filter conditions (empty if no filters provided)
+   */
   private buildFilters(query: ListIncidentsQueryDto): SQL[] {
     const filters: SQL[] = [];
 
@@ -244,6 +336,16 @@ export class IncidentsService {
     return filters;
   }
 
+  /**
+   * Returns a SQL expression for the sort column based on sortBy parameter.
+   *
+   * For priority sorting, uses a CASE expression to map string priorities
+   * to numeric values (low=1, medium=2, high=3, critical=4) for proper ordering.
+   * Defaults to occurredAt if sortBy is not recognized.
+   *
+   * @param sortBy - Column name to sort by
+   * @returns SQL expression for the sort column
+   */
   private getSortColumn(sortBy: ListIncidentsQueryDto["sortBy"]): SQL {
     if (sortBy === "createdAt") return sql`${incidents.createdAt}`;
     if (sortBy === "title") return sql`${incidents.title}`;
@@ -259,6 +361,16 @@ export class IncidentsService {
     return sql`${incidents.occurredAt}`;
   }
 
+  /**
+   * Asserts that a load exists in the database.
+   *
+   * Queries the loads table by id and throws a NotFoundException
+   * if no load is found. Used to validate loadId references before
+   * creating or updating incidents.
+   *
+   * @param loadId - Load UUID to validate
+   * @throws NotFoundException if load does not exist
+   */
   private async assertLoadExists(loadId: string): Promise<void> {
     const [load] = await this.databaseService.client
       .select({ id: loads.id })
@@ -269,6 +381,16 @@ export class IncidentsService {
     if (!load) throw new NotFoundException("Load was not found");
   }
 
+  /**
+   * Fetches a single incident by ID with load and driver summaries.
+   *
+   * Performs an INNER JOIN with loads and LEFT JOIN with drivers to include
+   * related data. Transforms the database record into an API-ready IncidentItem.
+   *
+   * @param id - Incident UUID
+   * @returns Incident with load and driver data
+   * @throws NotFoundException if incident does not exist
+   */
   private async findIncident(id: string): Promise<IncidentItem> {
     const [row] = await this.databaseService.client
       .select({
@@ -299,6 +421,17 @@ export class IncidentsService {
     );
   }
 
+  /**
+   * Transforms a database IncidentRecord into an API IncidentItem response.
+   *
+   * Converts Date fields to ISO strings and combines the load and driver
+   * data into the nested load structure.
+   *
+   * @param incident - Database incident record
+   * @param load - Load summary without driver
+   * @param driver - Driver summary or null if no driver assigned
+   * @returns API-ready incident item with serialized dates
+   */
   private toIncident(
     incident: IncidentRecord,
     load: Omit<IncidentItem["load"], "driver">,
@@ -314,10 +447,28 @@ export class IncidentsService {
     };
   }
 
+  /**
+   * Checks if a status indicates a resolved incident.
+   *
+   * Returns true for "resolved" or "closed" statuses, which should
+   * have a resolvedAt timestamp set.
+   *
+   * @param status - Incident status value
+   * @returns True if status is resolved or closed
+   */
   private isResolved(status: CreateIncidentDto["status"]): boolean {
     return status === "resolved" || status === "closed";
   }
 
+  /**
+   * Transforms an IncidentItem into a timeline feed for WebSocket broadcasting.
+   *
+   * Extracts incident metadata and sorts timeline items by dateTime descending
+   * (most recent first) for real-time feed consumption.
+   *
+   * @param incident - Incident item with timeline
+   * @returns Timeline feed data with sorted items
+   */
   private toTimelineFeed(
     incident: IncidentItem,
   ): IncidentTimelineResponse["data"] {
