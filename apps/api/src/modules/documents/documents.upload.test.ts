@@ -3,9 +3,20 @@ import { describe, expect, it, vi } from "vitest";
 
 import { DocumentsService } from "./documents.service";
 
+const withTransaction = <T extends Record<string, unknown>>(client: T): T => ({
+  ...client,
+  transaction: vi.fn(async (callback: (tx: T) => Promise<unknown>) =>
+    callback(client),
+  ),
+});
+
 describe("DocumentsService upload", () => {
   it("rejects missing file uploads", async () => {
-    const service = new DocumentsService({ client: {} } as never, {} as never, {} as never);
+    const service = new DocumentsService(
+      { client: {} } as never,
+      {} as never,
+      {} as never,
+    );
 
     await expect(
       service.upload(undefined, { type: "bill_of_lading" }, "user-id"),
@@ -13,22 +24,22 @@ describe("DocumentsService upload", () => {
   });
 
   it("creates a stored document with extracted fields", async () => {
-    const insertDocumentReturning = vi.fn().mockResolvedValue([
-      { id: "11111111-1111-4111-8111-111111111111" },
-    ]);
+    const insertDocumentReturning = vi
+      .fn()
+      .mockResolvedValue([{ id: "11111111-1111-4111-8111-111111111111" }]);
     const insertDocumentValues = vi.fn().mockReturnValue({
       returning: insertDocumentReturning,
     });
     const insertAuditValues = vi.fn().mockResolvedValue(undefined);
     const insertFieldsValues = vi.fn().mockResolvedValue(undefined);
-    const client = {
+    const client = withTransaction({
       insert: vi
         .fn()
         .mockReturnValueOnce({ values: insertDocumentValues })
         .mockReturnValueOnce({ values: insertAuditValues })
         .mockReturnValueOnce({ values: insertFieldsValues })
         .mockReturnValueOnce({ values: insertAuditValues }),
-    };
+    });
     const storage = {
       save: vi.fn().mockResolvedValue({
         fileUrl: "/documents/2026-06-16/test.pdf",
@@ -57,7 +68,10 @@ describe("DocumentsService upload", () => {
     );
     const findOneSpy = vi
       .spyOn(service, "findOne")
-      .mockResolvedValue({ success: true, data: { id: "11111111-1111-4111-8111-111111111111" } as never });
+      .mockResolvedValue({
+        success: true,
+        data: { id: "11111111-1111-4111-8111-111111111111" } as never,
+      });
 
     const file = {
       originalname: "bol.pdf",
@@ -92,6 +106,8 @@ describe("DocumentsService upload", () => {
         label: "BOL Number",
       }),
     ]);
-    expect(findOneSpy).toHaveBeenCalledWith("11111111-1111-4111-8111-111111111111");
+    expect(findOneSpy).toHaveBeenCalledWith(
+      "11111111-1111-4111-8111-111111111111",
+    );
   });
 });

@@ -23,6 +23,17 @@ export class JwtAuthGuard implements CanActivate {
     private readonly databaseService: DatabaseService,
   ) {}
 
+  /**
+   * Validates JWT access token and attaches user to request.
+   *
+   * Extracts Bearer token from Authorization header, verifies signature
+   * and token type, fetches user from database, checks account is active,
+   * and attaches user data to request for use in controllers.
+   *
+   * @param context - NestJS execution context
+   * @returns True if authentication succeeds
+   * @throws UnauthorizedException if token is missing, invalid, or user is inactive
+   */
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const token = this.extractBearerToken(request);
@@ -66,6 +77,12 @@ export class JwtAuthGuard implements CanActivate {
     }
   }
 
+  /**
+   * Extracts Bearer token from Authorization header.
+   *
+   * @param request - Express request object
+   * @returns Token string or undefined if not found or invalid format
+   */
   private extractBearerToken(request: Request): string | undefined {
     const [type, token] = request.headers.authorization?.split(" ") ?? [];
 

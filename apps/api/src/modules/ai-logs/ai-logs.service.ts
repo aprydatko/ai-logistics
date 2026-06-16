@@ -14,10 +14,25 @@ import type {
 
 @Injectable()
 export class AiLogsService {
+  private readonly MILLISECONDS_PER_DAY = 86_400_000;
+  private readonly DEFAULT_TREND_DAYS = 7;
+
   constructor(private readonly databaseService: DatabaseService) {}
 
   private readonly loggedAtExpression = sql<Date>`coalesce(${aiLogs.completedAt}, ${aiLogs.createdAt})`;
 
+  /**
+   * Returns a paginated, filtered list of AI log entries.
+   *
+   * Executes data and count queries in parallel using `Promise.all`.
+   * Logs are ordered by creation date descending.
+   * Supported filters: `model`, `operation`, `status`, `from` (date range start),
+   * `to` (date range end). Date filters use the `completedAt` timestamp
+   * when available, otherwise fall back to `createdAt`.
+   *
+   * @param query - Pagination and filter parameters
+   * @returns Paginated AI log list with page metadata
+   */
   async findAll(query: ListAiLogsQueryDto): Promise<AiLogsListResponse> {
     const filters = this.buildFilters(query);
     const where = filters.length > 0 ? and(...filters) : undefined;
@@ -48,6 +63,22 @@ export class AiLogsService {
     };
   }
 
+  /**
+   * Calculates and returns AI usage metrics with trend analysis.
+   *
+   * Fetches all matching log entries and aggregates metrics into three categories:
+   * 1. **Totals**: Overall metrics across all filtered records (requests, avg latency,
+   *    errors, tokens, cost)
+   * 2. **Changes vs Yesterday**: Percentage change comparing today vs yesterday
+   * 3. **Trend**: Daily breakdown for the last 7 days (configurable via DEFAULT_TREND_DAYS)
+   *
+   * Uses `completedAt` timestamp when available, otherwise falls back to `createdAt`.
+   * Date boundaries are calculated in UTC to ensure consistent day boundaries across
+   * timezones. Cost values are rounded to 6 decimal places for precision.
+   *
+   * @param query - Filter parameters (same as findAll)
+   * @returns Metrics with totals, day-over-day changes, and trend
+   */
   async findMetrics(query: ListAiLogsQueryDto): Promise<AiLogsMetricsResponse> {
     const filters = this.buildFilters(query);
     const where = filters.length > 0 ? and(...filters) : undefined;
@@ -65,9 +96,16 @@ export class AiLogsService {
 
     const now = new Date();
     const todayStart = this.toStartOfUtcDay(now);
-    const yesterdayStart = new Date(todayStart.getTime() - 86_400_000);
-    const tomorrowStart = new Date(todayStart.getTime() + 86_400_000);
-    const sevenDaysAgoStart = new Date(todayStart.getTime() - 6 * 86_400_000);
+    const yesterdayStart = new Date(
+      todayStart.getTime() - this.MILLISECONDS_PER_DAY,
+    );
+    const tomorrowStart = new Date(
+      todayStart.getTime() + this.MILLISECONDS_PER_DAY,
+    );
+    const trendDaysAgoStart = new Date(
+      todayStart.getTime() -
+        (this.DEFAULT_TREND_DAYS - 1) * this.MILLISECONDS_PER_DAY,
+    );
 
     const trendMap = new Map<
       string,
@@ -80,8 +118,10 @@ export class AiLogsService {
       }
     >();
 
-    for (let offset = 0; offset < 7; offset += 1) {
-      const day = new Date(sevenDaysAgoStart.getTime() + offset * 86_400_000);
+    for (let offset = 0; offset < this.DEFAULT_TREND_DAYS; offset += 1) {
+      const day = new Date(
+        trendDaysAgoStart.getTime() + offset * this.MILLISECONDS_PER_DAY,
+      );
       trendMap.set(this.toUtcDayKey(day), {
         costUsd: 0,
         errors: 0,
@@ -134,7 +174,7 @@ export class AiLogsService {
       }
 
       if (
-        loggedAtTime >= sevenDaysAgoStart.getTime() &&
+        loggedAtTime >= trendDaysAgoStart.getTime() &&
         loggedAtTime < tomorrowStart.getTime()
       ) {
         const dayKey = this.toUtcDayKey(loggedAt);
@@ -203,6 +243,20 @@ export class AiLogsService {
     };
   }
 
+  /**
+   * Creates a new AI log entry.
+   *
+   * Records an AI API call with operation details, token usage, cost, latency,
+   * and optional request/response payloads. Defaults missing optional fields:
+   * - Token counts default to 0
+   * - Cost defaults to 0
+   * - Provider defaults to "openai"
+   * - completedAt defaults to current timestamp if not provided
+   *
+   * @param dto - AI log creation payload
+   * @returns Created AI log entry
+   * @throws InternalServerErrorException if database insert fails
+   */
   async create(dto: CreateAiLogDto): Promise<CreateAiLogResponse> {
     const [row] = await this.databaseService.client
       .insert(aiLogs)
@@ -239,6 +293,16 @@ export class AiLogsService {
     };
   }
 
+  /**
+   * Builds an array of Drizzle SQL filter conditions from query parameters.
+   *
+   * Supports filtering by model, operation, status, and date range.
+   * Date filters use the `loggedAtExpression` which prefers `completedAt`
+   * over `createdAt` for more accurate time-based filtering.
+   *
+   * @param query - Query parameters from ListAiLogsQueryDto
+   * @returns Array of SQL filter conditions (empty if no filters provided)
+   */
   private buildFilters(query: ListAiLogsQueryDto): SQL[] {
     const filters: SQL[] = [];
 
@@ -252,25 +316,56 @@ export class AiLogsService {
       filters.push(eq(aiLogs.status, query.status));
     }
     if (query.from) {
-      filters.push(gte(this.loggedAtExpression, this.toStartOfDay(query.from)));
+      filters.push(
+        gte(
+          this.loggedAtExpression,
+          this.toStartOfUtcDayFromString(query.from),
+        ),
+      );
     }
     if (query.to) {
-      filters.push(lte(this.loggedAtExpression, this.toEndOfDay(query.to)));
+      filters.push(
+        lte(this.loggedAtExpression, this.toEndOfUtcDayFromString(query.to)),
+      );
     }
 
     return filters;
   }
 
-  private toStartOfDay(value: string): Date {
+  /**
+   * Converts a date string to the start of that day in UTC.
+   *
+   * @param value - Date string in YYYY-MM-DD format
+   * @returns Date object set to 00:00:00.000 UTC
+   */
+  private toStartOfUtcDayFromString(value: string): Date {
     const date = new Date(`${value}T00:00:00.000Z`);
     return date;
   }
 
-  private toEndOfDay(value: string): Date {
+  /**
+   * Converts a date string to the end of that day in UTC.
+   *
+   * @param value - Date string in YYYY-MM-DD format
+   * @returns Date object set to 23:59:59.999 UTC
+   */
+  private toEndOfUtcDayFromString(value: string): Date {
     const date = new Date(`${value}T23:59:59.999Z`);
     return date;
   }
 
+  /**
+   * Calculates the percentage change between two values.
+   *
+   * Handles edge cases:
+   * - If both current and previous are 0, returns 0 (no change)
+   * - If previous is 0 but current is not, returns 100 (infinite growth)
+   * - Otherwise calculates ((current - previous) / previous) * 100
+   *
+   * @param current - Current value
+   * @param previous - Previous value to compare against
+   * @returns Percentage change (can be negative for decreases)
+   */
   private getPercentChange(current: number, previous: number): number {
     if (previous === 0) {
       if (current === 0) return 0;
@@ -280,16 +375,43 @@ export class AiLogsService {
     return ((current - previous) / previous) * 100;
   }
 
+  /**
+   * Converts a Date to the start of its day in UTC.
+   *
+   * Extracts the UTC year, month, and day from the input date
+   * and creates a new Date object set to midnight UTC.
+   *
+   * @param value - Input date
+   * @returns Date object set to 00:00:00.000 UTC of the same day
+   */
   private toStartOfUtcDay(value: Date): Date {
     return new Date(
       Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()),
     );
   }
 
+  /**
+   * Converts a Date to a UTC day key string.
+   *
+   * Returns the ISO date string (YYYY-MM-DD) which can be used
+   * as a map key for grouping metrics by day.
+   *
+   * @param value - Input date
+   * @returns UTC day key in YYYY-MM-DD format
+   */
   private toUtcDayKey(value: Date): string {
     return value.toISOString().slice(0, 10);
   }
 
+  /**
+   * Transforms a database AiLogRecord into an API AiLogItem response.
+   *
+   * Converts Date fields to ISO strings and converts estimatedCostUsd
+   * from string to number. Handles null completedAt gracefully.
+   *
+   * @param row - Database AI log record
+   * @returns API-ready AI log item with serialized dates
+   */
   private toAiLogItem(row: typeof aiLogs.$inferSelect): AiLogItem {
     return {
       ...row,

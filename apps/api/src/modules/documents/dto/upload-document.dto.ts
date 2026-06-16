@@ -1,10 +1,5 @@
 import { Transform } from "class-transformer";
-import {
-  IsBoolean,
-  IsIn,
-  IsOptional,
-  IsUUID,
-} from "class-validator";
+import { IsBoolean, IsIn, IsOptional, IsUUID } from "class-validator";
 
 const trimString = ({ value }: { value: unknown }): unknown =>
   typeof value === "string" ? value.trim() : value;

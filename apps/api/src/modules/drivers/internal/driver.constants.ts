@@ -1,0 +1,2 @@
+export const MAX_DRIVER_DOCUMENT_BYTES = 5 * 1024 * 1024;
+export const MAX_TRUCK_IMAGE_BYTES = 2 * 1024 * 1024;

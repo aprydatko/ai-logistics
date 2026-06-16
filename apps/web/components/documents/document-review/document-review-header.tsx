@@ -103,10 +103,7 @@ export const DocumentReviewHeader = ({
           </div>
           <div className="flex gap-3">
             <Button asChild className="h-10" variant="outline">
-              <a
-                download={document.fileName}
-                href={resolvedFileUrl}
-              >
+              <a download={document.fileName} href={resolvedFileUrl}>
                 <Download /> Download
               </a>
             </Button>

@@ -282,34 +282,34 @@ export const DocumentsTab = ({
                     );
                     return (
                       <>
-                  <FileText className="size-5 text-primary-700" />
-                  <div className="min-w-0 flex-1">
-                    <a
-                      className="block truncate font-semibold text-info hover:underline"
-                      href={resolvedFileUrl}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      {document.name}
-                    </a>
-                    <p className="text-xs text-primary-700">
-                      {document.documentNumber ??
-                        document.type.replaceAll("_", " ")}
-                      {document.expiresAt
-                        ? ` · expires ${document.expiresAt}`
-                        : ""}
-                    </p>
-                  </div>
-                  <Button
-                    aria-label={`Delete ${document.name}`}
-                    disabled={deleteMutation.isPending}
-                    onClick={() => deleteMutation.mutate(document.id)}
-                    size="icon"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <Trash2 className="size-4 text-danger" />
-                  </Button>
+                        <FileText className="size-5 text-primary-700" />
+                        <div className="min-w-0 flex-1">
+                          <a
+                            className="block truncate font-semibold text-info hover:underline"
+                            href={resolvedFileUrl}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            {document.name}
+                          </a>
+                          <p className="text-xs text-primary-700">
+                            {document.documentNumber ??
+                              document.type.replaceAll("_", " ")}
+                            {document.expiresAt
+                              ? ` · expires ${document.expiresAt}`
+                              : ""}
+                          </p>
+                        </div>
+                        <Button
+                          aria-label={`Delete ${document.name}`}
+                          disabled={deleteMutation.isPending}
+                          onClick={() => deleteMutation.mutate(document.id)}
+                          size="icon"
+                          type="button"
+                          variant="ghost"
+                        >
+                          <Trash2 className="size-4 text-danger" />
+                        </Button>
                       </>
                     );
                   })()}

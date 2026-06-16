@@ -19,6 +19,17 @@ interface AuthenticatedRequest extends Request {
 export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
+  /**
+   * Validates that the authenticated user has required roles.
+   *
+   * Checks the @Roles() decorator on both the handler and class level.
+   * If no roles are specified, allows access. Otherwise, verifies
+   * the user's role is in the required roles list.
+   *
+   * @param context - NestJS execution context
+   * @returns True if user has required roles or no roles specified
+   * @throws ForbiddenException if user lacks required permissions
+   */
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<
       UserRecord["role"][]
