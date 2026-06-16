@@ -37,6 +37,15 @@ const cookieOptions = {
   path: "/",
 };
 
+/**
+ * Handles POST requests to register a new user account.
+ *
+ * Creates a new user account with the provided information and automatically
+ * signs them in by setting session cookies.
+ *
+ * @param request - The incoming request with registration data (firstName, lastName, email, password)
+ * @returns A NextResponse with user data on success or error message on failure
+ */
 export async function POST(request: Request): Promise<NextResponse> {
   const body: unknown = await request.json().catch(() => null);
   const parsedRequest = registerSchema.safeParse(body);

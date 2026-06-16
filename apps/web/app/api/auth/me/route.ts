@@ -7,6 +7,14 @@ import {
   setSessionCookies,
 } from "@/lib/auth/server-session";
 
+/**
+ * Handles GET requests to retrieve the current authenticated user's information.
+ *
+ * Uses the refresh token to validate the session and return user details.
+ * Refreshes the access token if needed.
+ *
+ * @returns A NextResponse with user data on success or error message on failure
+ */
 export async function GET(): Promise<NextResponse> {
   try {
     const cookieStore = await cookies();

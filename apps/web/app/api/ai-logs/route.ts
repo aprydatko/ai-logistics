@@ -18,6 +18,16 @@ const allowedQueryParameters = new Set([
   "limit",
 ]);
 
+/**
+ * Handles GET requests to retrieve AI logs with authentication and token refresh.
+ *
+ * Proxies the request to the backend AI logs endpoint with JWT authentication.
+ * Supports automatic token refresh and session cookie management.
+ * Filters query parameters to only allow whitelisted values (model, operation, status, from, to, page, limit).
+ *
+ * @param request - The incoming Next.js request object
+ * @returns A NextResponse with the AI logs data or error
+ */
 export async function GET(request: Request): Promise<NextResponse> {
   try {
     const cookieStore = await cookies();

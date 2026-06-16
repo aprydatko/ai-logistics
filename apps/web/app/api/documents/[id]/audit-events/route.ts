@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { proxyDocumentRequest } from "../../route";
-
-type RouteContext = { params: Promise<{ id: string }> };
+import { proxyWithAuth, type IdRouteContext } from "@/lib/api/proxy-with-auth";
 
 /**
  * Handles PATCH requests to update audit events for a specific document.
@@ -13,8 +11,8 @@ type RouteContext = { params: Promise<{ id: string }> };
  */
 export const PATCH = async (
   request: Request,
-  context: RouteContext,
+  context: IdRouteContext,
 ): Promise<NextResponse> => {
   const { id } = await context.params;
-  return proxyDocumentRequest(request, `documents/${id}/audit-events`, "PATCH");
+  return proxyWithAuth(request, `documents/${id}/audit-events`, "PATCH");
 };

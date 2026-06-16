@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { proxyDocumentRequest } from "../route";
-
-type RouteContext = { params: Promise<{ id: string }> };
+import { proxyWithAuth, type IdRouteContext } from "@/lib/api/proxy-with-auth";
 
 /**
  * Handles GET requests to retrieve a specific document by ID.
@@ -13,10 +11,10 @@ type RouteContext = { params: Promise<{ id: string }> };
  */
 export const GET = async (
   request: Request,
-  context: RouteContext,
+  context: IdRouteContext,
 ): Promise<NextResponse> => {
   const { id } = await context.params;
-  return proxyDocumentRequest(request, `documents/${id}`, "GET");
+  return proxyWithAuth(request, `documents/${id}`, "GET");
 };
 
 /**
@@ -28,10 +26,10 @@ export const GET = async (
  */
 export const PATCH = async (
   request: Request,
-  context: RouteContext,
+  context: IdRouteContext,
 ): Promise<NextResponse> => {
   const { id } = await context.params;
-  return proxyDocumentRequest(request, `documents/${id}`, "PATCH");
+  return proxyWithAuth(request, `documents/${id}`, "PATCH");
 };
 
 /**
@@ -43,8 +41,8 @@ export const PATCH = async (
  */
 export const DELETE = async (
   request: Request,
-  context: RouteContext,
+  context: IdRouteContext,
 ): Promise<NextResponse> => {
   const { id } = await context.params;
-  return proxyDocumentRequest(request, `documents/${id}`, "DELETE");
+  return proxyWithAuth(request, `documents/${id}`, "DELETE");
 };

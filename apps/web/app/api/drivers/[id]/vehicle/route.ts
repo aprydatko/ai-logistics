@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 
-import { proxyDriverMutation } from "../../route";
+import { proxyWithAuth, type IdRouteContext } from "@/lib/api/proxy-with-auth";
 
+/**
+ * Handles PUT requests to update a driver's vehicle information.
+ *
+ * @param request - The incoming Next.js request with vehicle data
+ * @param context - Route context containing the driver ID parameter
+ * @returns A NextResponse with the updated vehicle information or error
+ */
 export async function PUT(
   request: Request,
-  context: { params: Promise<{ id: string }> },
+  context: IdRouteContext,
 ): Promise<NextResponse> {
   const { id } = await context.params;
-  return proxyDriverMutation(request, `drivers/${id}/vehicle`, "PUT");
+  return proxyWithAuth(request, `drivers/${id}/vehicle`, "PUT");
 }

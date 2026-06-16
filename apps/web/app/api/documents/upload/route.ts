@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { proxyDocumentRequest } from "../route";
+import { proxyWithAuth } from "@/lib/api/proxy-with-auth";
 
 /**
  * Handles POST requests to upload a document.
@@ -10,4 +10,4 @@ import { proxyDocumentRequest } from "../route";
  * @returns A NextResponse with the uploaded document details or error
  */
 export const POST = (request: Request): Promise<NextResponse> =>
-  proxyDocumentRequest(request, "documents/upload", "POST");
+  proxyWithAuth(request, "documents/upload", "POST");

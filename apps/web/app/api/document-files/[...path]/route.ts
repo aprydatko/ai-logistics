@@ -1,15 +1,23 @@
 import { NextResponse } from "next/server";
 
+import { type PathRouteContext } from "@/lib/api/proxy-with-auth";
+
 const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:3001/api";
 const uploadsBaseUrl = API_BASE_URL.replace(/\/api\/?$/, "");
 
-type RouteContext = {
-  params: Promise<{ path: string[] }>;
-};
-
+/**
+ * Handles GET requests to retrieve document files from the backend.
+ *
+ * Proxies file requests to the backend uploads directory and returns the file content
+ * with appropriate headers. Used for previewing uploaded documents.
+ *
+ * @param _request - The incoming request (unused)
+ * @param context - Route context containing the file path segments
+ * @returns A NextResponse with the file content or error
+ */
 export const GET = async (
   _request: Request,
-  context: RouteContext,
+  context: PathRouteContext,
 ): Promise<NextResponse> => {
   const { path } = await context.params;
   const upstreamUrl = `${uploadsBaseUrl}/uploads/${path.join("/")}`;

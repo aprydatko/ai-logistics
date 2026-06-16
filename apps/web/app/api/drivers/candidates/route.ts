@@ -9,6 +9,13 @@ import {
 
 const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:3001/api";
 
+/**
+ * Handles GET requests to retrieve driver candidates.
+ *
+ * Returns a list of potential driver candidates from the backend API.
+ *
+ * @returns A NextResponse with the driver candidates list or error
+ */
 export async function GET(): Promise<NextResponse> {
   try {
     const cookieStore = await cookies();

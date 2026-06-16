@@ -38,6 +38,13 @@ type AssistantAttachment = {
   name: string;
 };
 
+/**
+ * Builds a placeholder response when OpenAI is not configured.
+ *
+ * @param request - The assistant request data
+ * @param configuredModel - The configured OpenAI model name
+ * @returns A placeholder response object with status and configuration info
+ */
 const buildPlaceholderResponse = (
   request: AssistantRequest,
   configuredModel: string,
@@ -51,6 +58,11 @@ const buildPlaceholderResponse = (
   },
 });
 
+/**
+ * Builds a status response indicating OpenAI configuration state.
+ *
+ * @returns A status response object with configuration status and model info
+ */
 const buildStatusResponse = (): Record<string, unknown> => {
   const config = getAssistantOpenAIConfig();
 
@@ -70,15 +82,34 @@ const buildStatusResponse = (): Record<string, unknown> => {
   };
 };
 
+/**
+ * Type guard to check if a FormData entry value is a File.
+ *
+ * @param value - The FormData entry value to check
+ * @returns True if the value is a File instance
+ */
 const isRequestFile = (value: FormDataEntryValue | null): value is File =>
   value instanceof File;
 
+/**
+ * Checks if the request has a JSON content type.
+ *
+ * @param request - The incoming request object
+ * @returns True if the request content type is JSON
+ */
 const isJsonRequest = (request: Request): boolean =>
   request.headers
     .get("content-type")
     ?.toLowerCase()
     .includes("application/json") ?? false;
 
+/**
+ * Parses a JSON request body and validates it against the assistant request schema.
+ *
+ * @param request - The incoming request with JSON body
+ * @returns Parsed request data with null attachment
+ * @throws Error if the request is invalid
+ */
 const parseJsonRequest = async (
   request: Request,
 ): Promise<{
@@ -98,6 +129,16 @@ const parseJsonRequest = async (
   };
 };
 
+/**
+ * Parses a multipart/form-data request with optional file attachment.
+ *
+ * Validates the request schema and checks attachment type and size.
+ * Supports PDF, JPEG, PNG, and WEBP files up to 5MB.
+ *
+ * @param request - The incoming request with multipart form data
+ * @returns Parsed request data with optional attachment
+ * @throws Error if the request is invalid, attachment type is unsupported, or file is too large
+ */
 const parseMultipartRequest = async (
   request: Request,
 ): Promise<{
@@ -148,6 +189,12 @@ const parseMultipartRequest = async (
   };
 };
 
+/**
+ * Parses an assistant request, detecting whether it's JSON or multipart/form-data.
+ *
+ * @param request - The incoming request
+ * @returns Parsed request data with optional attachment
+ */
 const parseAssistantRequest = async (
   request: Request,
 ): Promise<{
@@ -161,6 +208,16 @@ const parseAssistantRequest = async (
   return parseMultipartRequest(request);
 };
 
+/**
+ * Builds the input payload for the OpenAI API request.
+ *
+ * Formats the message and attachment according to OpenAI's API requirements.
+ * Handles both text-only and text-with-attachment scenarios.
+ *
+ * @param request - The assistant request data
+ * @param attachment - Optional file attachment data
+ * @returns Formatted input for OpenAI API (string or array of message parts)
+ */
 const buildOpenAIInput = (
   request: AssistantRequest,
   attachment: AssistantAttachment | null,
@@ -197,6 +254,13 @@ const buildOpenAIInput = (
   ];
 };
 
+/**
+ * Builds a log-friendly string representation of the request input.
+ *
+ * @param request - The assistant request data
+ * @param attachment - Optional file attachment data
+ * @returns A string representation of the request for logging
+ */
 const buildRequestInputLog = (
   request: AssistantRequest,
   attachment: AssistantAttachment | null,
@@ -205,6 +269,12 @@ const buildRequestInputLog = (
     ? `${request.message}\n\n[Attachment: ${attachment.name} (${attachment.mimeType})]`
     : request.message;
 
+/**
+ * Extracts the error message from an OpenAI API error response.
+ *
+ * @param responseBody - The parsed response body from OpenAI
+ * @returns The error message string or null if not found
+ */
 const getOpenAIErrorMessage = (responseBody: unknown): string | null => {
   if (!responseBody || typeof responseBody !== "object") return null;
   const responseRecord = responseBody as Record<string, unknown>;
@@ -217,6 +287,12 @@ const getOpenAIErrorMessage = (responseBody: unknown): string | null => {
   return typeof message === "string" && message.trim() ? message : null;
 };
 
+/**
+ * Extracts token usage information from an OpenAI API response.
+ *
+ * @param responseBody - The parsed response body from OpenAI
+ * @returns Token usage counts (completion, prompt, total)
+ */
 const getOpenAIUsage = (
   responseBody: unknown,
 ): {
@@ -252,6 +328,14 @@ const getOpenAIUsage = (
   };
 };
 
+/**
+ * Extracts the output text from an OpenAI API response.
+ *
+ * Handles both direct output_text field and nested output array structure.
+ *
+ * @param responseBody - The parsed response body from OpenAI
+ * @returns The extracted output text or null if not found
+ */
 const extractOutputText = (responseBody: unknown): string | null => {
   if (!responseBody || typeof responseBody !== "object") return null;
   const responseRecord = responseBody as Record<string, unknown>;
@@ -288,6 +372,12 @@ const extractOutputText = (responseBody: unknown): string | null => {
   return textParts.length > 0 ? textParts.join("\n\n") : null;
 };
 
+/**
+ * Extracts the response ID from an OpenAI API response.
+ *
+ * @param responseBody - The parsed response body from OpenAI
+ * @returns The response ID string or undefined if not found
+ */
 const getResponseId = (responseBody: unknown): string | undefined => {
   if (!responseBody || typeof responseBody !== "object") return undefined;
   const responseId = (responseBody as Record<string, unknown>).id;
@@ -296,6 +386,16 @@ const getResponseId = (responseBody: unknown): string | undefined => {
     : undefined;
 };
 
+/**
+ * Estimates the cost in USD for an OpenAI API request based on token usage.
+ *
+ * Supports GPT-4.1-mini and GPT-4.1 models with their respective pricing.
+ *
+ * @param completionTokens - Number of completion tokens used
+ * @param model - The OpenAI model name
+ * @param promptTokens - Number of prompt tokens used
+ * @returns Estimated cost in USD
+ */
 const estimateCostUsd = ({
   completionTokens,
   model,
@@ -328,6 +428,15 @@ const estimateCostUsd = ({
   return 0;
 };
 
+/**
+ * Creates an AI log entry in the backend API.
+ *
+ * Logs assistant requests, responses, and metadata for tracking and analysis.
+ * Handles authentication and token refresh automatically.
+ * Errors are silently caught to prevent breaking assistant responses.
+ *
+ * @param payload - The AI log data to create
+ */
 const createAiLog = async (payload: CreateAiLogDto): Promise<void> => {
   try {
     const cookieStore = await cookies();
@@ -356,6 +465,14 @@ const createAiLog = async (payload: CreateAiLogDto): Promise<void> => {
   }
 };
 
+/**
+ * Retrieves the current session user information.
+ *
+ * Uses the refresh token to get user details from the session.
+ * Returns a default "Unknown user" if no session exists.
+ *
+ * @returns User information with optional ID and name
+ */
 const getSessionUser = async (): Promise<{
   id?: string;
   name: string;
@@ -381,9 +498,26 @@ const getSessionUser = async (): Promise<{
   }
 };
 
+/**
+ * Handles GET requests to check the OpenAI assistant configuration status.
+ *
+ * Returns information about whether OpenAI is configured and ready for use.
+ *
+ * @returns A NextResponse with the configuration status
+ */
 export const GET = async (): Promise<NextResponse> =>
   NextResponse.json(buildStatusResponse(), { status: 200 });
 
+/**
+ * Handles POST requests to send a message to the AI assistant.
+ *
+ * Processes the assistant request, sends it to OpenAI if configured,
+ * and logs the interaction. Supports both JSON and multipart/form-data
+ * requests with optional file attachments.
+ *
+ * @param request - The incoming request with message and optional attachment
+ * @returns A NextResponse with the assistant's response or error
+ */
 export const POST = async (request: Request): Promise<NextResponse> => {
   const startedAt = Date.now();
   try {

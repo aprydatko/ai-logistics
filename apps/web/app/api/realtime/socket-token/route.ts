@@ -9,6 +9,13 @@ import {
 
 const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:3001/api";
 
+/**
+ * Converts the API base URL to the socket base URL.
+ *
+ * Removes the /api path and any trailing slash to get the base URL for WebSocket connections.
+ *
+ * @returns The socket base URL
+ */
 const toSocketBaseUrl = (): string => {
   const apiUrl = new URL(API_BASE_URL);
   apiUrl.pathname = "";
@@ -17,6 +24,14 @@ const toSocketBaseUrl = (): string => {
   return apiUrl.toString().replace(/\/$/, "");
 };
 
+/**
+ * Handles POST requests to create a socket token for WebSocket connections.
+ *
+ * Authenticates the user and requests a socket token from the backend API.
+ * Returns the token along with the socket URL for WebSocket connection.
+ *
+ * @returns A NextResponse with socket token and URL or error message
+ */
 export async function POST(): Promise<NextResponse> {
   try {
     const cookieStore = await cookies();

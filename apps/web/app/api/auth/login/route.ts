@@ -35,6 +35,15 @@ const cookieOptions = {
   path: "/",
 };
 
+/**
+ * Handles POST requests to authenticate a user with email and password.
+ *
+ * Validates credentials against the backend API and sets session cookies
+ * with access and refresh tokens upon successful authentication.
+ *
+ * @param request - The incoming request with email and password in the body
+ * @returns A NextResponse with user data on success or error message on failure
+ */
 export async function POST(request: Request): Promise<NextResponse> {
   const body: unknown = await request.json().catch(() => null);
   const parsedRequest = loginSchema.safeParse(body);
