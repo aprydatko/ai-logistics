@@ -3,6 +3,13 @@ import { describe, expect, it, vi } from "vitest";
 
 import { DocumentsService } from "./documents.service";
 
+const withTransaction = <T extends Record<string, unknown>>(client: T): T => ({
+  ...client,
+  transaction: vi.fn(async (callback: (tx: T) => Promise<unknown>) =>
+    callback(client),
+  ),
+});
+
 describe("DocumentsService upload", () => {
   it("rejects missing file uploads", async () => {
     const service = new DocumentsService(
@@ -25,14 +32,14 @@ describe("DocumentsService upload", () => {
     });
     const insertAuditValues = vi.fn().mockResolvedValue(undefined);
     const insertFieldsValues = vi.fn().mockResolvedValue(undefined);
-    const client = {
+    const client = withTransaction({
       insert: vi
         .fn()
         .mockReturnValueOnce({ values: insertDocumentValues })
         .mockReturnValueOnce({ values: insertAuditValues })
         .mockReturnValueOnce({ values: insertFieldsValues })
         .mockReturnValueOnce({ values: insertAuditValues }),
-    };
+    });
     const storage = {
       save: vi.fn().mockResolvedValue({
         fileUrl: "/documents/2026-06-16/test.pdf",

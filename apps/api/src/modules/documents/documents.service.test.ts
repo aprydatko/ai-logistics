@@ -106,6 +106,13 @@ const makeSelectChain = (result: unknown) => {
 const sqlText = (sql: SQL | undefined): string =>
   sql ? new PgDialect().sqlToQuery(sql).sql : "";
 
+const withTransaction = <T extends Record<string, unknown>>(client: T): T => ({
+  ...client,
+  transaction: vi.fn(async (callback: (tx: T) => Promise<unknown>) =>
+    callback(client),
+  ),
+});
+
 const createService = (client: unknown): DocumentsService =>
   new DocumentsService(client as never, {} as never, {} as never);
 
@@ -451,9 +458,10 @@ describe("DocumentsService", () => {
   });
 
   it("replaces extracted fields and returns the refreshed document", async () => {
-    const detailBefore = makeSelectChain([joined]);
-    const fieldsBefore = makeSelectChain([]);
-    const auditsBefore = makeSelectChain([]);
+    const existsBefore = makeSelectChain([{ id: document.id }]);
+    const detailAfter = makeSelectChain([joined]);
+    const fieldsAfter = makeSelectChain([extractedField]);
+    const auditsAfter = makeSelectChain([]);
     const deleteChain = {
       where: vi.fn().mockResolvedValue([]),
     };
@@ -461,21 +469,16 @@ describe("DocumentsService", () => {
     const insertChain = {
       values: vi.fn().mockResolvedValue([]),
     };
-    const detailAfter = makeSelectChain([joined]);
-    const fieldsAfter = makeSelectChain([extractedField]);
-    const auditsAfter = makeSelectChain([]);
-    const client = {
+    const client = withTransaction({
       select: vi
         .fn()
-        .mockReturnValueOnce(detailBefore)
-        .mockReturnValueOnce(fieldsBefore)
-        .mockReturnValueOnce(auditsBefore)
+        .mockReturnValueOnce(existsBefore)
         .mockReturnValueOnce(detailAfter)
         .mockReturnValueOnce(fieldsAfter)
         .mockReturnValueOnce(auditsAfter),
       delete: vi.fn().mockReturnValue(deleteChain),
       insert: vi.fn().mockReturnValue(insertChain),
-    };
+    });
     const service = createService({ client });
 
     const result = await service.replaceExtractedFields(document.id, [
@@ -507,9 +510,7 @@ describe("DocumentsService", () => {
   });
 
   it("replaces audit events and returns the refreshed document", async () => {
-    const detailBefore = makeSelectChain([joined]);
-    const fieldsBefore = makeSelectChain([]);
-    const auditsBefore = makeSelectChain([]);
+    const existsBefore = makeSelectChain([{ id: document.id }]);
     const deleteChain = {
       where: vi.fn().mockResolvedValue([]),
     };
@@ -520,18 +521,16 @@ describe("DocumentsService", () => {
     const detailAfter = makeSelectChain([joined]);
     const fieldsAfter = makeSelectChain([]);
     const auditsAfter = makeSelectChain([auditEvent]);
-    const client = {
+    const client = withTransaction({
       select: vi
         .fn()
-        .mockReturnValueOnce(detailBefore)
-        .mockReturnValueOnce(fieldsBefore)
-        .mockReturnValueOnce(auditsBefore)
+        .mockReturnValueOnce(existsBefore)
         .mockReturnValueOnce(detailAfter)
         .mockReturnValueOnce(fieldsAfter)
         .mockReturnValueOnce(auditsAfter),
       delete: vi.fn().mockReturnValue(deleteChain),
       insert: vi.fn().mockReturnValue(insertChain),
-    };
+    });
     const service = createService({ client });
 
     const result = await service.replaceAuditEvents(document.id, [
