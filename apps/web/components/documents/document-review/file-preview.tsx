@@ -3,6 +3,8 @@
 import type { Document } from "@repo/shared";
 import Image from "next/image";
 
+import { resolveDocumentFileUrl } from "@/lib/documents/document-file-url";
+
 export const FilePreview = ({
   document,
   isFullscreen,
@@ -10,7 +12,9 @@ export const FilePreview = ({
   document: Document;
   isFullscreen: boolean;
 }): React.JSX.Element => {
-  if (!document.fileUrl) {
+  const resolvedFileUrl = resolveDocumentFileUrl(document.fileUrl);
+
+  if (!resolvedFileUrl) {
     return (
       <div className="flex min-h-[560px] items-center justify-center p-8 text-center text-sm text-ink-500">
         The original file is not available for this document.
@@ -26,7 +30,7 @@ export const FilePreview = ({
           className="object-contain"
           fill
           sizes="(min-width: 1536px) 50vw, 100vw"
-          src={document.fileUrl}
+          src={resolvedFileUrl}
           unoptimized
         />
       </div>
@@ -34,7 +38,7 @@ export const FilePreview = ({
   }
 
   if (document.mimeType === "application/pdf") {
-    const previewUrl = `${document.fileUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`;
+    const previewUrl = `${resolvedFileUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`;
 
     return (
       <iframe
@@ -51,7 +55,7 @@ export const FilePreview = ({
       <a
         className="font-semibold text-info hover:underline"
         download={document.fileName}
-        href={document.fileUrl}
+        href={resolvedFileUrl}
       >
         Download {document.fileName}
       </a>

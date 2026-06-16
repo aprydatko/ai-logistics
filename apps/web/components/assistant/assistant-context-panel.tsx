@@ -1,18 +1,17 @@
 import {
   AlertTriangle,
-  Bell,
   ChevronRight,
   CloudRain,
-  FileText,
   MapPinned,
   Route,
+  ShieldCheck,
   Truck,
   UserRound,
-  UserRoundCog,
   X,
 } from "lucide-react";
 
 import { Button } from "@repo/ui/components/button";
+import type { AssistantSkill } from "./workspace/types";
 
 const sources = [
   { count: 6, icon: Truck, label: "Loads" },
@@ -29,12 +28,8 @@ const references = [
   { detail: "TR-1022", icon: UserRound, label: "Driver Sarah Davis" },
 ];
 
-const safeActions = [
-  { icon: Bell, label: "Notify driver" },
-  { icon: UserRoundCog, label: "Reassign driver" },
-  { icon: Route, label: "Reroute load" },
-  { icon: AlertTriangle, label: "Create incident" },
-  { icon: FileText, label: "Generate report" },
+const skills: AssistantSkill[] = [
+  { id: "save_document", kind: "skill", label: "Save document" },
 ];
 
 type Filter = {
@@ -46,6 +41,7 @@ type AssistantContextPanelProps = {
   onAction: (message: string) => void;
   onClose: () => void;
   onRemoveFilter: (label: string) => void;
+  onSelectSkill: (skill: AssistantSkill) => void;
 };
 
 export const AssistantContextPanel = ({
@@ -53,6 +49,7 @@ export const AssistantContextPanel = ({
   onAction,
   onClose,
   onRemoveFilter,
+  onSelectSkill,
 }: AssistantContextPanelProps): React.JSX.Element => (
   <aside className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xs xl:h-full">
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
@@ -137,17 +134,20 @@ export const AssistantContextPanel = ({
       </section>
 
       <section>
-        <h3 className="text-xs font-bold text-ink-900">Safe actions</h3>
+        <h3 className="text-xs font-bold text-ink-900">Skills &amp; agents</h3>
         <div className="mt-2 divide-y divide-border/60">
-          {safeActions.map(({ icon: Icon, label }) => (
+          {skills.map((skill) => (
             <button
               className="flex h-10 w-full items-center gap-3 text-left text-xs font-medium text-ink-900 transition hover:bg-surface-50"
-              key={label}
-              onClick={() => onAction(label)}
+              key={skill.id}
+              onClick={() => onSelectSkill(skill)}
               type="button"
             >
-              <Icon className="size-4 text-primary-700" />
-              <span className="flex-1">{label}</span>
+              <ShieldCheck className="size-4 text-primary-700" />
+              <span className="flex-1">{skill.label}</span>
+              <span className="rounded-full bg-emerald-50 px-2 py-1 text-[0.65rem] font-semibold text-emerald-700">
+                Skill
+              </span>
               <ChevronRight className="size-4 text-primary-700" />
             </button>
           ))}

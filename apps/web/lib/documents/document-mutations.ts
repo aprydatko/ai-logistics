@@ -73,6 +73,36 @@ export const createDocument = async (
   return documentResponseSchema.parse(await response.json()).data;
 };
 
+export const uploadDocument = async ({
+  analyzeWithVision,
+  file,
+  type,
+}: {
+  analyzeWithVision?: boolean;
+  file: File;
+  type:
+    | "bill_of_lading"
+    | "proof_of_delivery"
+    | "rate_confirmation"
+    | "driver_license";
+}): Promise<Document> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("type", type);
+  formData.append("analyzeWithVision", analyzeWithVision ? "true" : "false");
+
+  const response = await fetch("/api/documents/upload", {
+    method: "POST",
+    body: formData,
+  });
+  if (!response.ok) {
+    throw new Error(
+      await extractDocumentApiError(response, "Unable to upload document"),
+    );
+  }
+  return documentResponseSchema.parse(await response.json()).data;
+};
+
 export const replaceDocumentExtractedFields = async ({
   documentId,
   fields,

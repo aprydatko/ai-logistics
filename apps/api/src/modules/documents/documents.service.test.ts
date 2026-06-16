@@ -15,6 +15,8 @@ const document: DocumentRecord = {
   fileName: "bol-1001.pdf",
   fileSize: 2048,
   mimeType: "application/pdf",
+  fileUrl: null,
+  storagePath: null,
   type: "bill_of_lading",
   status: "needs_review",
   uploadedByUserId: "44444444-4444-4444-8444-444444444444",
@@ -104,6 +106,9 @@ const makeSelectChain = (result: unknown) => {
 const sqlText = (sql: SQL | undefined): string =>
   sql ? new PgDialect().sqlToQuery(sql).sql : "";
 
+const createService = (client: unknown): DocumentsService =>
+  new DocumentsService(client as never, {} as never, {} as never);
+
 describe("DocumentsService", () => {
   it("lists joined documents with pagination and ISO dates", async () => {
     const rows = makeSelectChain([joined]);
@@ -111,7 +116,7 @@ describe("DocumentsService", () => {
     const client = {
       select: vi.fn().mockReturnValueOnce(rows).mockReturnValueOnce(totals),
     };
-    const service = new DocumentsService({ client } as never);
+    const service = createService({ client });
 
     await expect(
       service.findAll({
@@ -154,7 +159,7 @@ describe("DocumentsService", () => {
     const client = {
       select: vi.fn().mockReturnValueOnce(rows).mockReturnValueOnce(totals),
     };
-    const service = new DocumentsService({ client } as never);
+    const service = createService({ client });
 
     await service.findAll({
       search: "Proof of Delivery",
@@ -196,7 +201,7 @@ describe("DocumentsService", () => {
       const client = {
         select: vi.fn().mockReturnValueOnce(rows).mockReturnValueOnce(totals),
       };
-      const service = new DocumentsService({ client } as never);
+      const service = createService({ client });
 
       await service.findAll({
         search,
@@ -224,7 +229,7 @@ describe("DocumentsService", () => {
     const client = {
       select: vi.fn().mockReturnValueOnce(rows).mockReturnValueOnce(totals),
     };
-    const service = new DocumentsService({ client } as never);
+    const service = createService({ client });
 
     await service.findAll({
       search,
@@ -260,7 +265,7 @@ describe("DocumentsService", () => {
         .mockReturnValueOnce(fields)
         .mockReturnValueOnce(audits),
     };
-    const service = new DocumentsService({ client } as never);
+    const service = createService({ client });
 
     const result = await service.findOne(document.id);
 
@@ -281,7 +286,7 @@ describe("DocumentsService", () => {
         .mockReturnValueOnce(fields)
         .mockReturnValueOnce(audits),
     };
-    const service = new DocumentsService({ client } as never);
+    const service = createService({ client });
 
     const result = await service.findOne(document.id);
 
@@ -307,7 +312,7 @@ describe("DocumentsService", () => {
         .mockReturnValueOnce(fields)
         .mockReturnValueOnce(audits),
     };
-    const service = new DocumentsService({ client } as never);
+    const service = createService({ client });
 
     const result = await service.findOne(document.id);
 
@@ -329,7 +334,7 @@ describe("DocumentsService", () => {
 
   it("returns not found for a missing document", async () => {
     const client = { select: vi.fn().mockReturnValue(makeSelectChain([])) };
-    const service = new DocumentsService({ client } as never);
+    const service = createService({ client });
 
     await expect(service.findOne(document.id)).rejects.toThrow(
       NotFoundException,
@@ -338,7 +343,7 @@ describe("DocumentsService", () => {
 
   it("returns not found for an unknown related driver", async () => {
     const client = { select: vi.fn().mockReturnValue(makeSelectChain([])) };
-    const service = new DocumentsService({ client } as never);
+    const service = createService({ client });
 
     await expect(
       service.update(document.id, { driverId: document.driverId }),
@@ -347,7 +352,7 @@ describe("DocumentsService", () => {
 
   it("returns not found for an unknown related load", async () => {
     const client = { select: vi.fn().mockReturnValue(makeSelectChain([])) };
-    const service = new DocumentsService({ client } as never);
+    const service = createService({ client });
 
     await expect(
       service.update(document.id, { loadId: document.loadId }),
@@ -363,7 +368,7 @@ describe("DocumentsService", () => {
     updateChain.set.mockReturnValue(updateChain);
     updateChain.where.mockReturnValue(updateChain);
     const client = { update: vi.fn().mockReturnValue(updateChain) };
-    const service = new DocumentsService({ client } as never);
+    const service = createService({ client });
 
     await expect(
       service.update(document.id, { status: "complete" }),
@@ -391,7 +396,7 @@ describe("DocumentsService", () => {
         .mockReturnValueOnce(audits),
       update: vi.fn().mockReturnValue(updateChain),
     };
-    const service = new DocumentsService({ client } as never);
+    const service = createService({ client });
 
     await expect(
       service.update(document.id, {
@@ -423,7 +428,7 @@ describe("DocumentsService", () => {
     };
     deleteChain.where.mockReturnValue(deleteChain);
     const client = { delete: vi.fn().mockReturnValue(deleteChain) };
-    const service = new DocumentsService({ client } as never);
+    const service = createService({ client });
 
     await expect(service.remove(document.id)).resolves.toEqual({
       success: true,
@@ -438,7 +443,7 @@ describe("DocumentsService", () => {
     };
     deleteChain.where.mockReturnValue(deleteChain);
     const client = { delete: vi.fn().mockReturnValue(deleteChain) };
-    const service = new DocumentsService({ client } as never);
+    const service = createService({ client });
 
     await expect(service.remove(document.id)).rejects.toThrow(
       NotFoundException,
@@ -471,7 +476,7 @@ describe("DocumentsService", () => {
       delete: vi.fn().mockReturnValue(deleteChain),
       insert: vi.fn().mockReturnValue(insertChain),
     };
-    const service = new DocumentsService({ client } as never);
+    const service = createService({ client });
 
     const result = await service.replaceExtractedFields(document.id, [
       {
@@ -527,7 +532,7 @@ describe("DocumentsService", () => {
       delete: vi.fn().mockReturnValue(deleteChain),
       insert: vi.fn().mockReturnValue(insertChain),
     };
-    const service = new DocumentsService({ client } as never);
+    const service = createService({ client });
 
     const result = await service.replaceAuditEvents(document.id, [
       {

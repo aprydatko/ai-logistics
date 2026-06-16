@@ -3,13 +3,18 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   ParseUUIDPipe,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { memoryStorage } from "multer";
 
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
@@ -26,6 +31,7 @@ import { CreateDocumentDto } from "./dto/create-document.dto";
 import { ListDocumentsQueryDto } from "./dto/list-documents-query.dto";
 import { ReplaceDocumentAuditEventsDto } from "./dto/replace-document-audit-events.dto";
 import { ReplaceDocumentExtractedFieldsDto } from "./dto/replace-document-extracted-fields.dto";
+import { UploadDocumentDto } from "./dto/upload-document.dto";
 import { UpdateDocumentDto } from "./dto/update-document.dto";
 
 @Controller("documents")
@@ -46,6 +52,24 @@ export class DocumentsController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<DocumentResult> {
     return this.documentsService.create(dto, user.id);
+  }
+
+  @Post("upload")
+  @HttpCode(201)
+  @Roles("admin", "dispatcher")
+  @UseGuards(RolesGuard)
+  @UseInterceptors(
+    FileInterceptor("file", {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+    }),
+  )
+  upload(
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Body() dto: UploadDocumentDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<DocumentResult> {
+    return this.documentsService.upload(file, dto, user.id);
   }
 
   @Get(":id")

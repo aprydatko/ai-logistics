@@ -27,7 +27,9 @@ export type DocumentItem = Omit<
   DocumentRecord,
   | "createdAt"
   | "driverId"
+  | "fileUrl"
   | "loadId"
+  | "storagePath"
   | "updatedAt"
   | "uploadedAt"
   | "uploadedByUserId"

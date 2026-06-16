@@ -11,6 +11,8 @@ const environmentSchema = z.object({
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
   JWT_REFRESH_SECRET: z.string().min(32),
   JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
+  OPENAI_API_KEY: z.string().min(1).optional(),
+  OPENAI_DOCUMENT_MODEL: z.string().default("gpt-4.1-mini"),
 });
 
 export type Environment = z.infer<typeof environmentSchema>;
