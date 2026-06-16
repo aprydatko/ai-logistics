@@ -51,16 +51,17 @@ export const proxyDocumentRequest = async (
           apiUrl.searchParams.set(key, value);
       });
     }
+    const contentType = request.headers.get("content-type");
     const body =
       method === "POST" || method === "PATCH"
-        ? await request.text()
+        ? Buffer.from(await request.arrayBuffer())
         : undefined;
     const sendRequest = (token: string): Promise<Response> =>
       fetch(apiUrl, {
         method,
         headers: {
           Authorization: `Bearer ${token}`,
-          ...(body ? { "Content-Type": "application/json" } : {}),
+          ...(body && contentType ? { "Content-Type": contentType } : {}),
         },
         body,
         cache: "no-store",

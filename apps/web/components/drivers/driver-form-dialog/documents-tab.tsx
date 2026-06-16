@@ -9,6 +9,7 @@ import {
   deleteDriverDocument,
   type DriverDocumentInput,
 } from "@/lib/drivers/driver-mutations";
+import { resolveDocumentFileUrl } from "@/lib/documents/document-file-url";
 import type { DriverDetails } from "@/lib/drivers/drivers-query";
 import { Button } from "@repo/ui/components/button";
 import { DatePicker } from "@repo/ui/components/date-picker";
@@ -275,11 +276,17 @@ export const DocumentsTab = ({
             <div className="mt-3 divide-y divide-border rounded-xl border border-border bg-white px-4">
               {details.documents.map((document) => (
                 <div className="flex items-center gap-3 py-3" key={document.id}>
+                  {(() => {
+                    const resolvedFileUrl = resolveDocumentFileUrl(
+                      document.fileUrl,
+                    );
+                    return (
+                      <>
                   <FileText className="size-5 text-primary-700" />
                   <div className="min-w-0 flex-1">
                     <a
                       className="block truncate font-semibold text-info hover:underline"
-                      href={document.fileUrl ?? undefined}
+                      href={resolvedFileUrl}
                       rel="noreferrer"
                       target="_blank"
                     >
@@ -303,6 +310,9 @@ export const DocumentsTab = ({
                   >
                     <Trash2 className="size-4 text-danger" />
                   </Button>
+                      </>
+                    );
+                  })()}
                 </div>
               ))}
             </div>

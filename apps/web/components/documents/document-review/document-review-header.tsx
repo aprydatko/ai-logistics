@@ -4,6 +4,7 @@ import type { Document } from "@repo/shared";
 import { ArrowLeft, Check, Download, Truck, UserRound } from "lucide-react";
 import Link from "next/link";
 
+import { resolveDocumentFileUrl } from "@/lib/documents/document-file-url";
 import { Button } from "@repo/ui/components/button";
 
 import { formatUploadedAt } from "./review-data";
@@ -44,6 +45,7 @@ export const DocumentReviewHeader = ({
   activeTab: DocumentReviewTab;
   onTabChange: (tab: DocumentReviewTab) => void;
 }): React.JSX.Element => {
+  const resolvedFileUrl = resolveDocumentFileUrl(document.fileUrl);
   const badge = statusBadge[document.status];
   const BadgeIcon = badge.icon;
 
@@ -103,7 +105,7 @@ export const DocumentReviewHeader = ({
             <Button asChild className="h-10" variant="outline">
               <a
                 download={document.fileName}
-                href={document.fileUrl ?? undefined}
+                href={resolvedFileUrl}
               >
                 <Download /> Download
               </a>

@@ -27,11 +27,14 @@ import {
   users,
   type DocumentRecord,
 } from "../../db/schema";
+import { DocumentStorageService } from "./document-storage.service";
+import { DocumentVisionService } from "./document-vision.service";
 import type { ListDocumentsQueryDto } from "./dto/list-documents-query.dto";
 import type { CreateDocumentDto } from "./dto/create-document.dto";
 import type { UpdateDocumentAuditEventDto } from "./dto/update-document-audit-event.dto";
 import type { UpdateDocumentDto } from "./dto/update-document.dto";
 import type { UpdateDocumentExtractedFieldDto } from "./dto/update-document-extracted-field.dto";
+import type { UploadDocumentDto } from "./dto/upload-document.dto";
 import type {
   DocumentAuditEventItem,
   DocumentExtractedFieldItem,
@@ -54,7 +57,11 @@ const documentTypeLabels: Array<[string, DocumentType]> = [
 
 @Injectable()
 export class DocumentsService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly documentStorageService: DocumentStorageService,
+    private readonly documentVisionService: DocumentVisionService,
+  ) {}
 
   async findAll(query: ListDocumentsQueryDto): Promise<DocumentsListResult> {
     const filters = this.buildFilters(query);
@@ -83,7 +90,7 @@ export class DocumentsService {
           row.document,
           row.driver,
           row.load,
-          row.fileUrl,
+          row.document.fileUrl ?? row.driverDocumentFileUrl,
           row.document.mimeType ?? row.driverDocumentMimeType,
           row.uploadedBy,
           [],
@@ -120,7 +127,7 @@ export class DocumentsService {
         row.document,
         row.driver,
         row.load,
-        row.fileUrl,
+        row.document.fileUrl ?? row.driverDocumentFileUrl,
         row.document.mimeType ?? row.driverDocumentMimeType,
         row.uploadedBy,
         extractedFields.map((field) => this.toDocumentExtractedField(field)),
@@ -146,6 +153,8 @@ export class DocumentsService {
         fileName: dto.fileName,
         fileSize: dto.fileSize,
         mimeType: dto.mimeType,
+        fileUrl: null,
+        storagePath: null,
         type: dto.type,
         status: dto.status,
         uploadedByUserId,
@@ -194,6 +203,110 @@ export class DocumentsService {
 
     if (!updated) throw new NotFoundException("Document was not found");
     return this.findOne(id);
+  }
+
+  async upload(
+    file: Express.Multer.File | undefined,
+    dto: UploadDocumentDto,
+    uploadedByUserId: string,
+  ): Promise<DocumentResult> {
+    if (!file) {
+      throw new BadRequestException("File is required");
+    }
+    if (
+      !["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(
+        file.mimetype,
+      )
+    ) {
+      throw new BadRequestException(
+        "Only PDF, JPEG, PNG, and WEBP documents are supported",
+      );
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      throw new BadRequestException("Document must be 5 MB or smaller");
+    }
+    if (dto.driverId) {
+      await this.assertRelationExists(drivers, dto.driverId, "Driver");
+    }
+    if (dto.loadId) {
+      await this.assertRelationExists(loads, dto.loadId, "Load");
+    }
+
+    const savedFile = await this.documentStorageService.save(file);
+    const startedAt = Date.now();
+    const analysis =
+      dto.analyzeWithVision !== false
+        ? await this.documentVisionService.analyze(file)
+        : null;
+    const processingTimeMs = analysis ? Date.now() - startedAt : null;
+    const status = analysis?.extractedFields.length ? "needs_review" : "complete";
+
+    const [created] = await this.databaseService.client
+      .insert(documents)
+      .values({
+        fileName: file.originalname,
+        fileSize: file.size,
+        mimeType: file.mimetype,
+        fileUrl: savedFile.fileUrl,
+        storagePath: savedFile.storagePath,
+        type: dto.type,
+        status,
+        uploadedByUserId,
+        driverId: dto.driverId,
+        loadId: dto.loadId,
+        extractionModel: analysis?.extractionModel ?? null,
+        processingTimeMs,
+        uploadedAt: new Date(),
+      })
+      .returning({ id: documents.id });
+
+    if (!created) throw new BadRequestException("Unable to upload document");
+
+    await this.databaseService.client.insert(documentAuditEvents).values({
+      documentId: created.id,
+      kind: "uploaded",
+      label: "Document uploaded",
+      actor: "System",
+      actorBadge: "AI",
+      role: "Platform",
+      tone: "navy",
+      eventAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    if (analysis?.extractedFields.length) {
+      const now = new Date();
+      await this.databaseService.client.insert(documentExtractedFields).values(
+        analysis.extractedFields.map((field) => ({
+          documentId: created.id,
+          fieldKey: field.fieldKey,
+          label: field.label,
+          rawValue: field.rawValue,
+          normalizedValue: field.normalizedValue,
+          confidence: field.confidence,
+          status: field.status,
+          extractedAt: now,
+          reviewedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        })),
+      );
+      await this.databaseService.client.insert(documentAuditEvents).values({
+        documentId: created.id,
+        kind: "ai_extraction",
+        label: "Vision extracted document fields",
+        actor: "OpenAI Vision",
+        actorBadge: "AI",
+        role: "Model",
+        tone: "violet",
+        eventAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    return this.findOne(created.id);
   }
 
   async replaceExtractedFields(
@@ -276,7 +389,7 @@ export class DocumentsService {
     return this.databaseService.client
       .select({
         document: documents,
-        fileUrl: driverDocuments.fileUrl,
+        driverDocumentFileUrl: driverDocuments.fileUrl,
         driverDocumentMimeType: driverDocuments.mimeType,
         uploadedBy: {
           id: users.id,

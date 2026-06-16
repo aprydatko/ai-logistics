@@ -27,6 +27,26 @@ export type AssistantRequestState = {
   status: AssistantStatus;
 };
 
+export type AssistantMessage = {
+  attachmentName?: string;
+  id: string;
+  role: "assistant" | "user";
+  text: string;
+};
+
+export type AssistantAttachment = {
+  file: File;
+  id: string;
+  kind: "image" | "file";
+  previewUrl: string | null;
+};
+
+export type AssistantSkill = {
+  id: "save_document";
+  kind: "skill";
+  label: "Save document";
+};
+
 export type AssistantFilter = {
   label: string;
 };

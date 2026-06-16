@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 
 import type { DriverDetails } from "@/lib/drivers/drivers-query";
+import { resolveDocumentFileUrl } from "@/lib/documents/document-file-url";
 import { Button } from "@repo/ui/components/button";
 import { StatusBadge } from "@repo/ui/components/status-badge";
 
@@ -55,6 +56,7 @@ export const DocumentsTab = ({
               : null,
             formatFileSize(document.fileSize),
           ].filter(Boolean);
+          const resolvedFileUrl = resolveDocumentFileUrl(document.fileUrl);
 
           return (
             <div className="flex items-start gap-3 py-3" key={document.id}>
@@ -69,9 +71,9 @@ export const DocumentsTab = ({
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
-                {document.fileUrl ? (
+                {resolvedFileUrl ? (
                   <Button asChild size="sm" type="button" variant="outline">
-                    <a href={document.fileUrl} rel="noreferrer" target="_blank">
+                    <a href={resolvedFileUrl} rel="noreferrer" target="_blank">
                       Open
                     </a>
                   </Button>

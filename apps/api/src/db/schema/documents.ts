@@ -3,6 +3,7 @@ import {
   integer,
   pgEnum,
   pgTable,
+  text,
   timestamp,
   uuid,
   varchar,
@@ -32,6 +33,8 @@ export const documents = pgTable(
     fileName: varchar("file_name", { length: 255 }).notNull(),
     fileSize: integer("file_size").notNull(),
     mimeType: varchar("mime_type", { length: 100 }),
+    fileUrl: text("file_url"),
+    storagePath: text("storage_path"),
     type: documentTypeEnum("type").notNull(),
     status: documentStatusEnum("status").notNull(),
     uploadedByUserId: uuid("uploaded_by_user_id").references(() => users.id, {

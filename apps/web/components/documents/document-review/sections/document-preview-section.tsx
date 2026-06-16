@@ -13,6 +13,7 @@ import {
 
 import { FilePreview } from "../file-preview";
 import { ReviewIconButton } from "../review-icon-button";
+import { resolveDocumentFileUrl } from "@/lib/documents/document-file-url";
 
 export const DocumentPreviewSection = ({
   document,
@@ -25,6 +26,7 @@ export const DocumentPreviewSection = ({
   onToggleFullscreen: () => void;
   previewRef: React.RefObject<HTMLElement | null>;
 }): React.JSX.Element => {
+  const resolvedFileUrl = resolveDocumentFileUrl(document.fileUrl);
   const pageCount = document.pageCount ?? 1;
 
   return (
@@ -68,12 +70,12 @@ export const DocumentPreviewSection = ({
           )}
         </ReviewIconButton>
         <div className="ml-auto">
-          {document.fileUrl ? (
+          {resolvedFileUrl ? (
             <a
               aria-label="Download preview"
               className="flex size-9 items-center justify-center rounded-md border border-border bg-card text-primary-700 transition hover:bg-surface-100"
               download={document.fileName}
-              href={document.fileUrl}
+              href={resolvedFileUrl}
             >
               <Download className="size-4" />
             </a>

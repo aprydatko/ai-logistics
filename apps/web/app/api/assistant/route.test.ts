@@ -11,6 +11,34 @@ const createJsonRequest = (body: unknown): Request =>
     },
   });
 
+const createMultipartRequest = ({
+  file,
+  message,
+  model,
+}: {
+  file: File;
+  message: string;
+  model?: string;
+}): Request => {
+  const formData = new FormData();
+  formData.append("message", message);
+  if (model) formData.append("model", model);
+  formData.append("file", file);
+
+  const request = new Request("https://app.example.com/api/assistant", {
+    method: "POST",
+    headers: {
+      "Content-Type": "multipart/form-data; boundary=test-boundary",
+    },
+  });
+
+  Object.defineProperty(request, "formData", {
+    value: async () => formData,
+  });
+
+  return request;
+};
+
 describe("POST /api/assistant", () => {
   afterEach(() => {
     delete process.env.OPENAI_API_KEY;
@@ -125,6 +153,76 @@ describe("POST /api/assistant", () => {
         }),
       }),
     );
+  });
+
+  it("sends image attachments to OpenAI in multipart assistant requests", async () => {
+    process.env.OPENAI_API_KEY = "test-key";
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({
+        output_text: "I analyzed the image attachment.",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { POST } = await import("./route");
+
+    const response = await POST(
+      createMultipartRequest({
+        message: "Check this proof of delivery",
+        model: "gpt-4.1-mini",
+        file: new File(["fake-image"], "pod.png", { type: "image/png" }),
+      }),
+    );
+
+    await expect(response.json()).resolves.toEqual({
+      status: "configured",
+      message: "I analyzed the image attachment.",
+      request: {
+        message: "Check this proof of delivery",
+        model: "gpt-4.1-mini",
+      },
+    });
+
+    const openAICall = fetchMock.mock.calls.find(
+      ([url]) => url === "https://api.openai.com/v1/responses",
+    );
+    expect(openAICall).toBeDefined();
+    expect(JSON.parse(openAICall![1].body as string)).toEqual(
+      expect.objectContaining({
+        model: "gpt-4.1-mini",
+        input: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "input_text",
+                text: "Check this proof of delivery",
+              },
+              expect.objectContaining({
+                type: "input_image",
+                detail: "high",
+              }),
+            ],
+          },
+        ],
+      }),
+    );
+  });
+
+  it("rejects unsupported assistant attachment types", async () => {
+    process.env.OPENAI_API_KEY = "test-key";
+    const { POST } = await import("./route");
+
+    const response = await POST(
+      createMultipartRequest({
+        message: "Analyze this spreadsheet",
+        file: new File(["a,b,c"], "sheet.csv", { type: "text/csv" }),
+      }),
+    );
+
+    await expect(response.json()).resolves.toEqual({
+      message: "Only PDF, JPEG, PNG, and WEBP attachments are supported.",
+    });
+    expect(response.status).toBe(400);
   });
 
   it("returns the OpenAI error message when the upstream request fails", async () => {

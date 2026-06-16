@@ -6,18 +6,25 @@ import { Button } from "@repo/ui/components/button";
 
 import { AssistantComposer } from "../assistant-composer";
 import { AssistantContextPanel } from "../assistant-context-panel";
+import { AssistantMessageThread } from "./assistant-message-thread";
 import { AssistantResponseCard } from "./assistant-response-card";
 import { AssistantStatusCard } from "./assistant-status-card";
 import { useAssistantWorkspace } from "./use-assistant-workspace";
 
 export const AssistantWorkspace = (): React.JSX.Element => {
   const {
+    attachment,
     assistantState,
+    clearAttachment,
     draft,
     filters,
     isContextOpen,
+    messages,
     model,
+    onAttachmentSelect,
+    onSelectSkill,
     removeFilter,
+    selectedSkill,
     setDraft,
     setIsContextOpen,
     setModel,
@@ -53,17 +60,23 @@ export const AssistantWorkspace = (): React.JSX.Element => {
         <div className="flex min-h-0 flex-1 flex-col gap-3">
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto rounded-xl border border-border bg-card py-4 pl-4 pr-2 [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] sm:py-5 sm:pl-5 sm:pr-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-button]:h-2 [&::-webkit-scrollbar-track]:my-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb:hover]:bg-primary-600">
             <AssistantStatusCard state={assistantState} />
+            <AssistantMessageThread messages={messages} />
             {assistantState.answer ? (
               <AssistantResponseCard answer={assistantState.answer} />
             ) : null}
           </div>
 
           <AssistantComposer
+            attachment={attachment}
             draft={draft}
+            onAttachmentSelect={onAttachmentSelect}
+            onClearAttachment={clearAttachment}
+            onClearSkill={() => onSelectSkill(null)}
             isSubmitting={assistantState.status === "loading"}
             model={model}
             onDraftChange={setDraft}
             onModelChange={setModel}
+            selectedSkill={selectedSkill}
             onSubmit={submit}
           />
         </div>
@@ -75,6 +88,7 @@ export const AssistantWorkspace = (): React.JSX.Element => {
           onAction={setDraft}
           onClose={() => setIsContextOpen(false)}
           onRemoveFilter={removeFilter}
+          onSelectSkill={onSelectSkill}
         />
       ) : null}
     </section>

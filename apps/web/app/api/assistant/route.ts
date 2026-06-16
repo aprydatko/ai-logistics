@@ -7,6 +7,13 @@ import { refreshSession } from "@/lib/auth/server-session";
 import { getAssistantOpenAIConfig } from "@/lib/assistant/openai-config";
 
 const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:3001/api";
+const supportedAttachmentMimeTypes = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+const maxAttachmentSizeBytes = 5 * 1024 * 1024;
 
 const assistantRequestSchema = z.object({
   message: z.string().trim().min(1, "Message is required"),
@@ -24,6 +31,12 @@ const assistantRequestSchema = z.object({
 });
 
 type AssistantRequest = z.infer<typeof assistantRequestSchema>;
+
+type AssistantAttachment = {
+  fileData: string;
+  mimeType: (typeof supportedAttachmentMimeTypes)[number];
+  name: string;
+};
 
 const buildPlaceholderResponse = (
   request: AssistantRequest,
@@ -56,6 +69,141 @@ const buildStatusResponse = (): Record<string, unknown> => {
     model: config.model,
   };
 };
+
+const isRequestFile = (value: FormDataEntryValue | null): value is File =>
+  value instanceof File;
+
+const isJsonRequest = (request: Request): boolean =>
+  request.headers
+    .get("content-type")
+    ?.toLowerCase()
+    .includes("application/json") ?? false;
+
+const parseJsonRequest = async (
+  request: Request,
+): Promise<{
+  attachment: AssistantAttachment | null;
+  request: AssistantRequest;
+}> => {
+  const body: unknown = await request.json();
+  const parsedRequest = assistantRequestSchema.safeParse(body);
+
+  if (!parsedRequest.success) {
+    throw new Error("INVALID_REQUEST");
+  }
+
+  return {
+    attachment: null,
+    request: parsedRequest.data,
+  };
+};
+
+const parseMultipartRequest = async (
+  request: Request,
+): Promise<{
+  attachment: AssistantAttachment | null;
+  request: AssistantRequest;
+}> => {
+  const formData = await request.formData();
+  const parsedRequest = assistantRequestSchema.safeParse({
+    message: formData.get("message"),
+    model: formData.get("model") || undefined,
+    operation: formData.get("operation") || undefined,
+    source: formData.get("source") || undefined,
+  });
+
+  if (!parsedRequest.success) {
+    throw new Error("INVALID_REQUEST");
+  }
+
+  const file = formData.get("file");
+  if (!isRequestFile(file)) {
+    return {
+      attachment: null,
+      request: parsedRequest.data,
+    };
+  }
+
+  if (
+    !supportedAttachmentMimeTypes.includes(
+      file.type as (typeof supportedAttachmentMimeTypes)[number],
+    )
+  ) {
+    throw new Error("UNSUPPORTED_ATTACHMENT_TYPE");
+  }
+
+  if (file.size > maxAttachmentSizeBytes) {
+    throw new Error("ATTACHMENT_TOO_LARGE");
+  }
+
+  const bytes = Buffer.from(await file.arrayBuffer());
+
+  return {
+    attachment: {
+      fileData: bytes.toString("base64"),
+      mimeType: file.type as (typeof supportedAttachmentMimeTypes)[number],
+      name: file.name,
+    },
+    request: parsedRequest.data,
+  };
+};
+
+const parseAssistantRequest = async (
+  request: Request,
+): Promise<{
+  attachment: AssistantAttachment | null;
+  request: AssistantRequest;
+}> => {
+  if (isJsonRequest(request)) {
+    return parseJsonRequest(request);
+  }
+
+  return parseMultipartRequest(request);
+};
+
+const buildOpenAIInput = (
+  request: AssistantRequest,
+  attachment: AssistantAttachment | null,
+): Array<Record<string, unknown>> | string => {
+  if (!attachment) {
+    return request.message;
+  }
+
+  const attachmentPart =
+    attachment.mimeType === "application/pdf"
+      ? {
+          type: "input_file",
+          filename: attachment.name,
+          file_data: attachment.fileData,
+          detail: "high",
+        }
+      : {
+          type: "input_image",
+          image_url: `data:${attachment.mimeType};base64,${attachment.fileData}`,
+          detail: "high",
+        };
+
+  return [
+    {
+      role: "user",
+      content: [
+        {
+          type: "input_text",
+          text: request.message,
+        },
+        attachmentPart,
+      ],
+    },
+  ];
+};
+
+const buildRequestInputLog = (
+  request: AssistantRequest,
+  attachment: AssistantAttachment | null,
+): string =>
+  attachment
+    ? `${request.message}\n\n[Attachment: ${attachment.name} (${attachment.mimeType})]`
+    : request.message;
 
 const getOpenAIErrorMessage = (responseBody: unknown): string | null => {
   if (!responseBody || typeof responseBody !== "object") return null;
@@ -239,10 +387,36 @@ export const GET = async (): Promise<NextResponse> =>
 export const POST = async (request: Request): Promise<NextResponse> => {
   const startedAt = Date.now();
   try {
-    const body: unknown = await request.json();
-    const parsedRequest = assistantRequestSchema.safeParse(body);
-
-    if (!parsedRequest.success) {
+    let parsedRequest: AssistantRequest;
+    let attachment: AssistantAttachment | null = null;
+    try {
+      const parsed = await parseAssistantRequest(request);
+      parsedRequest = parsed.request;
+      attachment = parsed.attachment;
+    } catch (error) {
+      if (error instanceof Error && error.message === "INVALID_REQUEST") {
+        return NextResponse.json(
+          { message: "Invalid assistant request" },
+          { status: 400 },
+        );
+      }
+      if (
+        error instanceof Error &&
+        error.message === "UNSUPPORTED_ATTACHMENT_TYPE"
+      ) {
+        return NextResponse.json(
+          {
+            message: "Only PDF, JPEG, PNG, and WEBP attachments are supported.",
+          },
+          { status: 400 },
+        );
+      }
+      if (error instanceof Error && error.message === "ATTACHMENT_TOO_LARGE") {
+        return NextResponse.json(
+          { message: "Attachment must be 5 MB or smaller." },
+          { status: 400 },
+        );
+      }
       return NextResponse.json(
         { message: "Invalid assistant request" },
         { status: 400 },
@@ -250,24 +424,25 @@ export const POST = async (request: Request): Promise<NextResponse> => {
     }
 
     const config = getAssistantOpenAIConfig();
-    const requestedModel = parsedRequest.data.model ?? config.model;
+    const requestedModel = parsedRequest.model ?? config.model;
     const user = await getSessionUser();
+    const requestInput = buildRequestInputLog(parsedRequest, attachment);
 
     if (!config.isConfigured) {
       await createAiLog({
-        operation: parsedRequest.data.operation ?? "AI Assistant (chat)",
+        operation: parsedRequest.operation ?? "AI Assistant (chat)",
         model: requestedModel,
         status: "failed",
         latencyMs: Date.now() - startedAt,
         errorMessage: "OpenAI API key is not configured",
-        requestInput: parsedRequest.data.message,
-        source: parsedRequest.data.source ?? "web",
+        requestInput,
+        source: parsedRequest.source ?? "web",
         userId: user.id,
         userName: user.name,
-        linkedEntity: parsedRequest.data.linkedEntity,
+        linkedEntity: parsedRequest.linkedEntity,
       });
       return NextResponse.json(
-        buildPlaceholderResponse(parsedRequest.data, config.model),
+        buildPlaceholderResponse(parsedRequest, config.model),
         { status: 503 },
       );
     }
@@ -279,7 +454,7 @@ export const POST = async (request: Request): Promise<NextResponse> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        input: parsedRequest.data.message,
+        input: buildOpenAIInput(parsedRequest, attachment),
         model: requestedModel,
       }),
       cache: "no-store",
@@ -290,7 +465,7 @@ export const POST = async (request: Request): Promise<NextResponse> => {
 
     if (!openAIResponse.ok) {
       await createAiLog({
-        operation: parsedRequest.data.operation ?? "AI Assistant (chat)",
+        operation: parsedRequest.operation ?? "AI Assistant (chat)",
         model: requestedModel,
         status: "failed",
         latencyMs,
@@ -304,19 +479,19 @@ export const POST = async (request: Request): Promise<NextResponse> => {
         }),
         userId: user.id,
         userName: user.name,
-        source: parsedRequest.data.source ?? "web",
+        source: parsedRequest.source ?? "web",
         providerRequestId: getResponseId(responseBody),
-        requestInput: parsedRequest.data.message,
+        requestInput,
         errorMessage:
           getOpenAIErrorMessage(responseBody) || "OpenAI request failed.",
-        linkedEntity: parsedRequest.data.linkedEntity,
+        linkedEntity: parsedRequest.linkedEntity,
       });
       return NextResponse.json(
         {
           message:
             getOpenAIErrorMessage(responseBody) || "OpenAI request failed.",
           request: {
-            message: parsedRequest.data.message,
+            message: parsedRequest.message,
             model: requestedModel,
           },
           status: "error",
@@ -329,7 +504,7 @@ export const POST = async (request: Request): Promise<NextResponse> => {
 
     if (!assistantResponse) {
       await createAiLog({
-        operation: parsedRequest.data.operation ?? "AI Assistant (chat)",
+        operation: parsedRequest.operation ?? "AI Assistant (chat)",
         model: requestedModel,
         status: "failed",
         latencyMs,
@@ -343,11 +518,11 @@ export const POST = async (request: Request): Promise<NextResponse> => {
         }),
         userId: user.id,
         userName: user.name,
-        source: parsedRequest.data.source ?? "web",
+        source: parsedRequest.source ?? "web",
         providerRequestId: getResponseId(responseBody),
-        requestInput: parsedRequest.data.message,
+        requestInput,
         errorMessage: "OpenAI returned an empty response",
-        linkedEntity: parsedRequest.data.linkedEntity,
+        linkedEntity: parsedRequest.linkedEntity,
       });
       return NextResponse.json(
         { message: "OpenAI returned an empty response" },
@@ -356,7 +531,7 @@ export const POST = async (request: Request): Promise<NextResponse> => {
     }
 
     await createAiLog({
-      operation: parsedRequest.data.operation ?? "AI Assistant (chat)",
+      operation: parsedRequest.operation ?? "AI Assistant (chat)",
       model: requestedModel,
       status: "success",
       latencyMs,
@@ -370,11 +545,11 @@ export const POST = async (request: Request): Promise<NextResponse> => {
       }),
       userId: user.id,
       userName: user.name,
-      source: parsedRequest.data.source ?? "web",
+      source: parsedRequest.source ?? "web",
       providerRequestId: getResponseId(responseBody),
-      requestInput: parsedRequest.data.message,
+      requestInput,
       responseOutput: assistantResponse,
-      linkedEntity: parsedRequest.data.linkedEntity,
+      linkedEntity: parsedRequest.linkedEntity,
     });
 
     return NextResponse.json(
@@ -382,7 +557,7 @@ export const POST = async (request: Request): Promise<NextResponse> => {
         status: "configured",
         message: assistantResponse,
         request: {
-          message: parsedRequest.data.message,
+          message: parsedRequest.message,
           model: requestedModel,
         },
       },
