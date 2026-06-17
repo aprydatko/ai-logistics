@@ -61,9 +61,29 @@ export type AssistantDriversTableResult = {
   type: "drivers_table";
 };
 
+export type AssistantIncidentsTableRow = {
+  driverName: string | null;
+  id: string;
+  loadReferenceNumber: string;
+  occurredAt: string;
+  priority: "low" | "medium" | "high" | "critical";
+  status: "open" | "investigating" | "monitoring" | "resolved" | "closed";
+  title: string;
+  type: string;
+};
+
+export type AssistantIncidentsTableResult = {
+  metrics: AssistantLoadsTableMetric[];
+  rows: AssistantIncidentsTableRow[];
+  summary?: string;
+  title: string;
+  type: "incidents_table";
+};
+
 export type AssistantResultView =
   | AssistantLoadsTableResult
-  | AssistantDriversTableResult;
+  | AssistantDriversTableResult
+  | AssistantIncidentsTableResult;
 
 export type CreateAiLogDto = {
   completionTokens?: number;
@@ -116,6 +136,20 @@ export type DriverSearchOutput = {
     status: "available" | "on_trip" | "off_duty" | "maintenance";
     trailerNumber: string | null;
     truckNumber: string | null;
+  }>;
+};
+
+export type IncidentSearchOutput = {
+  count: number;
+  items: Array<{
+    driver: string | null;
+    id: string;
+    loadReferenceNumber: string;
+    occurredAt: string;
+    priority: "low" | "medium" | "high" | "critical";
+    status: "open" | "investigating" | "monitoring" | "resolved" | "closed";
+    title: string;
+    type: string;
   }>;
 };
 

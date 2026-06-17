@@ -1,9 +1,10 @@
 "use client";
 
-import { Clock3, Sparkles, Truck } from "lucide-react";
+import { AlertTriangle, Clock3, Sparkles, Truck } from "lucide-react";
 
 import type {
   AssistantDriversTableResult,
+  AssistantIncidentsTableResult,
   AssistantLoadsTableResult,
   AssistantResultView,
 } from "@repo/shared";
@@ -29,12 +30,21 @@ const statusClasses: Record<string, string> = {
   available: "bg-emerald-50 text-emerald-700",
   assigned: "bg-blue-50 text-blue-700",
   cancelled: "bg-slate-100 text-slate-700",
+  closed: "bg-slate-100 text-slate-700",
+  critical: "bg-rose-50 text-rose-700",
   delivered: "bg-emerald-50 text-emerald-700",
+  high: "bg-amber-50 text-amber-700",
   in_transit: "bg-amber-50 text-amber-700",
+  investigating: "bg-orange-50 text-orange-700",
   maintenance: "bg-rose-50 text-rose-700",
+  medium: "bg-blue-50 text-blue-700",
+  monitoring: "bg-cyan-50 text-cyan-700",
+  open: "bg-rose-50 text-rose-700",
   off_duty: "bg-slate-100 text-slate-700",
+  low: "bg-emerald-50 text-emerald-700",
   on_trip: "bg-blue-50 text-blue-700",
   pending: "bg-violet-50 text-violet-700",
+  resolved: "bg-emerald-50 text-emerald-700",
 };
 
 type AssistantResultsProps = {
@@ -45,7 +55,11 @@ export const AssistantResults = ({
   result,
 }: AssistantResultsProps): React.JSX.Element => {
   const resultsLabel =
-    result.type === "drivers_table" ? "Matching drivers" : "Matching loads";
+    result.type === "drivers_table"
+      ? "Matching drivers"
+      : result.type === "incidents_table"
+        ? "Matching incidents"
+        : "Matching loads";
 
   return (
     <section className="relative rounded-2xl border border-border bg-card p-4 shadow-xs sm:p-5">
@@ -71,7 +85,9 @@ export const AssistantResults = ({
                   toneClasses[tone],
                 )}
               >
-                {label.toLowerCase().includes("transit") ? (
+                {label.toLowerCase().includes("incident") ? (
+                  <AlertTriangle className="size-5" />
+                ) : label.toLowerCase().includes("transit") ? (
                   <Clock3 className="size-5" />
                 ) : (
                   <Truck className="size-5" />
@@ -93,8 +109,10 @@ export const AssistantResults = ({
       </h3>
       {result.type === "loads_table" ? (
         <LoadsResultsTable result={result} />
-      ) : (
+      ) : result.type === "drivers_table" ? (
         <DriversResultsTable result={result} />
+      ) : (
+        <IncidentsResultsTable result={result} />
       )}
     </section>
   );
@@ -210,6 +228,58 @@ const DriversResultsTable = ({
   </DataTable>
 );
 
+const IncidentsResultsTable = ({
+  result,
+}: {
+  result: AssistantIncidentsTableResult;
+}): React.JSX.Element => (
+  <DataTable className="shadow-none">
+    <TableScrollArea>
+      <Table className="min-w-[920px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Incident</TableHead>
+            <TableHead>Priority</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Load</TableHead>
+            <TableHead>Driver</TableHead>
+            <TableHead>Occurred</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {result.rows.map((incident) => (
+            <TableRow key={incident.id}>
+              <TableCell>
+                <p className="text-xs font-bold text-ink-900">
+                  {incident.title}
+                </p>
+                <p className="mt-1 text-xs text-primary-700">
+                  {formatLabel(incident.type)}
+                </p>
+              </TableCell>
+              <TableCell>
+                <StatusBadge status={incident.priority} />
+              </TableCell>
+              <TableCell>
+                <StatusBadge status={incident.status} />
+              </TableCell>
+              <TableCell className="text-xs text-ink-900">
+                {incident.loadReferenceNumber}
+              </TableCell>
+              <TableCell className="text-xs text-ink-900">
+                {incident.driverName ?? "Unassigned"}
+              </TableCell>
+              <TableCell className="text-xs text-ink-900">
+                {formatDate(incident.occurredAt)}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableScrollArea>
+  </DataTable>
+);
+
 const StatusBadge = ({ status }: { status: string }): React.JSX.Element => (
   <span
     className={cn(
@@ -220,6 +290,12 @@ const StatusBadge = ({ status }: { status: string }): React.JSX.Element => (
     {status.replaceAll("_", " ")}
   </span>
 );
+
+const formatLabel = (value: string): string =>
+  value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 
 const formatDate = (value: string): string => {
   const parsed = new Date(value);

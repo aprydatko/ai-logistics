@@ -373,6 +373,128 @@ describe("AssistantService", () => {
     expect(driversService.findAll).toHaveBeenCalledOnce();
   });
 
+  it("runs incident search tools and returns an incidents table result", async () => {
+    const { incidentsService, service } = createService();
+    incidentsService.findAll.mockResolvedValue({
+      success: true,
+      data: [
+        {
+          id: "incident-1",
+          title: "Tire failure near Dallas",
+          description: "Front tire burst during transit",
+          location: "Dallas, TX",
+          type: "flat_tire",
+          priority: "critical",
+          status: "open",
+          occurredAt: "2026-06-17T09:30:00.000Z",
+          resolvedAt: null,
+          createdAt: "2026-06-17T09:35:00.000Z",
+          updatedAt: "2026-06-17T09:35:00.000Z",
+          timeline: [],
+          load: {
+            id: "load-1",
+            referenceNumber: "LD-1001",
+            driver: {
+              id: "driver-1",
+              firstName: "Sarah",
+              lastName: "Davis",
+              truckNumber: "TR-12",
+            },
+          },
+        },
+      ],
+      pagination: {
+        page: 1,
+        limit: 1,
+        total: 1,
+        totalPages: 1,
+      },
+    });
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          id: "resp_1",
+          output: [
+            {
+              type: "function_call",
+              name: "search_incidents",
+              call_id: "call_1",
+              arguments: JSON.stringify({
+                priority: "critical",
+                status: "open",
+              }),
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          id: "resp_2",
+          output_text: "I found one critical incident.",
+          usage: {
+            input_tokens: 74,
+            output_tokens: 17,
+            total_tokens: 91,
+          },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      service.respond(
+        {
+          message: "list critical incidents and show the results in a table",
+        },
+        {
+          email: "dispatcher@example.com",
+          id: "user-1",
+          role: "dispatcher",
+        },
+      ),
+    ).resolves.toEqual({
+      conversationId: expect.any(String),
+      linkedEntity: {
+        type: "incident",
+        recordId: "incident-1",
+        title: "Tire failure near Dallas",
+        route: "/incidents/incident-1",
+      },
+      message: "I found one critical incident.",
+      reportType: undefined,
+      request: {
+        message: "list critical incidents and show the results in a table",
+        model: "gpt-4.1-mini",
+      },
+      resultView: {
+        metrics: [
+          { label: "Incidents found", tone: "red", value: "1" },
+          { label: "Critical", tone: "teal", value: "1" },
+          { label: "Open", tone: "amber", value: "1" },
+        ],
+        rows: [
+          {
+            driverName: "Sarah Davis",
+            id: "incident-1",
+            loadReferenceNumber: "LD-1001",
+            occurredAt: "2026-06-17T09:30:00.000Z",
+            priority: "critical",
+            status: "open",
+            title: "Tire failure near Dallas",
+            type: "flat_tire",
+          },
+        ],
+        summary: "1 incident matched your request.",
+        title: "Found 1 critical incidents matching your request.",
+        type: "incidents_table",
+      },
+      status: "configured",
+      usedTools: ["search_incidents"],
+    });
+    expect(incidentsService.findAll).toHaveBeenCalledOnce();
+  });
+
   it("resolves get_driver_details by driver code before loading details", async () => {
     const { driversService, service } = createService();
     driversService.findAll.mockResolvedValue({

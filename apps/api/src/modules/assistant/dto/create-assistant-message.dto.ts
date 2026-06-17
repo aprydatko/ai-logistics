@@ -141,9 +141,29 @@ type AssistantDriversResultView = {
   type: "drivers_table";
 };
 
+type AssistantIncidentsTableRow = {
+  driverName: string | null;
+  id: string;
+  loadReferenceNumber: string;
+  occurredAt: string;
+  priority: "low" | "medium" | "high" | "critical";
+  status: "open" | "investigating" | "monitoring" | "resolved" | "closed";
+  title: string;
+  type: string;
+};
+
+type AssistantIncidentsResultView = {
+  metrics: AssistantLoadsTableMetric[];
+  rows: AssistantIncidentsTableRow[];
+  summary?: string;
+  title: string;
+  type: "incidents_table";
+};
+
 type AssistantResultView =
   | AssistantLoadsResultView
-  | AssistantDriversResultView;
+  | AssistantDriversResultView
+  | AssistantIncidentsResultView;
 
 type AssistantResponseStatus = "placeholder" | "configured" | "error";
 

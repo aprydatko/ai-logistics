@@ -269,6 +269,101 @@ describe("runAssistantOrchestration", () => {
     });
   });
 
+  it("builds an incidents table result for incident search tool calls", async () => {
+    const executeTool = vi.fn().mockResolvedValue({
+      linkedEntity: {
+        type: "incident",
+        recordId: "incident-1",
+        title: "Tire failure near Dallas",
+        route: "/incidents/incident-1",
+      },
+      output: {
+        count: 1,
+        items: [
+          {
+            id: "incident-1",
+            title: "Tire failure near Dallas",
+            type: "flat_tire",
+            priority: "critical",
+            status: "open",
+            loadReferenceNumber: "LD-1001",
+            driver: "Sarah Davis",
+            occurredAt: "2026-06-17T09:30:00.000Z",
+          },
+        ],
+      },
+    });
+    const requestOpenAI = vi.fn().mockResolvedValue({
+      id: "resp_followup",
+      output_text: "I found one critical incident.",
+      usage: {
+        input_tokens: 48,
+        output_tokens: 12,
+        total_tokens: 60,
+      },
+    });
+
+    await expect(
+      runAssistantOrchestration({
+        executeTool,
+        initialResponse: {
+          id: "resp_initial",
+          output: [
+            {
+              type: "function_call",
+              name: "search_incidents",
+              call_id: "call_1",
+              arguments: JSON.stringify({
+                priority: "critical",
+                status: "open",
+              }),
+            },
+          ],
+        },
+        message: "List critical incidents and show the results in a table",
+        model: "gpt-4.1-mini",
+        requestOpenAI,
+      }),
+    ).resolves.toEqual({
+      assistantMessage: "I found one critical incident.",
+      providerRequestId: "resp_followup",
+      resolvedEntity: {
+        type: "incident",
+        recordId: "incident-1",
+        title: "Tire failure near Dallas",
+        route: "/incidents/incident-1",
+      },
+      resultView: {
+        metrics: [
+          { label: "Incidents found", tone: "red", value: "1" },
+          { label: "Critical", tone: "teal", value: "1" },
+          { label: "Open", tone: "amber", value: "1" },
+        ],
+        rows: [
+          {
+            driverName: "Sarah Davis",
+            id: "incident-1",
+            loadReferenceNumber: "LD-1001",
+            occurredAt: "2026-06-17T09:30:00.000Z",
+            priority: "critical",
+            status: "open",
+            title: "Tire failure near Dallas",
+            type: "flat_tire",
+          },
+        ],
+        summary: "1 incident matched your request.",
+        title: "Found 1 critical incidents matching your request.",
+        type: "incidents_table",
+      },
+      usage: {
+        completionTokens: 12,
+        promptTokens: 48,
+        totalTokens: 60,
+      },
+      usedTools: ["search_incidents"],
+    });
+  });
+
   it("throws when OpenAI omits a response id for a tool call turn", async () => {
     await expect(
       runAssistantOrchestration({
