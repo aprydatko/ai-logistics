@@ -11,7 +11,7 @@ import { Save } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { updateDocument } from "@/lib/documents/document-mutations";
-import { driverCandidatesQueryOptions } from "@/lib/drivers/driver-candidates-query";
+import { driversQueryOptions } from "@/lib/drivers/drivers-query";
 import { loadsQueryOptions } from "@/lib/loads/loads-query";
 import { Button } from "@repo/ui/components/button";
 import {
@@ -41,7 +41,15 @@ export const DocumentEditDialog = ({
   onOpenChange: (open: boolean) => void;
 }): React.JSX.Element => {
   const queryClient = useQueryClient();
-  const driversQuery = useQuery(driverCandidatesQueryOptions);
+  const driversQuery = useQuery(
+    driversQueryOptions({
+      search: "",
+      status: "all",
+      isActive: "all",
+      page: 1,
+      limit: 100,
+    }),
+  );
   const loadsQuery = useQuery(
     loadsQueryOptions({
       search: "",
@@ -138,7 +146,7 @@ export const DocumentEditDialog = ({
               }
               options={[
                 { label: "Unassigned", value: "unassigned" },
-                ...(driversQuery.data ?? []).map((driver) => ({
+                ...(driversQuery.data?.data ?? []).map((driver) => ({
                   label: `${driver.firstName} ${driver.lastName}`,
                   value: driver.id,
                 })),

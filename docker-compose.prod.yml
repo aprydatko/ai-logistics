@@ -1,4 +1,15 @@
 services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - ai_logistics_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
@@ -67,11 +78,17 @@ services:
       JWT_ACCESS_EXPIRES_IN: 15m
       JWT_REFRESH_EXPIRES_IN: 7d
       WEB_ORIGIN: ${WEB_ORIGIN:?Set WEB_ORIGIN in .env}
+      REDIS_URL: redis://redis:6379
+      BULL_BOARD_PATH: /api/queues
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
     ports:
       - '127.0.0.1:4000:4000'
     depends_on:
       migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     networks:
       - ai_logistics_network
     healthcheck:

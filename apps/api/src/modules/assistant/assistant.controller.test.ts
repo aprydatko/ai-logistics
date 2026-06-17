@@ -12,7 +12,10 @@ import { AssistantController } from "./assistant.controller";
 describe("AssistantController", () => {
   it("rate limits assistant responses", () => {
     expect(
-      Reflect.getMetadata(GUARDS_METADATA, AssistantController.prototype.respond),
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        AssistantController.prototype.respond,
+      ),
     ).toContain(AuthenticatedThrottlerGuard);
     expect(
       Reflect.getMetadata(

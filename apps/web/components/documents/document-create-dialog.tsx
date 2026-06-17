@@ -1,16 +1,12 @@
 "use client";
 
-import type {
-  CreateDocumentDto,
-  DocumentStatus,
-  DocumentType,
-} from "@repo/shared";
+import type { DocumentType } from "@repo/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Upload } from "lucide-react";
 import * as React from "react";
 
-import { createDocument } from "@/lib/documents/document-mutations";
-import { driverCandidatesQueryOptions } from "@/lib/drivers/driver-candidates-query";
+import { uploadDocument } from "@/lib/documents/document-mutations";
+import { driversQueryOptions } from "@/lib/drivers/drivers-query";
 import { loadsQueryOptions } from "@/lib/loads/loads-query";
 import { Button } from "@repo/ui/components/button";
 import {
@@ -23,16 +19,12 @@ import {
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
 import { SelectButton } from "@repo/ui/components/select-button";
+import { Switch } from "@repo/ui/components/switch";
 import { toast } from "@repo/ui/components/toaster";
 
 import { documentTypeLabels } from "./types";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const statusOptions: Array<{ label: string; value: DocumentStatus }> = [
-  { label: "Complete", value: "complete" },
-  { label: "Processing", value: "processing" },
-  { label: "Needs review", value: "needs_review" },
-];
 
 export const DocumentCreateDialog = ({
   isOpen,
@@ -42,7 +34,15 @@ export const DocumentCreateDialog = ({
   onOpenChange: (open: boolean) => void;
 }): React.JSX.Element => {
   const queryClient = useQueryClient();
-  const driversQuery = useQuery(driverCandidatesQueryOptions);
+  const driversQuery = useQuery(
+    driversQueryOptions({
+      search: "",
+      status: "all",
+      isActive: "all",
+      page: 1,
+      limit: 100,
+    }),
+  );
   const loadsQuery = useQuery(
     loadsQueryOptions({
       search: "",
@@ -55,17 +55,40 @@ export const DocumentCreateDialog = ({
   );
   const [file, setFile] = React.useState<File | null>(null);
   const [type, setType] = React.useState<DocumentType>("bill_of_lading");
-  const [status, setStatus] = React.useState<DocumentStatus>("processing");
+  const [analyzeWithVision, setAnalyzeWithVision] = React.useState(true);
   const [driverId, setDriverId] = React.useState("unassigned");
   const [loadId, setLoadId] = React.useState("unassigned");
   const mutation = useMutation({
-    mutationFn: (document: CreateDocumentDto) => createDocument(document),
+    mutationFn: ({
+      analyzeWithVision,
+      driverId,
+      file,
+      loadId,
+      type,
+    }: {
+      analyzeWithVision: boolean;
+      driverId?: string;
+      file: File;
+      loadId?: string;
+      type: DocumentType;
+    }) =>
+      uploadDocument({
+        analyzeWithVision,
+        driverId,
+        file,
+        loadId,
+        type,
+      }),
     onError: (error) =>
-      toast.error("Unable to add document", { description: error.message }),
-    onSuccess: async () => {
+      toast.error("Unable to upload document", { description: error.message }),
+    onSuccess: async (document) => {
       await queryClient.invalidateQueries({ queryKey: ["documents"] });
       onOpenChange(false);
-      toast.success("Document added");
+      toast.success(
+        document.status === "processing"
+          ? "Document uploaded. Background processing started."
+          : "Document uploaded",
+      );
     },
   });
   const resetMutation = mutation.reset;
@@ -74,7 +97,7 @@ export const DocumentCreateDialog = ({
     if (!isOpen) return;
     setFile(null);
     setType("bill_of_lading");
-    setStatus("processing");
+    setAnalyzeWithVision(true);
     setDriverId("unassigned");
     setLoadId("unassigned");
     resetMutation();
@@ -87,11 +110,9 @@ export const DocumentCreateDialog = ({
       return;
     }
     mutation.mutate({
-      fileName: file.name,
-      fileSize: file.size,
-      mimeType: file.type,
+      analyzeWithVision,
+      file,
       type,
-      status,
       driverId: driverId === "unassigned" ? undefined : driverId,
       loadId: loadId === "unassigned" ? undefined : loadId,
     });
@@ -103,7 +124,7 @@ export const DocumentCreateDialog = ({
         <div className="shrink-0 px-7 pt-7 pr-16 sm:px-9 sm:pt-8 sm:pr-16">
           <DialogTitle>Add document</DialogTitle>
           <DialogDescription className="mt-2 text-base">
-            Add a file and link it to a driver or load.
+            Upload a file and link it to a driver or load.
           </DialogDescription>
         </div>
         <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto px-7 py-7 sm:gap-6 sm:px-9">
@@ -131,14 +152,17 @@ export const DocumentCreateDialog = ({
               value={type}
             />
           </div>
-          <div className="grid gap-2.5">
-            <Label>Status</Label>
-            <SelectButton
-              className="h-12 w-full"
-              onValueChange={(value) => setStatus(value as DocumentStatus)}
-              options={statusOptions}
-              placeholder="Status"
-              value={status}
+          <div className="flex items-start justify-between gap-4 rounded-lg border border-border bg-surface-50 px-4 py-3">
+            <div className="space-y-1">
+              <Label className="text-sm font-semibold">Analyze with AI</Label>
+              <p className="text-sm text-ink-500">
+                Run background extraction after upload and update the document
+                live when processing finishes.
+              </p>
+            </div>
+            <Switch
+              checked={analyzeWithVision}
+              onCheckedChange={setAnalyzeWithVision}
             />
           </div>
           <div className="grid gap-2.5">
@@ -148,7 +172,7 @@ export const DocumentCreateDialog = ({
               onValueChange={setDriverId}
               options={[
                 { label: "Unassigned", value: "unassigned" },
-                ...(driversQuery.data ?? []).map((driver) => ({
+                ...(driversQuery.data?.data ?? []).map((driver) => ({
                   label: `${driver.firstName} ${driver.lastName}`,
                   value: driver.id,
                 })),
@@ -187,7 +211,7 @@ export const DocumentCreateDialog = ({
             type="button"
           >
             <Upload />
-            {mutation.isPending ? "Adding..." : "Add document"}
+            {mutation.isPending ? "Uploading..." : "Upload document"}
           </Button>
         </div>
       </DialogContent>

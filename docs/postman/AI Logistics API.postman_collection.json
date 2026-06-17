@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "c05bafaa-2aac-46be-8781-bd9fd2bbf267",
     "name": "AI Logistics API",
-    "description": "Authentication, drivers, loads, and incidents API requests.",
+    "description": "Authentication, drivers, loads, incidents, and notifications API requests.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "6430736"
   },
@@ -97,6 +97,20 @@
               ]
             },
             "description": "Register a new user account."
+          },
+          "response": []
+        },
+        {
+          "name": "Queues Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiOrigin}}{{bullBoardPath}}",
+              "host": ["{{apiOrigin}}"],
+              "path": ["{{bullBoardPath}}"]
+            },
+            "description": "Opens Bull Board HTML UI. Use Send to verify auth or Open in browser from Postman if you want the full dashboard."
           },
           "response": []
         }
@@ -613,6 +627,174 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Assistant Jobs",
+      "item": [
+        {
+          "name": "Create Assistant Job",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data?.jobId) pm.collectionVariables.set('assistantJobId', body.data.jobId);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"List critical incidents and summarize the highest priority one.\",\n  \"model\": \"gpt-4.1-mini\",\n  \"source\": \"api\"\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/assistant/jobs",
+              "host": ["{{baseUrl}}"],
+              "path": ["assistant", "jobs"]
+            },
+            "description": "Queues an async AI processing job so HTTP does not wait for the full OpenAI response."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Assistant Job Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/assistant/jobs/{{assistantJobId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["assistant", "jobs", "{{assistantJobId}}"]
+            },
+            "description": "Polls the async AI job status until it moves from waiting/active to completed or failed."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List Notifications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data?.[0]?.id) pm.collectionVariables.set('notificationId', body.data[0].id);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications"]
+            },
+            "description": "Returns the current user's notification inbox ordered by newest first."
+          },
+          "response": []
+        },
+        {
+          "name": "Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/unread-count",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "unread-count"]
+            },
+            "description": "Returns the unread notification badge count for the current user."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Notification Preferences",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/preferences",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "preferences"]
+            },
+            "description": "Returns the current user's notification preference snapshot."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Notification Preferences",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emailFrequency\": \"instant\",\n  \"loads\": {\n    \"inAppEnabled\": true,\n    \"emailEnabled\": false\n  },\n  \"drivers\": {\n    \"inAppEnabled\": true,\n    \"emailEnabled\": false\n  },\n  \"incidents\": {\n    \"inAppEnabled\": true,\n    \"emailEnabled\": true\n  },\n  \"documents\": {\n    \"inAppEnabled\": false,\n    \"emailEnabled\": false\n  },\n  \"ai\": {\n    \"inAppEnabled\": true,\n    \"emailEnabled\": false\n  },\n  \"system\": {\n    \"inAppEnabled\": false,\n    \"emailEnabled\": false\n  }\n}",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/notifications/preferences",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "preferences"]
+            },
+            "description": "Updates in-app and email preferences. For the first realtime rollout, incident email is the main path to validate."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/{{notificationId}}/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "{{notificationId}}", "read"]
+            },
+            "description": "Marks one notification as read and updates the unread count."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All Notifications Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/read-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "read-all"]
+            },
+            "description": "Marks all current user notifications as read and resets the unread count."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "auth": {
@@ -655,6 +837,14 @@
       "value": "http://localhost:3001/api"
     },
     {
+      "key": "apiOrigin",
+      "value": "http://localhost:3001"
+    },
+    {
+      "key": "bullBoardPath",
+      "value": "/api/queues"
+    },
+    {
       "key": "email",
       "value": "admin@example.com"
     },
@@ -681,6 +871,14 @@
     {
       "key": "incidentId",
       "value": "70000000-0000-4000-8000-000000000005"
+    },
+    {
+      "key": "notificationId",
+      "value": ""
+    },
+    {
+      "key": "assistantJobId",
+      "value": ""
     }
   ]
 }

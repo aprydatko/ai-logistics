@@ -14,7 +14,6 @@ const navItems = [
   { href: "/documents", label: "Documents" },
   { href: "/assistant", label: "Assistant" },
   { href: "/ai-logs", label: "AI Logs" },
-  { href: "/notifications", label: "Notifications" },
   { href: "/settings", label: "Settings" },
 ];
 

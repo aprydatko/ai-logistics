@@ -1,9 +1,11 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { and, asc, count, desc, eq } from "drizzle-orm";
+import type { Queue } from "bullmq";
+import { and, asc, count, desc, eq, or } from "drizzle-orm";
 
 import { DatabaseService } from "../../db/database.service";
 import {
@@ -12,7 +14,10 @@ import {
   documentExtractedFields,
   drivers,
   loads,
+  users,
 } from "../../db/schema";
+import { NotificationsGateway } from "../notifications/notifications.gateway";
+import { NotificationsService } from "../notifications/notifications.service";
 import { DocumentStorageService } from "./document-storage.service";
 import { DocumentVisionService } from "./document-vision.service";
 import type { ListDocumentsQueryDto } from "./dto/list-documents-query.dto";
@@ -39,10 +44,13 @@ import {
 import { assertDocumentRelationExists } from "./internal/document.relations";
 import {
   assertUploadFilePresent,
-  persistUploadSideEffects,
+  persistUploadAuditEvent,
+  persistVisionAnalysis,
   resolveUploadStatus,
   validateUploadFile,
 } from "./internal/document-upload";
+import { DOCUMENT_PROCESSING_QUEUE_TOKEN } from "../queue/queue.constants";
+import type { DocumentProcessingJobData } from "../queue/queue.types";
 
 @Injectable()
 export class DocumentsService {
@@ -50,6 +58,10 @@ export class DocumentsService {
     private readonly databaseService: DatabaseService,
     private readonly documentStorageService: DocumentStorageService,
     private readonly documentVisionService: DocumentVisionService,
+    private readonly notificationsGateway: NotificationsGateway,
+    private readonly notificationsService: NotificationsService,
+    @Inject(DOCUMENT_PROCESSING_QUEUE_TOKEN)
+    private readonly documentProcessingQueue: Queue<DocumentProcessingJobData>,
   ) {}
 
   /**
@@ -308,12 +320,14 @@ export class DocumentsService {
     }
 
     const startedAt = Date.now();
-    const [savedFile, analysis] = await Promise.all([
-      this.documentStorageService.save(file),
-      dto.analyzeWithVision !== false
-        ? this.documentVisionService.analyze(file)
-        : Promise.resolve(null),
-    ]);
+    const savedFile = await this.documentStorageService.save(file);
+    const shouldQueueAnalysis =
+      dto.analyzeWithVision !== false && this.documentVisionService.isEnabled;
+    const analysis = shouldQueueAnalysis
+      ? null
+      : dto.analyzeWithVision !== false
+        ? await this.documentVisionService.analyze(file)
+        : null;
     const processingTimeMs = analysis ? Date.now() - startedAt : null;
 
     const [created] = await client
@@ -325,7 +339,9 @@ export class DocumentsService {
         fileUrl: savedFile.fileUrl,
         storagePath: savedFile.storagePath,
         type: dto.type,
-        status: resolveUploadStatus(analysis),
+        status: shouldQueueAnalysis
+          ? "processing"
+          : resolveUploadStatus(analysis),
         uploadedByUserId,
         driverId: dto.driverId,
         loadId: dto.loadId,
@@ -337,9 +353,108 @@ export class DocumentsService {
 
     if (!created) throw new BadRequestException("Unable to upload document");
 
-    await persistUploadSideEffects(client, created.id, analysis);
+    await persistUploadAuditEvent(client, created.id);
+    if (analysis?.extractedFields.length) {
+      await persistVisionAnalysis(client, created.id, analysis);
+    }
+    if (shouldQueueAnalysis) {
+      await this.documentProcessingQueue.add(
+        "analyze-document",
+        { documentId: created.id },
+        {
+          attempts: 3,
+          backoff: {
+            type: "exponential",
+            delay: 2_000,
+          },
+          removeOnComplete: 100,
+          removeOnFail: 100,
+        },
+      );
+    }
 
     return this.findOne(created.id);
+  }
+
+  async processQueuedAnalysis(documentId: string): Promise<void> {
+    const client = this.databaseService.client;
+    const [document] = await client
+      .select({
+        id: documents.id,
+        fileName: documents.fileName,
+        fileSize: documents.fileSize,
+        mimeType: documents.mimeType,
+        storagePath: documents.storagePath,
+      })
+      .from(documents)
+      .where(eq(documents.id, documentId))
+      .limit(1);
+
+    if (!document?.storagePath || !document.mimeType) return;
+
+    const startedAt = Date.now();
+    const buffer = await this.documentStorageService.read(document.storagePath);
+    const analysis = await this.documentVisionService.analyze({
+      buffer,
+      destination: "",
+      encoding: "7bit",
+      fieldname: "file",
+      filename: "",
+      mimetype: document.mimeType,
+      originalname: document.fileName,
+      path: document.storagePath,
+      size: document.fileSize,
+      stream: undefined as never,
+    });
+
+    await client
+      .update(documents)
+      .set({
+        extractionModel: analysis?.extractionModel ?? null,
+        processingTimeMs: Date.now() - startedAt,
+        status: resolveUploadStatus(analysis),
+        updatedAt: new Date(),
+      })
+      .where(eq(documents.id, documentId));
+
+    if (analysis?.extractedFields.length) {
+      await persistVisionAnalysis(client, documentId, analysis);
+    }
+
+    await this.emitDocumentProcessingUpdated(documentId);
+  }
+
+  private async emitDocumentProcessingUpdated(
+    documentId: string,
+  ): Promise<void> {
+    const document = await this.findOne(documentId);
+    const recipients = await this.findDocumentStatusRecipients();
+
+    for (const recipient of recipients) {
+      this.notificationsGateway.emitDocumentProcessingUpdated(
+        recipient.id,
+        document.data,
+      );
+    }
+
+    await this.notificationsService.createDocumentProcessingNotifications({
+      documentId: document.data.id,
+      fileName: document.data.fileName,
+      status: document.data.status,
+      uploadedByUserId: document.data.uploadedBy?.id ?? null,
+    });
+  }
+
+  private async findDocumentStatusRecipients(): Promise<Array<{ id: string }>> {
+    return this.databaseService.client
+      .select({ id: users.id })
+      .from(users)
+      .where(
+        and(
+          eq(users.isActive, true),
+          or(eq(users.role, "admin"), eq(users.role, "dispatcher")),
+        ),
+      );
   }
 
   /**

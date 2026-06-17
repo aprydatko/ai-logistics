@@ -11,9 +11,13 @@ const environmentSchema = z.object({
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
   JWT_REFRESH_SECRET: z.string().min(32),
   JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
+  REDIS_URL: z.string().url().default("redis://127.0.0.1:6379"),
+  BULL_BOARD_PATH: z.string().default("/api/queues"),
   OPENAI_API_KEY: z.string().min(1).optional(),
   OPENAI_MODEL: z.string().default("gpt-4.1-mini"),
   OPENAI_DOCUMENT_MODEL: z.string().default("gpt-4.1-mini"),
+  RESEND_API_KEY: z.string().min(1).optional(),
+  RESEND_FROM_EMAIL: z.string().email().optional(),
 });
 
 export type Environment = z.infer<typeof environmentSchema>;

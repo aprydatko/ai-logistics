@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Bell,
-  ChevronDown,
-  LogOut,
-  Menu,
-  Settings,
-  UserRound,
-} from "lucide-react";
+import { ChevronDown, LogOut, Menu, Settings, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -17,6 +10,7 @@ import { Button } from "@repo/ui/components/button";
 import { SearchField } from "@repo/ui/components/search-field";
 
 import { useUserStore } from "@/stores/user-store";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 import { BrandLogo } from "./brand-logo";
 
@@ -74,18 +68,7 @@ export function AppHeader({ onOpenMobile }: AppHeaderProps): React.JSX.Element {
       />
 
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
-        <Button
-          aria-label="Notifications"
-          className="relative text-primary-700"
-          size="icon"
-          type="button"
-          variant="ghost"
-        >
-          <Bell className="size-6" />
-          <span className="absolute -right-[5px] -top-[2px] grid size-4 place-items-center rounded-full bg-danger text-[0.65rem] font-normal leading-none text-white">
-            3
-          </span>
-        </Button>
+        <NotificationBell />
 
         <div
           aria-hidden="true"

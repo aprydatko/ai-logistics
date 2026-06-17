@@ -1,6 +1,5 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  Bell,
   Bot,
   FileText,
   Home,
@@ -25,6 +24,5 @@ export const dashboardNavigationItems: DashboardNavigationItem[] = [
   { href: "/documents", label: "Documents", icon: FileText },
   { href: "/assistant", label: "Assistant", icon: Bot },
   { href: "/ai-logs", label: "AI Logs", icon: MessageSquareText },
-  { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

@@ -6,4 +6,6 @@ export * from "./document-extracted-fields";
 export * from "./documents";
 export * from "./incidents";
 export * from "./loads";
+export * from "./notification-preferences";
+export * from "./notifications";
 export * from "./users";

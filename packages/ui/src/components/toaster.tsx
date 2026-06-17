@@ -19,6 +19,7 @@ type ToastVariant = "error" | "info" | "success";
 type ToastOptions = {
   description?: string;
   duration?: number;
+  onClick?: () => void;
 };
 
 type ToastItem = ToastOptions & {
@@ -118,6 +119,7 @@ export const Toaster = ({
           <ToastPrimitive.Root
             className={cn(
               "grid grid-cols-[auto_1fr_auto] items-start gap-x-3 rounded-lg border p-4 shadow-lg data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-80 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-right-full",
+              item.onClick ? "cursor-pointer" : "",
               variantStyles[item.variant].root,
             )}
             duration={item.duration}
@@ -125,6 +127,7 @@ export const Toaster = ({
             onOpenChange={(open) => {
               if (!open) removeToast(item.id);
             }}
+            onClick={() => item.onClick?.()}
           >
             <Icon aria-hidden="true" className="mt-0.5 size-5" />
             <div className="min-w-0">

@@ -71,7 +71,11 @@ export const DocumentRow = ({
         {document.load?.referenceNumber ?? "Unassigned"}
       </TableCell>
       <TableCell>
-        <StatusBadge size="sm" tone={statusTones[document.status]}>
+        <StatusBadge
+          className={document.status === "processing" ? "animate-pulse" : ""}
+          size="sm"
+          tone={statusTones[document.status]}
+        >
           {statusLabels[document.status]}
         </StatusBadge>
       </TableCell>

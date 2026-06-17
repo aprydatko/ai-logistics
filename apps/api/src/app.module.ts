@@ -12,6 +12,8 @@ import { DriversModule } from "./modules/drivers/drivers.module";
 import { HealthModule } from "./modules/health/health.module";
 import { IncidentsModule } from "./modules/incidents/incidents.module";
 import { LoadsModule } from "./modules/loads/loads.module";
+import { NotificationsModule } from "./modules/notifications/notifications.module";
+import { QueueModule } from "./modules/queue/queue.module";
 
 @Module({
   imports: [
@@ -28,6 +30,7 @@ import { LoadsModule } from "./modules/loads/loads.module";
       },
     ]),
     DatabaseModule,
+    QueueModule,
     AiLogsModule,
     AssistantModule,
     AuthModule,
@@ -35,6 +38,7 @@ import { LoadsModule } from "./modules/loads/loads.module";
     DriversModule,
     LoadsModule,
     IncidentsModule,
+    NotificationsModule,
     HealthModule,
   ],
 })

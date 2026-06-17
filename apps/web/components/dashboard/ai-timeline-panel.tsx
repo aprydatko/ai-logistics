@@ -78,13 +78,23 @@ const toneStyles: Record<
   },
 };
 
-const formatTimestamp = (value: string): string =>
-  new Intl.DateTimeFormat("en-US", {
+const formatTimestamp = (value: string): string => {
+  const normalizedValue = Number.isNaN(Date.parse(value))
+    ? value.replaceAll('"', "")
+    : value;
+  const parsedDate = new Date(normalizedValue);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "Invalid date";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(value));
+  }).format(parsedDate);
+};
 
 const getFeaturedIncident = (
   incidents: IncidentApiItem[],
@@ -117,7 +127,7 @@ export function AiTimelinePanel(): React.JSX.Element {
     ...incidentTimelineQueryOptions(featuredIncident?.id ?? ""),
     enabled: Boolean(featuredIncident?.id),
   });
-  useIncidentTimelineLive(
+  const liveState = useIncidentTimelineLive(
     featuredIncident?.id ?? null,
     Boolean(featuredIncident),
   );
@@ -170,7 +180,11 @@ export function AiTimelinePanel(): React.JSX.Element {
             <h2 className="text-sm font-bold text-ink-900">AI timeline</h2>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-[0.65rem] font-semibold text-emerald-700">
               <span className="size-1.5 rounded-full bg-emerald-500" />
-              Live
+              {liveState === "connected"
+                ? "Live"
+                : liveState === "connecting"
+                  ? "Connecting"
+                  : "Polling fallback"}
             </span>
           </div>
           <p className="mt-1 text-xs text-primary-700">

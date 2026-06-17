@@ -2,10 +2,8 @@
 
 import * as React from "react";
 
-import {
-  NotificationCenter,
-  NotificationPreferences,
-} from "./settings-controls";
+import { NotificationCenter } from "./notification-center";
+import { NotificationPreferences } from "./notification-preferences";
 import { SettingsSummary } from "./settings-summary";
 
 const tabs = [

@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import * as React from "react";
 
 import { documentsQueryOptions } from "@/lib/documents/documents-query";
-import { driverCandidatesQueryOptions } from "@/lib/drivers/driver-candidates-query";
+import { driversQueryOptions } from "@/lib/drivers/drivers-query";
 import { Checkbox } from "@repo/ui/components/checkbox";
 import { DataPagination } from "@repo/ui/components/pagination";
 import {
@@ -78,7 +78,15 @@ export const DocumentsTable = (): React.JSX.Element => {
     [debouncedSearch, filters],
   );
   const documentsQuery = useQuery(documentsQueryOptions(queryFilters));
-  const driversQuery = useQuery(driverCandidatesQueryOptions);
+  const driversQuery = useQuery(
+    driversQueryOptions({
+      search: "",
+      status: "all",
+      isActive: "all",
+      page: 1,
+      limit: 100,
+    }),
+  );
   const documents = React.useMemo(
     () => documentsQuery.data?.data ?? [],
     [documentsQuery.data],
@@ -103,7 +111,7 @@ export const DocumentsTable = (): React.JSX.Element => {
   return (
     <section className="flex h-[calc(100svh-7rem)] flex-col gap-5 overflow-hidden">
       <DocumentsToolbar
-        driverOptions={driversQuery.data ?? []}
+        driverOptions={driversQuery.data?.data ?? []}
         filters={filters}
         onChange={updateFilters}
         onCreate={() => setIsCreateOpen(true)}

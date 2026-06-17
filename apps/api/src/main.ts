@@ -7,6 +7,8 @@ import { join } from "path";
 
 import { AppModule } from "./app.module";
 import type { Environment } from "./config/environment";
+import { QueueDashboardAuthService } from "./modules/queue/queue-dashboard-auth.service";
+import { QueueDashboardService } from "./modules/queue/queue-dashboard.service";
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -28,6 +30,14 @@ async function bootstrap(): Promise<void> {
       transform: true,
       whitelist: true,
     }),
+  );
+
+  const queueDashboardService = app.get(QueueDashboardService);
+  const queueDashboardAuthService = app.get(QueueDashboardAuthService);
+  app.use(
+    queueDashboardService.basePath,
+    queueDashboardAuthService.createMiddleware(),
+    queueDashboardService.getRouter(),
   );
 
   await app.listen(configService.get("API_PORT", { infer: true }));

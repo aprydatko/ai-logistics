@@ -1,7 +1,14 @@
 "use client";
 
 import type { Document } from "@repo/shared";
-import { ArrowLeft, Check, Download, Truck, UserRound } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Download,
+  LoaderCircle,
+  Truck,
+  UserRound,
+} from "lucide-react";
 import Link from "next/link";
 
 import { resolveDocumentFileUrl } from "@/lib/documents/document-file-url";
@@ -26,7 +33,7 @@ const statusBadge = {
   },
   processing: {
     className: "bg-info/10 text-info",
-    icon: Check,
+    icon: LoaderCircle,
     label: "Extraction in progress",
   },
   needs_review: {
@@ -64,7 +71,12 @@ export const DocumentReviewHeader = ({
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${badge.className}`}
             >
-              <BadgeIcon className="size-3.5" /> {badge.label}
+              <BadgeIcon
+                className={`size-3.5 ${
+                  document.status === "processing" ? "animate-spin" : ""
+                }`}
+              />{" "}
+              {badge.label}
             </span>
           </div>
           <p className="mt-1 text-sm text-ink-500">
