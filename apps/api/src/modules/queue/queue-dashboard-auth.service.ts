@@ -1,69 +1,80 @@
-import { Injectable } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
-import { eq } from "drizzle-orm";
-import type { NextFunction, Request, Response } from "express";
+import { Injectable, Logger } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import type { NextFunction, Request, Response } from 'express';
 
-import { DatabaseService } from "../../db/database.service";
-import { users } from "../../db/schema";
-import type { AccessTokenPayload } from "../auth/auth.types";
+import { isUserRole } from '../../common/roles';
+import { DatabaseService } from '../../db/database.service';
+import {
+  extractAccessToken,
+  findActiveUserById,
+  isAccessTokenPayload,
+} from '../auth/auth.helpers';
+import { QUEUE_DASHBOARD_ROLES } from './queue.constants';
 
 @Injectable()
 export class QueueDashboardAuthService {
+  private readonly logger = new Logger(QueueDashboardAuthService.name);
+
   constructor(
     private readonly jwtService: JwtService,
-    private readonly databaseService: DatabaseService,
+    private readonly databaseService: DatabaseService
   ) {}
 
   createMiddleware() {
     return async (
       request: Request,
       response: Response,
-      next: NextFunction,
+      next: NextFunction
     ): Promise<void> => {
-      try {
-        const token = this.extractToken(request);
-        if (!token) throw new Error("Missing token");
-
-        const payload =
-          await this.jwtService.verifyAsync<AccessTokenPayload>(token);
-
-        if (payload.tokenType !== "access" || !payload.sub) {
-          throw new Error("Invalid token");
+      let denied = false;
+      const deny = (reason: string, level: 'warn' | 'debug' = 'debug') => {
+        const message = `Denied queue dashboard access: ${reason}`;
+        if (level === 'warn') {
+          this.logger.warn(message);
+        } else {
+          this.logger.debug(message);
         }
+        response.status(401).json({ message: 'Unauthorized' });
+        denied = true;
+      };
 
-        const [user] = await this.databaseService.client
-          .select({
-            id: users.id,
-            isActive: users.isActive,
-            role: users.role,
-          })
-          .from(users)
-          .where(eq(users.id, payload.sub))
-          .limit(1);
-
-        if (!user || !user.isActive) throw new Error("Inactive user");
-        if (user.role !== "admin" && user.role !== "dispatcher") {
-          throw new Error("Forbidden");
-        }
-
-        next();
-      } catch {
-        response.status(401).json({ message: "Unauthorized" });
+      const token = extractAccessToken(request);
+      if (!token) {
+        deny('missing or malformed token', 'warn');
+        return;
       }
+
+      const payload = await this.jwtService
+        .verifyAsync(token)
+        .catch(() => null);
+
+      if (!payload || !isAccessTokenPayload(payload)) {
+        deny('invalid or expired token payload', 'warn');
+        return;
+      }
+
+      const user = await findActiveUserById(
+        this.databaseService,
+        payload.sub
+      ).catch((error: unknown) => {
+        deny(
+          `unexpected error: ${error instanceof Error ? error.message : 'unknown'}`,
+          'warn'
+        );
+        return undefined;
+      });
+
+      if (denied) return;
+      if (!user) {
+        deny('token references unknown user', 'warn');
+        return;
+      }
+      if (!isUserRole(user.role) || !QUEUE_DASHBOARD_ROLES.has(user.role)) {
+        deny(`role '${user.role}' is not allowed for the queue dashboard`);
+        return;
+      }
+
+      next();
     };
-  }
-
-  private extractToken(request: Request): string | undefined {
-    const [type, token] = request.headers.authorization?.split(" ") ?? [];
-    if (type === "Bearer" && token) return token;
-
-    const cookieHeader = request.headers.cookie;
-    if (!cookieHeader) return undefined;
-
-    return cookieHeader
-      .split(";")
-      .map((chunk) => chunk.trim())
-      .find((chunk) => chunk.startsWith("access_token="))
-      ?.slice("access_token=".length);
   }
 }
