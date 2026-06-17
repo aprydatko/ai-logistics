@@ -78,13 +78,23 @@ const toneStyles: Record<
   },
 };
 
-const formatTimestamp = (value: string): string =>
-  new Intl.DateTimeFormat("en-US", {
+const formatTimestamp = (value: string): string => {
+  const normalizedValue = Number.isNaN(Date.parse(value))
+    ? value.replaceAll('"', "")
+    : value;
+  const parsedDate = new Date(normalizedValue);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "Invalid date";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(value));
+  }).format(parsedDate);
+};
 
 const getFeaturedIncident = (
   incidents: IncidentApiItem[],

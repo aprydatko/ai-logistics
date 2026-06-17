@@ -494,7 +494,7 @@ SELECT
   jsonb_build_array(
     jsonb_build_object(
       'id', 'bulk-' || n::text || '-1',
-      'dateTime', to_char(('2026-06-03T09:30:00Z'::timestamptz + ((n - 1) * INTERVAL '11 hours')) AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'),
+      'dateTime', to_char(('2026-06-03T09:30:00Z'::timestamptz + ((n - 1) * INTERVAL '11 hours')) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
       'title', 'Incident detected',
       'description', (ARRAY[
         'Telematics flagged abnormal tire pressure during transit.',

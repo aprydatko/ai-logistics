@@ -437,9 +437,15 @@ export class IncidentsService {
     load: Omit<IncidentItem["load"], "driver">,
     driver: IncidentItem["load"]["driver"],
   ): IncidentItem {
+    const occurredAt = incident.occurredAt.toISOString();
+
     return {
       ...incident,
-      occurredAt: incident.occurredAt.toISOString(),
+      timeline: incident.timeline.map((item) => ({
+        ...item,
+        dateTime: this.normalizeTimelineDateTime(item.dateTime, occurredAt),
+      })),
+      occurredAt,
       resolvedAt: incident.resolvedAt?.toISOString() ?? null,
       createdAt: incident.createdAt.toISOString(),
       updatedAt: incident.updatedAt.toISOString(),
@@ -483,5 +489,21 @@ export class IncidentsService {
           new Date(left.dateTime).getTime(),
       ),
     };
+  }
+
+  private normalizeTimelineDateTime(
+    value: string,
+    fallbackIso: string,
+  ): string {
+    if (!Number.isNaN(Date.parse(value))) {
+      return value;
+    }
+
+    const sanitizedValue = value.replaceAll('"', "");
+    if (!Number.isNaN(Date.parse(sanitizedValue))) {
+      return sanitizedValue;
+    }
+
+    return fallbackIso;
   }
 }
