@@ -10,7 +10,7 @@ import {
 
 import type { AssistantLinkedEntity } from '@repo/shared';
 import { Button } from '@repo/ui/components/button';
-import type { AssistantSkill } from './workspace/types';
+import type { AssistantFilter, AssistantSkill } from './workspace/types';
 
 const skills: AssistantSkill[] = [
   { id: 'save_document', kind: 'skill', label: 'Save document' },
@@ -37,15 +37,19 @@ const capabilities = [
 ];
 
 type AssistantContextPanelProps = {
+  filters: AssistantFilter[];
   onAction: (message: string) => void;
   onClose: () => void;
+  onRemoveFilter: (label: string) => void;
   recentReferences: AssistantLinkedEntity[];
-  onSelectSkill: (skill: AssistantSkill) => void;
+  onSelectSkill: (skill: AssistantSkill | null) => void;
 };
 
 export const AssistantContextPanel = ({
+  filters,
   onAction,
   onClose,
+  onRemoveFilter,
   recentReferences,
   onSelectSkill,
 }: AssistantContextPanelProps): React.JSX.Element => (
@@ -69,6 +73,22 @@ export const AssistantContextPanel = ({
     <div className="min-h-0 flex-1 overflow-y-auto px-7 py-8 [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb:hover]:bg-primary-600">
       <div className="space-y-2">
         <section>
+          {filters.length > 0 ? (
+            <div className="mb-6 flex flex-wrap gap-2">
+              {filters.map((filter) => (
+                <button
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100"
+                  key={filter.label}
+                  onClick={() => onRemoveFilter(filter.label)}
+                  type="button"
+                >
+                  <span>{filter.label}</span>
+                  <X className="size-3.5" strokeWidth={2.2} />
+                </button>
+              ))}
+            </div>
+          ) : null}
+
           <h3 className="text-sm font-bold tracking-[-0.03em] text-slate-950">
             Assistant can help with
           </h3>
