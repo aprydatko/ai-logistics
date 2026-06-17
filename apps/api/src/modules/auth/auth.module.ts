@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { JwtModule } from "@nestjs/jwt";
 
 import type { Environment } from "../../config/environment";
+import { AuthenticatedThrottlerGuard } from "./authenticated-throttler.guard";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { JwtAuthGuard } from "./jwt-auth.guard";
@@ -23,7 +24,17 @@ import { RolesGuard } from "./roles.guard";
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtAuthGuard, RolesGuard],
-  exports: [JwtModule, JwtAuthGuard, RolesGuard],
+  providers: [
+    AuthService,
+    JwtAuthGuard,
+    RolesGuard,
+    AuthenticatedThrottlerGuard,
+  ],
+  exports: [
+    JwtModule,
+    JwtAuthGuard,
+    RolesGuard,
+    AuthenticatedThrottlerGuard,
+  ],
 })
 export class AuthModule {}

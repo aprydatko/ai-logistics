@@ -11,7 +11,7 @@ import { ListIncidentsQueryDto } from "../incidents/dto/list-incidents-query.dto
 import { LoadsService } from "../loads/loads.service";
 import { ListLoadsQueryDto } from "../loads/dto/list-loads-query.dto";
 import { toDriverDetailsSummary } from "./internal/assistant-driver-summary";
-import { supportedModels, uuidPattern } from "./internal/assistant.constants";
+import { uuidPattern } from "./internal/assistant.constants";
 import { parseToolArguments } from "./internal/assistant-openai";
 import {
   getOptionalBoolean,
