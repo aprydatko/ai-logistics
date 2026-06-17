@@ -1,35 +1,17 @@
-import {
-  AlertTriangle,
-  ChevronRight,
-  CloudRain,
-  MapPinned,
-  Route,
-  ShieldCheck,
-  Truck,
-  UserRound,
-  X,
-} from "lucide-react";
+import { AlertTriangle, ChevronRight, MapPinned, ShieldCheck, Truck, UserRound, X } from "lucide-react";
 
 import { Button } from "@repo/ui/components/button";
 import type { AssistantSkill } from "./workspace/types";
-
-const sources = [
-  { count: 6, icon: Truck, label: "Loads" },
-  { count: 6, icon: UserRound, label: "Drivers" },
-  { count: 2, icon: AlertTriangle, label: "Incidents" },
-  { count: 1, icon: Route, label: "Traffic" },
-  { count: 2, icon: CloudRain, label: "Weather" },
-];
-
-const references = [
-  { detail: "Dallas, TX → Houston, TX", icon: Truck, label: "LD-10456" },
-  { detail: "Chicago, IL → Detroit, MI", icon: Truck, label: "LD-78291" },
-  { detail: "Accident on I-94", icon: AlertTriangle, label: "INC-2291" },
-  { detail: "TR-1022", icon: UserRound, label: "Driver Sarah Davis" },
-];
+import type { AssistantLinkedEntity } from "@repo/shared";
 
 const skills: AssistantSkill[] = [
   { id: "save_document", kind: "skill", label: "Save document" },
+];
+
+const capabilities = [
+  { detail: "Search live loads and summarize status, route, and assignment context.", icon: Truck, label: "Loads Q&A" },
+  { detail: "Find drivers by name, code, truck, status, and recent trip context.", icon: UserRound, label: "Drivers Q&A" },
+  { detail: "Review incidents and suggest next steps without changing data.", icon: AlertTriangle, label: "Incident guidance" },
 ];
 
 type Filter = {
@@ -41,6 +23,7 @@ type AssistantContextPanelProps = {
   onAction: (message: string) => void;
   onClose: () => void;
   onRemoveFilter: (label: string) => void;
+  recentReferences: AssistantLinkedEntity[];
   onSelectSkill: (skill: AssistantSkill) => void;
 };
 
@@ -49,6 +32,7 @@ export const AssistantContextPanel = ({
   onAction,
   onClose,
   onRemoveFilter,
+  recentReferences,
   onSelectSkill,
 }: AssistantContextPanelProps): React.JSX.Element => (
   <aside className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xs xl:h-full">
@@ -90,16 +74,18 @@ export const AssistantContextPanel = ({
       </section>
 
       <section>
-        <h3 className="text-xs font-bold text-ink-900">Sources (9)</h3>
+        <h3 className="text-xs font-bold text-ink-900">Assistant can help with</h3>
         <div className="mt-2 divide-y divide-border/60">
-          {sources.map(({ count, icon: Icon, label }) => (
+          {capabilities.map(({ detail, icon: Icon, label }) => (
             <div className="flex h-10 items-center gap-3" key={label}>
               <Icon className="size-4 text-primary-700" />
-              <span className="flex-1 text-xs font-medium text-ink-900">
-                {label}
-              </span>
-              <span className="min-w-8 rounded-full bg-surface-100 px-2 py-1 text-center text-[0.65rem] font-bold text-primary-700">
-                {count}
+              <span className="min-w-0 flex-1">
+                <strong className="block text-xs font-medium text-ink-900">
+                  {label}
+                </strong>
+                <span className="block truncate text-[0.65rem] text-primary-700">
+                  {detail}
+                </span>
               </span>
             </div>
           ))}
@@ -107,29 +93,42 @@ export const AssistantContextPanel = ({
       </section>
 
       <section>
-        <h3 className="text-xs font-bold text-ink-900">References</h3>
+        <h3 className="text-xs font-bold text-ink-900">Recent references</h3>
         <div className="mt-2 divide-y divide-border/60">
-          {references.map(({ detail, icon: Icon, label }) => (
+          {recentReferences.length > 0 ? recentReferences.map((reference) => {
+            const Icon =
+              reference.type === "load"
+                ? Truck
+                : reference.type === "driver"
+                  ? UserRound
+                  : AlertTriangle;
+
+            return (
             <button
               className="flex w-full items-center gap-3 py-3 text-left transition hover:bg-surface-50"
-              key={label}
-              onClick={() => onAction(`Open reference: ${label}`)}
+              key={reference.recordId}
+              onClick={() => onAction(`What should I know about ${reference.title}?`)}
               type="button"
             >
               <Icon className="size-4 shrink-0 text-primary-700" />
               <span className="min-w-0 flex-1">
                 <strong className="block truncate text-xs text-ink-900">
-                  {label}
+                  {reference.title}
                 </strong>
                 <span className="mt-0.5 block truncate text-[0.65rem] text-primary-700">
-                  {detail}
+                  {reference.type} · {reference.recordId}
                 </span>
               </span>
               <span className="rounded-full bg-emerald-50 px-2 py-1 text-[0.65rem] font-semibold text-emerald-700">
                 Open
               </span>
             </button>
-          ))}
+            );
+          }) : (
+            <p className="py-2 text-xs text-primary-700">
+              Ask about a load, driver, or incident to pin live references here.
+            </p>
+          )}
         </div>
       </section>
 

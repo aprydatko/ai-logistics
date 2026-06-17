@@ -21,6 +21,7 @@ import { LoadsService } from "./loads.service";
 import type {
   AssignLoadDriverResponse,
   CreateLoadResponse,
+  LoadResponse,
   LoadsListResponse,
   UpdateLoadResponse,
 } from "./loads.types";
@@ -33,6 +34,13 @@ export class LoadsController {
   @Get()
   findAll(@Query() query: ListLoadsQueryDto): Promise<LoadsListResponse> {
     return this.loadsService.findAll(query);
+  }
+
+  @Get(":id")
+  findById(
+    @Param("id", new ParseUUIDPipe()) id: string,
+  ): Promise<LoadResponse> {
+    return this.loadsService.findById(id);
   }
 
   @Post()

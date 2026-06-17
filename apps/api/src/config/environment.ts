@@ -12,6 +12,7 @@ const environmentSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(32),
   JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
   OPENAI_API_KEY: z.string().min(1).optional(),
+  OPENAI_MODEL: z.string().default("gpt-4.1-mini"),
   OPENAI_DOCUMENT_MODEL: z.string().default("gpt-4.1-mini"),
 });
 

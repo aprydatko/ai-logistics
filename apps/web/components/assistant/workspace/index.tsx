@@ -23,6 +23,7 @@ export const AssistantWorkspace = (): React.JSX.Element => {
     model,
     onAttachmentSelect,
     onSelectSkill,
+    recentReferences,
     removeFilter,
     selectedSkill,
     setDraft,
@@ -62,7 +63,12 @@ export const AssistantWorkspace = (): React.JSX.Element => {
             <AssistantStatusCard state={assistantState} />
             <AssistantMessageThread messages={messages} />
             {assistantState.answer ? (
-              <AssistantResponseCard answer={assistantState.answer} />
+              <AssistantResponseCard
+                answer={assistantState.answer}
+                linkedEntity={assistantState.linkedEntity}
+                reportType={assistantState.reportType}
+                usedTools={assistantState.usedTools}
+              />
             ) : null}
           </div>
 
@@ -88,6 +94,7 @@ export const AssistantWorkspace = (): React.JSX.Element => {
           onAction={setDraft}
           onClose={() => setIsContextOpen(false)}
           onRemoveFilter={removeFilter}
+          recentReferences={recentReferences}
           onSelectSkill={onSelectSkill}
         />
       ) : null}

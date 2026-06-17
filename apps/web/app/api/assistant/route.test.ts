@@ -1,6 +1,19 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { GET } from "./route";
+const mockCookies = vi.fn();
+const mockRefreshSession = vi.fn();
+const mockSetSessionCookies = vi.fn();
+const mockClearSessionCookies = vi.fn();
+
+vi.mock("next/headers", () => ({
+  cookies: mockCookies,
+}));
+
+vi.mock("@/lib/auth/server-session", () => ({
+  clearSessionCookies: mockClearSessionCookies,
+  refreshSession: mockRefreshSession,
+  setSessionCookies: mockSetSessionCookies,
+}));
 
 const createJsonRequest = (body: unknown): Request =>
   new Request("https://app.example.com/api/assistant", {
@@ -22,7 +35,9 @@ const createMultipartRequest = ({
 }): Request => {
   const formData = new FormData();
   formData.append("message", message);
-  if (model) formData.append("model", model);
+  if (model) {
+    formData.append("model", model);
+  }
   formData.append("file", file);
 
   const request = new Request("https://app.example.com/api/assistant", {
@@ -39,14 +54,30 @@ const createMultipartRequest = ({
   return request;
 };
 
-describe("POST /api/assistant", () => {
+describe("assistant route", () => {
+  beforeEach(() => {
+    mockCookies.mockResolvedValue({
+      get: vi.fn((key: string) => {
+        if (key === "access_token") {
+          return { value: "access-token" };
+        }
+        return undefined;
+      }),
+    });
+  });
+
   afterEach(() => {
     delete process.env.OPENAI_API_KEY;
     delete process.env.OPENAI_MODEL;
     vi.restoreAllMocks();
+    mockCookies.mockReset();
+    mockRefreshSession.mockReset();
+    mockSetSessionCookies.mockReset();
+    mockClearSessionCookies.mockReset();
   });
 
   it("returns 400 for an invalid assistant request", async () => {
+    process.env.OPENAI_API_KEY = "test-key";
     const { POST } = await import("./route");
 
     const response = await POST(createJsonRequest({ message: "" }));
@@ -77,50 +108,20 @@ describe("POST /api/assistant", () => {
     expect(response.status).toBe(503);
   });
 
-  it("returns placeholder status from GET when OPENAI_API_KEY is missing", async () => {
-    process.env.OPENAI_MODEL = "gpt-4.1-mini";
-
-    const response = await GET();
-
-    await expect(response.json()).resolves.toEqual({
-      status: "placeholder",
-      message:
-        "OpenAI setup is not connected yet. Add OPENAI_API_KEY to apps/web/.env.local.",
-      model: "gpt-4.1-mini",
-    });
-    expect(response.status).toBe(200);
-  });
-
-  it("returns configured status from GET when OPENAI_API_KEY exists", async () => {
+  it("proxies assistant responses from the backend service", async () => {
     process.env.OPENAI_API_KEY = "test-key";
     process.env.OPENAI_MODEL = "gpt-4.1-mini";
-
-    const response = await GET();
-
-    await expect(response.json()).resolves.toEqual({
-      status: "configured",
-      message: "OpenAI setup is connected and ready for chat requests.",
-      model: "gpt-4.1-mini",
-    });
-    expect(response.status).toBe(200);
-  });
-
-  it("returns an assistant response when OPENAI_API_KEY is present", async () => {
-    process.env.OPENAI_API_KEY = "test-key";
-    process.env.OPENAI_MODEL = "gpt-4.1";
     const fetchMock = vi.fn().mockResolvedValue(
       Response.json({
-        output: [
-          {
-            type: "message",
-            content: [
-              {
-                type: "output_text",
-                text: "Here is a live assistant response.",
-              },
-            ],
-          },
-        ],
+        status: "configured",
+        message: "Found 2 delayed loads in Texas.",
+        usedTools: ["search_loads"],
+        linkedEntity: {
+          type: "load",
+          recordId: "load-1",
+          title: "LD-1001",
+          route: "/loads/load-1",
+        },
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -128,38 +129,59 @@ describe("POST /api/assistant", () => {
 
     const response = await POST(
       createJsonRequest({
-        message: "Summarize delayed loads",
-        model: "o3",
+        message: "show delayed loads in Texas",
+        history: [{ role: "assistant", text: "Previous reply" }],
+        linkedEntity: {
+          type: "load",
+          recordId: "load-1",
+          title: "LD-1001",
+          route: "/loads/load-1",
+        },
       }),
     );
 
     await expect(response.json()).resolves.toEqual({
       status: "configured",
-      message: "Here is a live assistant response.",
-      request: {
-        message: "Summarize delayed loads",
-        model: "o3",
+      message: "Found 2 delayed loads in Texas.",
+      usedTools: ["search_loads"],
+      linkedEntity: {
+        type: "load",
+        recordId: "load-1",
+        title: "LD-1001",
+        route: "/loads/load-1",
       },
     });
     expect(response.status).toBe(200);
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.openai.com/v1/responses",
-      expect.objectContaining({
-        method: "POST",
-        cache: "no-store",
-        headers: expect.objectContaining({
-          Authorization: "Bearer test-key",
-          "Content-Type": "application/json",
-        }),
-      }),
-    );
+    const proxyCall = fetchMock.mock.calls[0];
+    expect(proxyCall?.[0]).toBe("http://localhost:3001/api/assistant");
+    expect(proxyCall?.[1]).toMatchObject({
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        Authorization: "Bearer access-token",
+        "Content-Type": "application/json",
+      },
+    });
+    expect(JSON.parse(String(proxyCall?.[1]?.body))).toEqual({
+      message: "show delayed loads in Texas",
+      history: [{ role: "assistant", text: "Previous reply" }],
+      linkedEntity: {
+        type: "load",
+        recordId: "load-1",
+        title: "LD-1001",
+        route: "/loads/load-1",
+      },
+      source: "web",
+      attachment: null,
+    });
   });
 
-  it("sends image attachments to OpenAI in multipart assistant requests", async () => {
+  it("encodes supported attachments before proxying", async () => {
     process.env.OPENAI_API_KEY = "test-key";
     const fetchMock = vi.fn().mockResolvedValue(
       Response.json({
-        output_text: "I analyzed the image attachment.",
+        status: "configured",
+        message: "I reviewed the proof of delivery.",
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -175,35 +197,23 @@ describe("POST /api/assistant", () => {
 
     await expect(response.json()).resolves.toEqual({
       status: "configured",
-      message: "I analyzed the image attachment.",
-      request: {
-        message: "Check this proof of delivery",
-        model: "gpt-4.1-mini",
-      },
+      message: "I reviewed the proof of delivery.",
     });
 
-    const openAICall = fetchMock.mock.calls.find(
-      ([url]) => url === "https://api.openai.com/v1/responses",
-    );
-    expect(openAICall).toBeDefined();
-    expect(JSON.parse(openAICall![1].body as string)).toEqual(
+    const proxyCall = fetchMock.mock.calls[0];
+    expect(proxyCall).toBeDefined();
+    if (!proxyCall) {
+      throw new Error("Expected proxy fetch call");
+    }
+    expect(JSON.parse(proxyCall[1].body as string)).toEqual(
       expect.objectContaining({
+        message: "Check this proof of delivery",
         model: "gpt-4.1-mini",
-        input: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "input_text",
-                text: "Check this proof of delivery",
-              },
-              expect.objectContaining({
-                type: "input_image",
-                detail: "high",
-              }),
-            ],
-          },
-        ],
+        source: "web",
+        attachment: expect.objectContaining({
+          mimeType: "image/png",
+          name: "pod.png",
+        }),
       }),
     );
   });
@@ -221,39 +231,6 @@ describe("POST /api/assistant", () => {
 
     await expect(response.json()).resolves.toEqual({
       message: "Only PDF, JPEG, PNG, and WEBP attachments are supported.",
-    });
-    expect(response.status).toBe(400);
-  });
-
-  it("returns the OpenAI error message when the upstream request fails", async () => {
-    process.env.OPENAI_API_KEY = "test-key";
-    const fetchMock = vi.fn().mockResolvedValue(
-      Response.json(
-        {
-          error: {
-            message: "The model `o3` is not available for this project.",
-          },
-        },
-        { status: 400 },
-      ),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-    const { POST } = await import("./route");
-
-    const response = await POST(
-      createJsonRequest({
-        message: "Summarize delayed loads",
-        model: "o3",
-      }),
-    );
-
-    await expect(response.json()).resolves.toEqual({
-      message: "The model `o3` is not available for this project.",
-      request: {
-        message: "Summarize delayed loads",
-        model: "o3",
-      },
-      status: "error",
     });
     expect(response.status).toBe(400);
   });

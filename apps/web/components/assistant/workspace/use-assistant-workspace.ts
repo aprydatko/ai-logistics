@@ -1,5 +1,6 @@
 "use client";
 
+import type { AssistantConversationMessage, AssistantLinkedEntity } from "@repo/shared";
 import { useEffect, useState } from "react";
 
 import { uploadDocument } from "@/lib/documents/document-mutations";
@@ -29,6 +30,7 @@ type UseAssistantWorkspaceResult = {
   model: string;
   onAttachmentSelect: (file: File | null) => void;
   onSelectSkill: (skill: AssistantSkill | null) => void;
+  recentReferences: AssistantLinkedEntity[];
   removeFilter: (label: string) => void;
   selectedSkill: AssistantSkill | null;
   setDraft: (value: string) => void;
@@ -49,6 +51,9 @@ export const useAssistantWorkspace = (): UseAssistantWorkspaceResult => {
     null,
   );
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
+  const [recentReferences, setRecentReferences] = useState<AssistantLinkedEntity[]>(
+    [],
+  );
   const [assistantState, setAssistantState] = useState<AssistantRequestState>(
     initialAssistantState,
   );
@@ -64,7 +69,10 @@ export const useAssistantWorkspace = (): UseAssistantWorkspaceResult => {
         setAssistantState({
           answer: null,
           detail: data.message || "Assistant request failed.",
+          linkedEntity: null,
+          reportType: null,
           status: "error",
+          usedTools: [],
         });
         return;
       }
@@ -79,13 +87,19 @@ export const useAssistantWorkspace = (): UseAssistantWorkspaceResult => {
       setAssistantState({
         answer: null,
         detail: data.message,
+        linkedEntity: null,
+        reportType: null,
         status: responseStatus,
+        usedTools: [],
       });
     } catch {
       setAssistantState({
         answer: null,
         detail: "Assistant service is unavailable right now.",
+        linkedEntity: null,
+        reportType: null,
         status: "error",
+        usedTools: [],
       });
     }
   };
@@ -99,7 +113,10 @@ export const useAssistantWorkspace = (): UseAssistantWorkspaceResult => {
       setAssistantState({
         answer: null,
         detail: "Attach a file or photo before running Save document.",
+        linkedEntity: null,
+        reportType: null,
         status: "error",
+        usedTools: [],
       });
       return;
     }
@@ -107,7 +124,10 @@ export const useAssistantWorkspace = (): UseAssistantWorkspaceResult => {
     setAssistantState({
       answer: null,
       detail: "Saving document to the system...",
+      linkedEntity: null,
+      reportType: null,
       status: "loading",
+      usedTools: [],
     });
 
     try {
@@ -137,7 +157,10 @@ export const useAssistantWorkspace = (): UseAssistantWorkspaceResult => {
           document.extractedFields.length > 0
             ? `Document saved and ${document.extractedFields.length} extracted fields were captured for review.`
             : "Document saved successfully.",
+        linkedEntity: null,
+        reportType: null,
         status: "configured",
+        usedTools: ["save_document"],
       });
       clearAttachment();
       setDraft("");
@@ -147,7 +170,10 @@ export const useAssistantWorkspace = (): UseAssistantWorkspaceResult => {
       setAssistantState({
         answer: null,
         detail: normalizedError,
+        linkedEntity: null,
+        reportType: null,
         status: "error",
+        usedTools: [],
       });
     }
   };
@@ -162,23 +188,40 @@ export const useAssistantWorkspace = (): UseAssistantWorkspaceResult => {
       detail: nextAttachment
         ? `Sending message with ${nextModel} and 1 attachment...`
         : `Sending message with ${nextModel}...`,
+      linkedEntity: assistantState.linkedEntity,
+      reportType: null,
       status: "loading",
+      usedTools: [],
     });
 
     try {
-      setMessages((current) => [
-        ...current,
-        {
-          attachmentName: nextAttachment?.file.name,
-          id: crypto.randomUUID(),
-          role: "user",
-          text: nextMessage,
-        },
-      ]);
+      const userMessage: AssistantMessage = {
+        attachmentName: nextAttachment?.file.name,
+        id: crypto.randomUUID(),
+        linkedEntity: assistantState.linkedEntity,
+        role: "user",
+        text: nextMessage,
+      };
+      const nextHistory = [...messages, userMessage];
+      setMessages(nextHistory);
 
       const body = new FormData();
       body.append("message", nextMessage);
       body.append("model", nextModel);
+      body.append(
+        "history",
+        JSON.stringify(
+          nextHistory
+            .slice(-6, -1)
+            .map<AssistantConversationMessage>(({ role, text }) => ({
+              role,
+              text,
+            })),
+        ),
+      );
+      if (assistantState.linkedEntity) {
+        body.append("linkedEntity", JSON.stringify(assistantState.linkedEntity));
+      }
       if (nextAttachment) {
         body.append("file", nextAttachment.file);
       }
@@ -193,7 +236,10 @@ export const useAssistantWorkspace = (): UseAssistantWorkspaceResult => {
         setAssistantState({
           answer: null,
           detail: data.message || "Assistant request failed.",
+          linkedEntity: assistantState.linkedEntity,
+          reportType: null,
           status: "error",
+          usedTools: [],
         });
         return;
       }
@@ -215,25 +261,44 @@ export const useAssistantWorkspace = (): UseAssistantWorkspaceResult => {
       setAssistantState({
         answer: responseStatus === "configured" ? data.message : null,
         detail: statusDetail,
+        linkedEntity: data.linkedEntity ?? assistantState.linkedEntity ?? null,
+        reportType: data.reportType ?? null,
         status: responseStatus,
+        usedTools: data.usedTools ?? [],
       });
       if (responseStatus === "configured" && data.message) {
         clearAttachment();
         setDraft("");
+        const linkedEntity = data.linkedEntity ?? assistantState.linkedEntity ?? null;
         setMessages((current) => [
           ...current,
           {
             id: crypto.randomUUID(),
+            linkedEntity,
             role: "assistant",
             text: data.message,
           },
         ]);
+        if (linkedEntity) {
+          setRecentReferences((current) => {
+            const next = [
+              linkedEntity,
+              ...current.filter(
+                (reference) => reference.recordId !== linkedEntity.recordId,
+              ),
+            ];
+            return next.slice(0, 4);
+          });
+        }
       }
     } catch {
       setAssistantState({
         answer: null,
         detail: "Assistant service is unavailable right now.",
+        linkedEntity: assistantState.linkedEntity,
+        reportType: null,
         status: "error",
+        usedTools: [],
       });
     }
   };
@@ -309,6 +374,7 @@ export const useAssistantWorkspace = (): UseAssistantWorkspaceResult => {
     model,
     onAttachmentSelect,
     onSelectSkill,
+    recentReferences,
     removeFilter,
     selectedSkill,
     setDraft,

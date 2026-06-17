@@ -11,11 +11,17 @@ export const initialFilters: AssistantFilter[] = [
 export const initialAssistantState = {
   answer: null,
   detail: "Checking OpenAI setup...",
+  linkedEntity: null,
+  reportType: null,
   status: "loading",
+  usedTools: [],
 } as const satisfies {
   answer: null;
   detail: string;
+  linkedEntity: null;
+  reportType: null;
   status: AssistantStatus;
+  usedTools: [];
 };
 
 export const statusClasses: Record<AssistantStatus, string> = {

@@ -4,6 +4,7 @@ import { ConfigModule } from "@nestjs/config";
 import { validateEnvironment } from "./config/environment";
 import { DatabaseModule } from "./db/database.module";
 import { AiLogsModule } from "./modules/ai-logs/ai-logs.module";
+import { AssistantModule } from "./modules/assistant/assistant.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
 import { DriversModule } from "./modules/drivers/drivers.module";
@@ -20,6 +21,7 @@ import { LoadsModule } from "./modules/loads/loads.module";
     }),
     DatabaseModule,
     AiLogsModule,
+    AssistantModule,
     AuthModule,
     DocumentsModule,
     DriversModule,

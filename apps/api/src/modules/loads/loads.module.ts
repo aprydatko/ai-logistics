@@ -8,5 +8,6 @@ import { LoadsService } from "./loads.service";
   imports: [AuthModule],
   controllers: [LoadsController],
   providers: [LoadsService],
+  exports: [LoadsService],
 })
 export class LoadsModule {}
