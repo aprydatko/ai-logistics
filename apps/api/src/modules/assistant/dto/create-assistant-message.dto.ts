@@ -95,6 +95,34 @@ type AssistantReportType =
   | "operations"
   | "general";
 
+type AssistantResultMetricTone = "amber" | "red" | "teal";
+
+type AssistantLoadsTableMetric = {
+  label: string;
+  tone: AssistantResultMetricTone;
+  value: string;
+};
+
+type AssistantLoadsTableRow = {
+  deliveryDate: string;
+  driverCode: string | null;
+  driverInitials: string | null;
+  driverName: string | null;
+  id: string;
+  pickupDate: string;
+  referenceNumber: string;
+  route: string;
+  status: string;
+};
+
+type AssistantResultView = {
+  metrics: AssistantLoadsTableMetric[];
+  rows: AssistantLoadsTableRow[];
+  summary?: string;
+  title: string;
+  type: "loads_table";
+};
+
 type AssistantResponseStatus = "placeholder" | "configured" | "error";
 
 export interface AssistantResponseDto {
@@ -102,6 +130,7 @@ export interface AssistantResponseDto {
   linkedEntity?: AssistantLinkedEntityDto;
   message: string;
   reportType?: AssistantReportType;
+  resultView?: AssistantResultView;
   request?: {
     message: string;
     model: string;

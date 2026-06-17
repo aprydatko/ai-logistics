@@ -218,6 +218,41 @@ describe("assistant route", () => {
     );
   });
 
+  it("returns an SSE stream when stream mode is requested", async () => {
+    process.env.OPENAI_API_KEY = "test-key";
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({
+        status: "configured",
+        message: "Streaming assistant reply.",
+        usedTools: ["search_drivers", "get_driver_details"],
+        request: {
+          message: "stream this",
+          model: "gpt-4.1-mini",
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const { POST } = await import("./route");
+
+    const response = await POST(
+      createJsonRequest({
+        message: "stream this",
+        stream: true,
+      }),
+    );
+
+    expect(response.headers.get("content-type")).toContain("text/event-stream");
+    const body = await response.text();
+    expect(body).toContain("event: status");
+    expect(body).toContain("Analyzing request...");
+    expect(body).toContain("Searching drivers...");
+    expect(body).toContain("Loading driver details...");
+    expect(body).toContain("Generating answer...");
+    expect(body).toContain("event: chunk");
+    expect(body).toContain("Streaming assistant reply.");
+    expect(body).toContain("event: done");
+  });
+
   it("rejects unsupported assistant attachment types", async () => {
     process.env.OPENAI_API_KEY = "test-key";
     const { POST } = await import("./route");

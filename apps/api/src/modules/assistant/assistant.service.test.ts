@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { AssistantAuditService } from "./assistant-audit.service";
+import { AssistantOpenAIClient } from "./internal/assistant-openai-client";
 import { AssistantService } from "./assistant.service";
+import { AssistantToolsService } from "./assistant-tools.service";
 
 const createService = ({
   openAIApiKey,
@@ -51,6 +54,10 @@ const createService = ({
     findAll: vi.fn(),
     findById: vi.fn(),
   };
+  const assistantAuditService = new AssistantAuditService(
+    aiLogsService as never,
+    databaseService as never,
+  );
 
   return {
     aiLogsService,
@@ -59,11 +66,13 @@ const createService = ({
     loadsService,
     service: new AssistantService(
       configService as never,
-      aiLogsService as never,
-      databaseService as never,
-      driversService as never,
-      incidentsService as never,
-      loadsService as never,
+      assistantAuditService as never,
+      new AssistantOpenAIClient(configService as never) as never,
+      new AssistantToolsService(
+        driversService as never,
+        incidentsService as never,
+        loadsService as never,
+      ) as never,
     ),
   };
 };
@@ -196,6 +205,29 @@ describe("AssistantService", () => {
       request: {
         message: "show assigned loads in Texas",
         model: "gpt-4.1-mini",
+      },
+      resultView: {
+        metrics: [
+          { label: "Loads found", tone: "red", value: "1" },
+          { label: "Assigned", tone: "teal", value: "1" },
+          { label: "In transit", tone: "amber", value: "0" },
+        ],
+        rows: [
+          {
+            deliveryDate: "2026-06-17T14:00:00.000Z",
+            driverCode: "TR-12",
+            driverInitials: "SD",
+            driverName: "Sarah Davis",
+            id: "load-1",
+            pickupDate: "2026-06-17T08:00:00.000Z",
+            referenceNumber: "LD-1001",
+            route: "Dallas, TX -> Houston, TX",
+            status: "assigned",
+          },
+        ],
+        summary: "1 load matched your request.",
+        title: "Found 1 loads matching your request.",
+        type: "loads_table",
       },
       status: "configured",
       usedTools: ["search_loads"],
@@ -465,5 +497,200 @@ describe("AssistantService", () => {
         content: [{ type: "input_text", text: "What documents does this driver have?" }],
       },
     ]);
+  });
+
+  it("normalizes generic incident count searches into structured filters", async () => {
+    const { incidentsService, service } = createService();
+    incidentsService.findAll.mockResolvedValue({
+      success: true,
+      data: Array.from({ length: 10 }, (_, index) => ({
+        id: `incident-${index + 1}`,
+        title: `Open incident ${index + 1}`,
+        description: "Open incident summary",
+        location: "Dallas, TX",
+        type: "delay",
+        priority: "medium",
+        status: "open",
+        occurredAt: "2026-06-17T08:00:00.000Z",
+        resolvedAt: null,
+        createdAt: "2026-06-17T08:00:00.000Z",
+        updatedAt: "2026-06-17T08:00:00.000Z",
+        timeline: [],
+        load: {
+          id: `load-${index + 1}`,
+          referenceNumber: `LD-${index + 1}`,
+          driver: null,
+        },
+      })),
+      pagination: { page: 1, limit: 5, total: 10, totalPages: 2 },
+    });
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          id: "resp_1",
+          output: [
+            {
+              type: "function_call",
+              name: "search_incidents",
+              call_id: "call_1",
+              arguments: JSON.stringify({
+                search: "open incidentd",
+                limit: 5,
+              }),
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          id: "resp_2",
+          output_text: "There are 10 open incidents.",
+          usage: {
+            input_tokens: 80,
+            output_tokens: 12,
+            total_tokens: 92,
+          },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      service.respond(
+        {
+          message: "tell me how many open incidentd does you you have?",
+        },
+        {
+          email: "dispatcher@example.com",
+          id: "user-1",
+          role: "dispatcher",
+        },
+      ),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        message: "There are 10 open incidents.",
+        status: "configured",
+        usedTools: ["search_incidents"],
+      }),
+    );
+
+    expect(incidentsService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        limit: 5,
+        page: 1,
+        priority: undefined,
+        search: undefined,
+        status: "open",
+        type: undefined,
+      }),
+    );
+
+    const toolOutputBody = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
+    const nestedOutput = JSON.parse(String(toolOutputBody.input?.[0]?.output));
+    expect(nestedOutput).toEqual(
+      expect.objectContaining({
+        count: 10,
+      }),
+    );
+  });
+
+  it("ignores invalid load date filters from tool arguments instead of failing", async () => {
+    const { loadsService, service } = createService();
+    loadsService.findAll.mockResolvedValue({
+      success: true,
+      data: [
+        {
+          id: "load-1",
+          referenceNumber: "LD-1001",
+          status: "assigned",
+          pickupAddress: "Dallas, TX",
+          deliveryAddress: "Houston, TX",
+          pickupDate: "2026-06-17T08:00:00.000Z",
+          deliveryDate: "2026-06-17T14:00:00.000Z",
+          miles: 240,
+          weight: 1000,
+          price: 1500,
+          broker: { companyName: "Broker", id: "broker-1", phone: "123" },
+          routePoints: [],
+          timeline: [],
+          notes: null,
+          createdAt: "2026-06-16T08:00:00.000Z",
+          updatedAt: "2026-06-16T09:00:00.000Z",
+          driver: {
+            id: "driver-1",
+            firstName: "Sarah",
+            lastName: "Davis",
+            avatarUrl: null,
+            truckNumber: "TR-12",
+          },
+        },
+      ],
+      pagination: {
+        page: 1,
+        limit: 1,
+        total: 1,
+        totalPages: 1,
+      },
+    });
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          id: "resp_1",
+          output: [
+            {
+              type: "function_call",
+              name: "search_loads",
+              call_id: "call_1",
+              arguments: JSON.stringify({
+                search: "Texas",
+                status: "assigned",
+                pickupFrom: "not-a-date",
+              }),
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          id: "resp_2",
+          output_text: "I found one assigned load in Texas.",
+          usage: {
+            input_tokens: 40,
+            output_tokens: 12,
+            total_tokens: 52,
+          },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      service.respond(
+        {
+          message: "Show me assigned loads in Texas and format the result as a table",
+        },
+        {
+          email: "dispatcher@example.com",
+          id: "user-1",
+          role: "dispatcher",
+        },
+      ),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        message: "I found one assigned load in Texas.",
+        status: "configured",
+        usedTools: ["search_loads"],
+      }),
+    );
+
+    expect(loadsService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pickupFrom: undefined,
+        search: "Texas",
+        status: "assigned",
+      }),
+    );
   });
 });

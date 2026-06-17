@@ -15,6 +15,36 @@ export type AssistantReportType =
   | "operations"
   | "general";
 
+export type AssistantResultMetricTone = "amber" | "red" | "teal";
+
+export type AssistantLoadsTableMetric = {
+  label: string;
+  tone: AssistantResultMetricTone;
+  value: string;
+};
+
+export type AssistantLoadsTableRow = {
+  deliveryDate: string;
+  driverCode: string | null;
+  driverInitials: string | null;
+  driverName: string | null;
+  id: string;
+  pickupDate: string;
+  referenceNumber: string;
+  route: string;
+  status: string;
+};
+
+export type AssistantLoadsTableResult = {
+  metrics: AssistantLoadsTableMetric[];
+  rows: AssistantLoadsTableRow[];
+  summary?: string;
+  title: string;
+  type: "loads_table";
+};
+
+export type AssistantResultView = AssistantLoadsTableResult;
+
 export type CreateAiLogDto = {
   completionTokens?: number;
   errorMessage?: string;
@@ -37,6 +67,22 @@ export type CreateAiLogDto = {
 export type ToolResult = {
   linkedEntity?: AssistantLinkedEntity;
   output: Record<string, unknown>;
+};
+
+export type LoadSearchOutput = {
+  count: number;
+  items: Array<{
+    deliveryDate: string;
+    driver: string | null;
+    driverCode: string | null;
+    id: string;
+    pickupDate: string;
+    referenceNumber: string;
+    status: string;
+    pickupAddress: string;
+    deliveryAddress: string;
+    miles: number;
+  }>;
 };
 
 export type AssistantToolName =
@@ -74,3 +120,4 @@ export type IncidentEscalation = "monitor" | "ops_manager" | "urgent";
 
 export type DriverDetailsSummaryInput = DriverDetailsResponse;
 export type IncidentDetailsInput = IncidentResponse["data"];
+export type AssistantResultPayload = AssistantResultView;

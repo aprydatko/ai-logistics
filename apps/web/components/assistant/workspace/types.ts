@@ -2,6 +2,7 @@ import type {
   AssistantConversationMessage,
   AssistantLinkedEntity,
   AssistantReportType,
+  AssistantResultView,
 } from "@repo/shared";
 
 export type AssistantStatus =
@@ -20,6 +21,7 @@ export type AssistantApiResponse = {
     message: string;
     model: string;
   };
+  resultView?: AssistantResultView;
   status?: "placeholder" | "configured" | "error";
   usedTools?: string[];
 };
@@ -29,6 +31,7 @@ export type AssistantRequestState = {
   detail: string;
   linkedEntity: AssistantLinkedEntity | null;
   reportType: AssistantReportType | null;
+  resultView: AssistantResultView | null;
   status: AssistantStatus;
   usedTools: string[];
 };
@@ -37,6 +40,8 @@ export type AssistantMessage = AssistantConversationMessage & {
   attachmentName?: string;
   id: string;
   linkedEntity?: AssistantLinkedEntity | null;
+  reportType?: AssistantReportType | null;
+  usedTools?: string[];
 };
 
 export type AssistantAttachment = {

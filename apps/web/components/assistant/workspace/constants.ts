@@ -13,6 +13,7 @@ export const initialAssistantState = {
   detail: "Checking OpenAI setup...",
   linkedEntity: null,
   reportType: null,
+  resultView: null,
   status: "loading",
   usedTools: [],
 } as const satisfies {
@@ -20,6 +21,7 @@ export const initialAssistantState = {
   detail: string;
   linkedEntity: null;
   reportType: null;
+  resultView: null;
   status: AssistantStatus;
   usedTools: [];
 };

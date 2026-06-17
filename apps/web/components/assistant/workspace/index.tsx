@@ -1,21 +1,25 @@
 "use client";
 
-import { PanelRightOpen } from "lucide-react";
+import { PanelRightOpen, RotateCcw } from "lucide-react";
+import { useState } from "react";
 
 import { Button } from "@repo/ui/components/button";
 
 import { AssistantComposer } from "../assistant-composer";
 import { AssistantContextPanel } from "../assistant-context-panel";
+import { AssistantResults } from "../assistant-results";
 import { AssistantMessageThread } from "./assistant-message-thread";
-import { AssistantResponseCard } from "./assistant-response-card";
 import { AssistantStatusCard } from "./assistant-status-card";
 import { useAssistantWorkspace } from "./use-assistant-workspace";
 
 export const AssistantWorkspace = (): React.JSX.Element => {
+  const [isMessageThreadOpen, setIsMessageThreadOpen] = useState(false);
+
   const {
     attachment,
     assistantState,
     clearAttachment,
+    clearChat,
     draft,
     filters,
     isContextOpen,
@@ -46,29 +50,34 @@ export const AssistantWorkspace = (): React.JSX.Element => {
               Clean workspace for step-by-step AI integration.
             </p>
           </div>
-          {!isContextOpen ? (
-            <Button
-              onClick={() => setIsContextOpen(true)}
-              type="button"
-              variant="outline"
-            >
-              <PanelRightOpen className="size-4" />
-              Context
+          <div className="flex items-center gap-2">
+            <Button onClick={clearChat} type="button" variant="outline">
+              <RotateCcw className="size-4" />
+              Clear chat
             </Button>
-          ) : null}
+            {!isContextOpen ? (
+              <Button
+                onClick={() => setIsContextOpen(true)}
+                type="button"
+                variant="outline"
+              >
+                <PanelRightOpen className="size-4" />
+                Context
+              </Button>
+            ) : null}
+          </div>
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col gap-3">
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto rounded-xl border border-border bg-card py-4 pl-4 pr-2 [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] sm:py-5 sm:pl-5 sm:pr-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-button]:h-2 [&::-webkit-scrollbar-track]:my-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb:hover]:bg-primary-600">
             <AssistantStatusCard state={assistantState} />
-            <AssistantMessageThread messages={messages} />
-            {assistantState.answer ? (
-              <AssistantResponseCard
-                answer={assistantState.answer}
-                linkedEntity={assistantState.linkedEntity}
-                reportType={assistantState.reportType}
-                usedTools={assistantState.usedTools}
-              />
+            <AssistantMessageThread
+              isOpen={isMessageThreadOpen}
+              messages={messages}
+              onToggle={() => setIsMessageThreadOpen((current) => !current)}
+            />
+            {assistantState.resultView?.type === "loads_table" ? (
+              <AssistantResults result={assistantState.resultView} />
             ) : null}
           </div>
 

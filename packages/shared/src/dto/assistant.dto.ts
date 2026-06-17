@@ -2,6 +2,7 @@ import type {
   AssistantConversationMessage,
   AssistantLinkedEntity,
   AssistantReportType,
+  AssistantResultView,
   AssistantResponseStatus,
 } from "../types/assistant.js";
 
@@ -33,4 +34,5 @@ export interface AssistantResponseDto {
   usedTools?: string[];
   reportType?: AssistantReportType;
   conversationId?: string;
+  resultView?: AssistantResultView;
 }

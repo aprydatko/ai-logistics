@@ -42,6 +42,7 @@ const assistantRequestSchema = z.object({
     )
     .max(8)
     .optional(),
+  stream: z.boolean().optional(),
 });
 
 type AssistantAttachment = NonNullable<AssistantRequestDto["attachment"]>;
@@ -116,6 +117,7 @@ const parseMultipartRequest = async (
   const formData = await request.formData();
   const historyValue = formData.get("history");
   const linkedEntityValue = formData.get("linkedEntity");
+  const streamValue = formData.get("stream");
 
   const parsedRequest = assistantRequestSchema.safeParse({
     message: formData.get("message"),
@@ -130,6 +132,10 @@ const parseMultipartRequest = async (
     linkedEntity:
       typeof linkedEntityValue === "string" && linkedEntityValue.trim()
         ? JSON.parse(linkedEntityValue)
+        : undefined,
+    stream:
+      typeof streamValue === "string"
+        ? streamValue.toLowerCase() === "true"
         : undefined,
   });
 
@@ -199,10 +205,96 @@ const forwardAssistantRequest = async ({
     cache: "no-store",
   });
 
+const buildStreamStatuses = (response: AssistantResponseDto): string[] => {
+  const toolLabels = (response.usedTools ?? []).map((toolName) => {
+    switch (toolName) {
+      case "search_drivers":
+        return "Searching drivers...";
+      case "get_driver_details":
+        return "Loading driver details...";
+      case "search_loads":
+        return "Searching loads...";
+      case "get_load_details":
+        return "Loading load details...";
+      case "search_incidents":
+        return "Searching incidents...";
+      case "get_incident_details":
+        return "Loading incident details...";
+      case "generate_incident_guidance":
+        return "Preparing incident guidance...";
+      default:
+        return "Processing assistant tools...";
+    }
+  });
+
+  return [...toolLabels, "Generating answer..."];
+};
+
+const createAssistantStreamResponse = (
+  streamBody: {
+    fetchResponse: () => Promise<AssistantResponseDto>;
+    initialStatus: string;
+  },
+): Response => {
+  const encoder = new TextEncoder();
+  const chunkSize = 48;
+
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      try {
+        controller.enqueue(
+          encoder.encode(
+            `event: status\ndata: ${JSON.stringify({ detail: streamBody.initialStatus })}\n\n`,
+          ),
+        );
+
+        const response = await streamBody.fetchResponse();
+        for (const detail of buildStreamStatuses(response)) {
+          controller.enqueue(
+            encoder.encode(
+              `event: status\ndata: ${JSON.stringify({ detail })}\n\n`,
+            ),
+          );
+          await new Promise((resolve) => setTimeout(resolve, 16));
+        }
+
+        const message = response.message;
+        for (let index = 0; index < message.length; index += chunkSize) {
+          const delta = message.slice(index, index + chunkSize);
+          controller.enqueue(
+            encoder.encode(
+              `event: chunk\ndata: ${JSON.stringify({ delta })}\n\n`,
+            ),
+          );
+          await new Promise((resolve) => setTimeout(resolve, 8));
+        }
+
+        controller.enqueue(
+          encoder.encode(
+            `event: done\ndata: ${JSON.stringify(response)}\n\n`,
+          ),
+        );
+        controller.close();
+      } catch (error) {
+        controller.error(error);
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "Content-Type": "text/event-stream; charset=utf-8",
+    },
+    status: 200,
+  });
+};
+
 export const GET = async (): Promise<NextResponse> =>
   NextResponse.json(buildStatusResponse(), { status: 200 });
 
-export const POST = async (request: Request): Promise<NextResponse> => {
+export const POST = async (request: Request): Promise<Response> => {
   let parsedRequest: AssistantRequest;
   let attachment: AssistantAttachment | null = null;
 
@@ -263,27 +355,74 @@ export const POST = async (request: Request): Promise<NextResponse> => {
       return response;
     }
 
+    let currentAccessToken = accessToken;
+
     const payload: AssistantRequestDto = {
-      ...parsedRequest,
+      conversationId: parsedRequest.conversationId,
+      history: parsedRequest.history,
+      linkedEntity: parsedRequest.linkedEntity,
+      message: parsedRequest.message,
+      model: parsedRequest.model,
+      operation: parsedRequest.operation,
       attachment,
       source: parsedRequest.source ?? "web",
     };
 
-    let apiResponse = await forwardAssistantRequest({ accessToken, payload });
+    const fetchAssistantResponse = async (): Promise<{
+      apiResponse: Response;
+      responseBody: unknown;
+    }> => {
+      let apiResponse = await forwardAssistantRequest({
+        accessToken: currentAccessToken,
+        payload,
+      });
 
-    if (apiResponse.status === 401 && refreshToken && !refreshedSession) {
-      refreshedSession = await refreshSession(refreshToken);
-      if (refreshedSession) {
-        apiResponse = await forwardAssistantRequest({
-          accessToken: refreshedSession.accessToken,
-          payload,
-        });
+      if (apiResponse.status === 401 && refreshToken && !refreshedSession) {
+        refreshedSession = await refreshSession(refreshToken);
+        if (refreshedSession) {
+          currentAccessToken = refreshedSession.accessToken;
+          apiResponse = await forwardAssistantRequest({
+            accessToken: currentAccessToken,
+            payload,
+          });
+        }
       }
+
+      const responseBody: unknown = await apiResponse.json().catch(() => ({
+        message: "Assistant service unavailable",
+      }));
+
+      return {
+        apiResponse,
+        responseBody,
+      };
+    };
+
+    if (parsedRequest.stream) {
+      return createAssistantStreamResponse({
+        fetchResponse: async () => {
+          const { apiResponse, responseBody } = await fetchAssistantResponse();
+          if (!apiResponse.ok || !responseBody || typeof responseBody !== "object") {
+            return {
+              message:
+                (responseBody as { message?: string } | null)?.message ??
+                "Assistant service unavailable",
+              request: {
+                message: parsedRequest.message,
+                model: parsedRequest.model ?? config.model,
+              },
+              status: "error",
+            } satisfies AssistantResponseDto;
+          }
+
+          return responseBody as AssistantResponseDto;
+        },
+        initialStatus: "Analyzing request...",
+      });
     }
 
-    const responseBody: unknown = await apiResponse.json().catch(() => ({
-      message: "Assistant service unavailable",
-    }));
+    const { apiResponse, responseBody } = await fetchAssistantResponse();
+
     const response = NextResponse.json(responseBody, {
       status: apiResponse.status,
     });
