@@ -240,7 +240,10 @@ export class IncidentsService {
       data: await this.findIncident(incident.id),
     };
     await this.notificationsService.createIncidentNotifications(
-      this.toIncidentNotificationInput("incident_status_changed", response.data),
+      this.toIncidentNotificationInput(
+        "incident_status_changed",
+        response.data,
+      ),
     );
     return response;
   }
@@ -276,7 +279,10 @@ export class IncidentsService {
       this.toTimelineFeed(response.data),
     );
     await this.notificationsService.createIncidentNotifications(
-      this.toIncidentNotificationInput("incident_timeline_updated", response.data),
+      this.toIncidentNotificationInput(
+        "incident_timeline_updated",
+        response.data,
+      ),
     );
     return response;
   }
@@ -315,7 +321,10 @@ export class IncidentsService {
     };
     this.incidentsGateway.emitStatusUpdated(this.toTimelineFeed(response.data));
     await this.notificationsService.createIncidentNotifications(
-      this.toIncidentNotificationInput("incident_status_changed", response.data),
+      this.toIncidentNotificationInput(
+        "incident_status_changed",
+        response.data,
+      ),
     );
     return response;
   }
@@ -444,7 +453,10 @@ export class IncidentsService {
   }
 
   private toIncidentNotificationInput(
-    type: "incident_created" | "incident_status_changed" | "incident_timeline_updated",
+    type:
+      | "incident_created"
+      | "incident_status_changed"
+      | "incident_timeline_updated",
     incident: IncidentItem,
   ) {
     const href = `/incidents/${incident.id}`;

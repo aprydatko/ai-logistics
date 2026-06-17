@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, readFile, writeFile } from "fs/promises";
 import { extname, join } from "path";
 import { randomUUID } from "crypto";
 
@@ -46,6 +46,10 @@ export class DocumentStorageService {
       fileUrl: `/uploads/${relativePath.replaceAll("\\", "/")}`,
       storagePath: absolutePath,
     };
+  }
+
+  async read(storagePath: string): Promise<Buffer> {
+    return readFile(storagePath);
   }
 
   private extensionFromMime(mimeType: string): string {

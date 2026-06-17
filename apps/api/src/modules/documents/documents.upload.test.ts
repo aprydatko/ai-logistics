@@ -16,6 +16,9 @@ describe("DocumentsService upload", () => {
       { client: {} } as never,
       {} as never,
       {} as never,
+      {} as never,
+      { createDocumentProcessingNotifications: vi.fn() } as never,
+      {} as never,
     );
 
     await expect(
@@ -65,6 +68,9 @@ describe("DocumentsService upload", () => {
       { client } as never,
       storage as never,
       vision as never,
+      { emitDocumentProcessingUpdated: vi.fn() } as never,
+      { createDocumentProcessingNotifications: vi.fn() } as never,
+      { add: vi.fn() } as never,
     );
     const findOneSpy = vi.spyOn(service, "findOne").mockResolvedValue({
       success: true,

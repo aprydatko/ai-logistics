@@ -56,13 +56,16 @@ export const notifications = pgTable(
       .notNull(),
     title: varchar("title", { length: 200 }).notNull(),
     message: varchar("message", { length: 500 }).notNull(),
-    entityType: notificationEntityTypeEnum("entity_type").$type<
-      NotificationEntityType | null
-    >(),
+    entityType: notificationEntityTypeEnum(
+      "entity_type",
+    ).$type<NotificationEntityType | null>(),
     entityId: uuid("entity_id"),
     href: varchar("href", { length: 255 }),
     readAt: timestamp("read_at", { withTimezone: true }),
-    payload: jsonb("payload").$type<NotificationPayload>().default({}).notNull(),
+    payload: jsonb("payload")
+      .$type<NotificationPayload>()
+      .default({})
+      .notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

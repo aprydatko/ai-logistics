@@ -33,7 +33,9 @@ export const NotificationBell = (): React.JSX.Element => {
   const isPanelOpen = useNotificationsStore((state) => state.isPanelOpen);
   const setPanelOpen = useNotificationsStore((state) => state.setPanelOpen);
   const markAsReadLocal = useNotificationsStore((state) => state.markAsRead);
-  const markAllAsReadLocal = useNotificationsStore((state) => state.markAllAsRead);
+  const markAllAsReadLocal = useNotificationsStore(
+    (state) => state.markAllAsRead,
+  );
 
   const markAsReadMutation = useMutation({
     mutationFn: markNotificationRead,

@@ -1,20 +1,20 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
-import styles from './main-navigation.module.css';
+import styles from "./main-navigation.module.css";
 
 const navItems = [
-  { href: '/', label: 'Home' },
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/drivers', label: 'Drivers' },
-  { href: '/loads', label: 'Loads' },
-  { href: '/incidents', label: 'Incidents' },
-  { href: '/documents', label: 'Documents' },
-  { href: '/assistant', label: 'Assistant' },
-  { href: '/ai-logs', label: 'AI Logs' },
-  { href: '/settings', label: 'Settings' },
+  { href: "/", label: "Home" },
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/drivers", label: "Drivers" },
+  { href: "/loads", label: "Loads" },
+  { href: "/incidents", label: "Incidents" },
+  { href: "/documents", label: "Documents" },
+  { href: "/assistant", label: "Assistant" },
+  { href: "/ai-logs", label: "AI Logs" },
+  { href: "/settings", label: "Settings" },
 ];
 
 export function MainNavigation() {
@@ -28,13 +28,13 @@ export function MainNavigation() {
       <nav className={styles.nav} aria-label="Main navigation">
         {navItems.map((item) => {
           const isActive =
-            item.href === '/'
+            item.href === "/"
               ? pathname === item.href
               : pathname.startsWith(item.href);
 
           return (
             <Link
-              aria-current={isActive ? 'page' : undefined}
+              aria-current={isActive ? "page" : undefined}
               className={styles.link}
               data-active={isActive}
               href={item.href}

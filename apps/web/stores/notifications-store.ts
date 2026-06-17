@@ -53,7 +53,9 @@ export const useNotificationsStore = create<NotificationState>((set) => ({
       unreadCount: Math.max(
         0,
         state.unreadCount -
-          (state.items.some((item) => item.id === notificationId && !item.readAt)
+          (state.items.some(
+            (item) => item.id === notificationId && !item.readAt,
+          )
             ? 1
             : 0),
       ),
@@ -61,9 +63,14 @@ export const useNotificationsStore = create<NotificationState>((set) => ({
   receiveNotification: (notification) =>
     set((state) => ({
       items: sortNewestFirst(
-        [notification, ...state.items.filter((item) => item.id !== notification.id)].slice(0, 100),
+        [
+          notification,
+          ...state.items.filter((item) => item.id !== notification.id),
+        ].slice(0, 100),
       ),
-      unreadCount: notification.readAt ? state.unreadCount : state.unreadCount + 1,
+      unreadCount: notification.readAt
+        ? state.unreadCount
+        : state.unreadCount + 1,
     })),
   removeReadState: (notificationId) =>
     set((state) => ({

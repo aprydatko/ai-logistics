@@ -75,11 +75,15 @@ export const createDocument = async (
 
 export const uploadDocument = async ({
   analyzeWithVision,
+  driverId,
   file,
+  loadId,
   type,
 }: {
   analyzeWithVision?: boolean;
+  driverId?: string;
   file: File;
+  loadId?: string;
   type:
     | "bill_of_lading"
     | "proof_of_delivery"
@@ -90,6 +94,8 @@ export const uploadDocument = async ({
   formData.append("file", file);
   formData.append("type", type);
   formData.append("analyzeWithVision", analyzeWithVision ? "true" : "false");
+  if (driverId) formData.append("driverId", driverId);
+  if (loadId) formData.append("loadId", loadId);
 
   const response = await fetch("/api/documents/upload", {
     method: "POST",

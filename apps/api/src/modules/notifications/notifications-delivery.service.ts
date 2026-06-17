@@ -12,9 +12,7 @@ export class NotificationsDeliveryService {
     private readonly configService: ConfigService<Environment, true>,
   ) {}
 
-  async sendNotificationEmail(
-    input: NotificationDeliveryInput,
-  ): Promise<void> {
+  async sendNotificationEmail(input: NotificationDeliveryInput): Promise<void> {
     if (!input.channels.includes("email")) return;
     if (input.preference.emailFrequency !== "instant") return;
 

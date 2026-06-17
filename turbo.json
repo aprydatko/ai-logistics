@@ -8,6 +8,8 @@
     "CI",
     "OPENAI_API_KEY",
     "OPENAI_MODEL",
+    "REDIS_URL",
+    "BULL_BOARD_PATH",
     "RESEND_API_KEY",
     "RESEND_FROM_EMAIL"
   ],

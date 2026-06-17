@@ -1,6 +1,7 @@
 "use client";
 
 import type { Document } from "@repo/shared";
+import { LoaderCircle } from "lucide-react";
 import * as React from "react";
 
 import { AuditLinksForm } from "./forms/audit-links-form";
@@ -72,6 +73,20 @@ export const DocumentReviewContent = ({
       />
 
       <main className="space-y-4 p-4 lg:p-5">
+        {draftDocument.status === "processing" ? (
+          <section className="flex items-start gap-3 rounded-lg border border-info/20 bg-info/5 px-4 py-3 text-sm text-ink-700">
+            <LoaderCircle className="mt-0.5 size-4 shrink-0 animate-spin text-info" />
+            <div className="space-y-1">
+              <p className="font-medium text-ink-900">
+                Processing in background
+              </p>
+              <p>
+                AI extraction is still running. This page will update
+                automatically when document processing finishes.
+              </p>
+            </div>
+          </section>
+        ) : null}
         {activeTab === "overview" ? (
           <>
             <div className="grid gap-4 2xl:grid-cols-[1.08fr_1fr]">

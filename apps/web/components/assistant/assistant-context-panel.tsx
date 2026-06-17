@@ -6,33 +6,33 @@ import {
   Truck,
   UserRound,
   X,
-} from 'lucide-react';
+} from "lucide-react";
 
-import type { AssistantLinkedEntity } from '@repo/shared';
-import { Button } from '@repo/ui/components/button';
-import type { AssistantFilter, AssistantSkill } from './workspace/types';
+import type { AssistantLinkedEntity } from "@repo/shared";
+import { Button } from "@repo/ui/components/button";
+import type { AssistantFilter, AssistantSkill } from "./workspace/types";
 
 const skills: AssistantSkill[] = [
-  { id: 'save_document', kind: 'skill', label: 'Save document' },
+  { id: "save_document", kind: "skill", label: "Save document" },
 ];
 
 const capabilities = [
   {
     detail:
-      'Search live loads and summarize status, route, and assignment context.',
+      "Search live loads and summarize status, route, and assignment context.",
     icon: Truck,
-    label: 'Loads Q&A',
+    label: "Loads Q&A",
   },
   {
     detail:
-      'Find drivers by name, code, truck, status, and recent trip context.',
+      "Find drivers by name, code, truck, status, and recent trip context.",
     icon: UserRound,
-    label: 'Drivers Q&A',
+    label: "Drivers Q&A",
   },
   {
-    detail: 'Review incidents and suggest next steps without changing data.',
+    detail: "Review incidents and suggest next steps without changing data.",
     icon: AlertTriangle,
-    label: 'Incident guidance',
+    label: "Incident guidance",
   },
 ];
 
@@ -101,8 +101,8 @@ export const AssistantContextPanel = ({
                 <span
                   className={`min-w-0 flex-1 pb-4 ${
                     index < capabilities.length - 1
-                      ? 'mb-3 border-b border-slate-200'
-                      : ''
+                      ? "mb-3 border-b border-slate-200"
+                      : ""
                   }`}
                 >
                   <strong className="block text-sm font-bold tracking-[-0.025em] text-slate-950">
@@ -122,9 +122,9 @@ export const AssistantContextPanel = ({
             <div className="mt-4 divide-y divide-slate-200">
               {recentReferences.map((reference) => {
                 const Icon =
-                  reference.type === 'load'
+                  reference.type === "load"
                     ? Truck
-                    : reference.type === 'driver'
+                    : reference.type === "driver"
                       ? UserRound
                       : AlertTriangle;
 

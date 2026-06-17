@@ -78,24 +78,39 @@ export async function persistUploadSideEffects(
   documentId: string,
   analysis: VisionAnalysis | null,
 ): Promise<void> {
+  await persistUploadAuditEvent(client, documentId);
+  if (!analysis?.extractedFields.length) return;
+  await persistVisionAnalysis(client, documentId, analysis);
+}
+
+export async function persistUploadAuditEvent(
+  client: DatabaseService["client"],
+  documentId: string,
+): Promise<void> {
+  const now = new Date();
+
+  await client.insert(documentAuditEvents).values({
+    documentId,
+    kind: "uploaded",
+    label: "Document uploaded",
+    actor: "System",
+    actorBadge: "AI",
+    role: "Platform",
+    tone: "navy",
+    eventAt: now,
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
+export async function persistVisionAnalysis(
+  client: DatabaseService["client"],
+  documentId: string,
+  analysis: Exclude<VisionAnalysis, null>,
+): Promise<void> {
   const now = new Date();
 
   await client.transaction(async (tx) => {
-    await tx.insert(documentAuditEvents).values({
-      documentId,
-      kind: "uploaded",
-      label: "Document uploaded",
-      actor: "System",
-      actorBadge: "AI",
-      role: "Platform",
-      tone: "navy",
-      eventAt: now,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    if (!analysis?.extractedFields.length) return;
-
     await tx.insert(documentExtractedFields).values(
       analysis.extractedFields.map((field) => ({
         documentId,

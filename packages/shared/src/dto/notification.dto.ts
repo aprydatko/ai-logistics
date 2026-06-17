@@ -22,5 +22,11 @@ export type NotificationPreferenceResponse = {
 
 export type UpdateNotificationPreferenceDto = Pick<
   NotificationPreference,
-  "ai" | "documents" | "drivers" | "emailFrequency" | "incidents" | "loads" | "system"
+  | "ai"
+  | "documents"
+  | "drivers"
+  | "emailFrequency"
+  | "incidents"
+  | "loads"
+  | "system"
 >;

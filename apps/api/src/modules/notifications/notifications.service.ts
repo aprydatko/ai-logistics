@@ -1,7 +1,5 @@
-import {
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
+import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import type { Queue } from "bullmq";
 import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
 import type {
   Notification,
@@ -27,11 +25,13 @@ import type {
   CreateNotificationInput,
   NotificationRecipient,
 } from "./notifications.types";
+import { EMAIL_NOTIFICATIONS_QUEUE_TOKEN } from "../queue/queue.constants";
+import type { EmailNotificationJobData } from "../queue/queue.types";
 
 const defaultPreferenceInput: UpdateNotificationPreferenceDto = {
   emailFrequency: "off",
   ai: { emailEnabled: false, inAppEnabled: true },
-  documents: { emailEnabled: false, inAppEnabled: false },
+  documents: { emailEnabled: false, inAppEnabled: true },
   drivers: { emailEnabled: false, inAppEnabled: true },
   incidents: { emailEnabled: false, inAppEnabled: true },
   loads: { emailEnabled: false, inAppEnabled: true },
@@ -44,11 +44,11 @@ export class NotificationsService {
     private readonly databaseService: DatabaseService,
     private readonly notificationsGateway: NotificationsGateway,
     private readonly notificationsDeliveryService: NotificationsDeliveryService,
+    @Inject(EMAIL_NOTIFICATIONS_QUEUE_TOKEN)
+    private readonly emailNotificationsQueue: Queue<EmailNotificationJobData>,
   ) {}
 
-  async listForUser(
-    userId: string,
-  ): Promise<NotificationListResponse> {
+  async listForUser(userId: string): Promise<NotificationListResponse> {
     const rows = await this.databaseService.client
       .select()
       .from(notifications)
@@ -68,7 +68,9 @@ export class NotificationsService {
     const [row] = await this.databaseService.client
       .select({ unreadCount: sql<number>`count(*)` })
       .from(notifications)
-      .where(and(eq(notifications.userId, userId), isNull(notifications.readAt)));
+      .where(
+        and(eq(notifications.userId, userId), isNull(notifications.readAt)),
+      );
 
     return {
       success: true,
@@ -108,7 +110,9 @@ export class NotificationsService {
     return this.toNotification(record);
   }
 
-  async markAllAsRead(userId: string): Promise<NotificationUnreadCountResponse> {
+  async markAllAsRead(
+    userId: string,
+  ): Promise<NotificationUnreadCountResponse> {
     await this.databaseService.client
       .update(notifications)
       .set({
@@ -169,11 +173,13 @@ export class NotificationsService {
   async createIncidentNotifications(
     input: CreateNotificationInput,
   ): Promise<void> {
-    const recipients = await this.findIncidentRecipients();
+    const recipients = await this.findOperationsRecipients();
     if (recipients.length === 0) return;
 
     for (const recipient of recipients) {
-      const preferenceRecord = await this.getOrCreatePreferenceRecord(recipient.id);
+      const preferenceRecord = await this.getOrCreatePreferenceRecord(
+        recipient.id,
+      );
       const preference = this.toPreference(preferenceRecord);
       const categoryPreference = preference[input.category];
       const channels = [
@@ -202,7 +208,10 @@ export class NotificationsService {
       if (!created) continue;
 
       const notification = this.toNotification(created);
-      this.notificationsGateway.emitNotificationCreated(recipient.id, notification);
+      this.notificationsGateway.emitNotificationCreated(
+        recipient.id,
+        notification,
+      );
       const unreadCount = await this.getUnreadCount(recipient.id);
       this.notificationsGateway.emitUnreadCountUpdated(
         recipient.id,
@@ -210,16 +219,121 @@ export class NotificationsService {
       );
       this.notificationsGateway.emitDashboardIncidentStatsUpdated(recipient.id);
 
-      await this.notificationsDeliveryService.sendNotificationEmail({
-        channels,
-        notification,
-        preference,
-        recipient,
-      });
+      if (channels.includes("email")) {
+        await this.emailNotificationsQueue.add(
+          "send-notification-email",
+          {
+            channels,
+            notification,
+            preference,
+            recipient,
+          },
+          {
+            attempts: 3,
+            backoff: {
+              type: "exponential",
+              delay: 2_000,
+            },
+            removeOnComplete: 100,
+            removeOnFail: 100,
+          },
+        );
+      }
     }
   }
 
-  private async findIncidentRecipients(): Promise<NotificationRecipient[]> {
+  async createDocumentProcessingNotifications(input: {
+    documentId: string;
+    fileName: string;
+    status: "complete" | "needs_review" | "processing";
+    uploadedByUserId?: string | null;
+  }): Promise<void> {
+    if (input.status === "processing") return;
+
+    const recipients = await this.findDocumentRecipients(
+      input.uploadedByUserId,
+    );
+    if (recipients.length === 0) return;
+
+    const title =
+      input.status === "needs_review"
+        ? "Document ready for review"
+        : "Document processing complete";
+    const message =
+      input.status === "needs_review"
+        ? `${input.fileName} has extracted fields ready for review.`
+        : `${input.fileName} finished processing successfully.`;
+    const href = `/documents/${input.documentId}`;
+
+    for (const recipient of recipients) {
+      const preferenceRecord = await this.getOrCreatePreferenceRecord(
+        recipient.id,
+      );
+      const preference = this.toPreference(preferenceRecord);
+      const categoryPreference = preference.documents;
+      const isUploader = input.uploadedByUserId === recipient.id;
+      const channels = [
+        isUploader || categoryPreference.inAppEnabled ? "in_app" : null,
+        categoryPreference.emailEnabled ? "email" : null,
+      ].filter((value): value is "email" | "in_app" => Boolean(value));
+
+      if (channels.length === 0) continue;
+
+      const [created] = await this.databaseService.client
+        .insert(notifications)
+        .values({
+          userId: recipient.id,
+          category: "documents",
+          type: "system",
+          channels,
+          title,
+          message,
+          entityId: input.documentId,
+          href,
+          payload: {
+            href,
+            title: input.fileName,
+          },
+        })
+        .returning();
+
+      if (!created) continue;
+
+      const notification = this.toNotification(created);
+      this.notificationsGateway.emitNotificationCreated(
+        recipient.id,
+        notification,
+      );
+      const unreadCount = await this.getUnreadCount(recipient.id);
+      this.notificationsGateway.emitUnreadCountUpdated(
+        recipient.id,
+        unreadCount.data.unreadCount,
+      );
+
+      if (channels.includes("email")) {
+        await this.emailNotificationsQueue.add(
+          "send-notification-email",
+          {
+            channels,
+            notification,
+            preference,
+            recipient,
+          },
+          {
+            attempts: 3,
+            backoff: {
+              type: "exponential",
+              delay: 2_000,
+            },
+            removeOnComplete: 100,
+            removeOnFail: 100,
+          },
+        );
+      }
+    }
+  }
+
+  private async findOperationsRecipients(): Promise<NotificationRecipient[]> {
     const rows = await this.databaseService.client
       .select({
         email: users.email,
@@ -241,6 +355,32 @@ export class NotificationsService {
     return rows;
   }
 
+  private async findDocumentRecipients(
+    uploadedByUserId?: string | null,
+  ): Promise<NotificationRecipient[]> {
+    const rows = await this.databaseService.client
+      .select({
+        email: users.email,
+        firstName: users.firstName,
+        id: users.id,
+        lastName: users.lastName,
+      })
+      .from(users)
+      .where(
+        and(
+          eq(users.isActive, true),
+          or(
+            eq(users.role, "admin" satisfies UserRole),
+            eq(users.role, "dispatcher" satisfies UserRole),
+            eq(users.role, "manager" satisfies UserRole),
+            uploadedByUserId ? eq(users.id, uploadedByUserId) : undefined,
+          ),
+        ),
+      );
+
+    return rows;
+  }
+
   private async getOrCreatePreferenceRecord(
     userId: string,
   ): Promise<NotificationPreferenceRecord> {
@@ -250,11 +390,60 @@ export class NotificationsService {
       .where(eq(notificationPreferences.userId, userId))
       .limit(1);
 
-    if (existing) return existing;
+    if (existing) {
+      if (
+        existing.documentsInAppEnabled === false &&
+        existing.documentsEmailEnabled === false &&
+        existing.aiInAppEnabled === defaultPreferenceInput.ai.inAppEnabled &&
+        existing.aiEmailEnabled === defaultPreferenceInput.ai.emailEnabled &&
+        existing.driversInAppEnabled ===
+          defaultPreferenceInput.drivers.inAppEnabled &&
+        existing.driversEmailEnabled ===
+          defaultPreferenceInput.drivers.emailEnabled &&
+        existing.incidentsInAppEnabled ===
+          defaultPreferenceInput.incidents.inAppEnabled &&
+        existing.incidentsEmailEnabled ===
+          defaultPreferenceInput.incidents.emailEnabled &&
+        existing.loadsInAppEnabled ===
+          defaultPreferenceInput.loads.inAppEnabled &&
+        existing.loadsEmailEnabled ===
+          defaultPreferenceInput.loads.emailEnabled &&
+        existing.systemInAppEnabled ===
+          defaultPreferenceInput.system.inAppEnabled &&
+        existing.systemEmailEnabled ===
+          defaultPreferenceInput.system.emailEnabled &&
+        existing.emailFrequency === defaultPreferenceInput.emailFrequency
+      ) {
+        const [updated] = await this.databaseService.client
+          .update(notificationPreferences)
+          .set({
+            documentsInAppEnabled: true,
+            updatedAt: new Date(),
+          })
+          .where(eq(notificationPreferences.id, existing.id))
+          .returning();
+
+        return updated ?? existing;
+      }
+
+      return existing;
+    }
 
     const [created] = await this.databaseService.client
       .insert(notificationPreferences)
       .values({
+        aiInAppEnabled: defaultPreferenceInput.ai.inAppEnabled,
+        aiEmailEnabled: defaultPreferenceInput.ai.emailEnabled,
+        documentsInAppEnabled: defaultPreferenceInput.documents.inAppEnabled,
+        documentsEmailEnabled: defaultPreferenceInput.documents.emailEnabled,
+        driversInAppEnabled: defaultPreferenceInput.drivers.inAppEnabled,
+        driversEmailEnabled: defaultPreferenceInput.drivers.emailEnabled,
+        incidentsInAppEnabled: defaultPreferenceInput.incidents.inAppEnabled,
+        incidentsEmailEnabled: defaultPreferenceInput.incidents.emailEnabled,
+        loadsInAppEnabled: defaultPreferenceInput.loads.inAppEnabled,
+        loadsEmailEnabled: defaultPreferenceInput.loads.emailEnabled,
+        systemInAppEnabled: defaultPreferenceInput.system.inAppEnabled,
+        systemEmailEnabled: defaultPreferenceInput.system.emailEnabled,
         userId,
         emailFrequency: defaultPreferenceInput.emailFrequency,
       })
@@ -286,7 +475,9 @@ export class NotificationsService {
     };
   }
 
-  private toPreference(record: NotificationPreferenceRecord): NotificationPreference {
+  private toPreference(
+    record: NotificationPreferenceRecord,
+  ): NotificationPreference {
     return {
       id: record.id,
       userId: record.userId,

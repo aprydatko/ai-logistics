@@ -136,10 +136,7 @@ export const SettingsSummary = (): React.JSX.Element => {
       <SummaryCard className="xl:col-span-3" title="System notifications">
         <dl className="space-y-3">
           <DetailRow label="Maintenance mode" value="Off" />
-          <DetailRow
-            label="Enabled channels"
-            value={enabledCategories}
-          />
+          <DetailRow label="Enabled channels" value={enabledCategories} />
           <DetailRow
             label="Status page"
             value={

@@ -5,14 +5,7 @@ import type {
   NotificationCategory,
   NotificationPreference,
 } from "@repo/shared";
-import {
-  Bell,
-  Bot,
-  FileText,
-  Settings,
-  Truck,
-  UserRound,
-} from "lucide-react";
+import { Bell, Bot, FileText, Settings, Truck, UserRound } from "lucide-react";
 
 import { Button } from "@repo/ui/components/button";
 import { Switch } from "@repo/ui/components/switch";
@@ -80,7 +73,9 @@ export const NotificationPreferences = (): React.JSX.Element => {
   const queryClient = useQueryClient();
   const { data } = useQuery(notificationPreferencesQueryOptions());
   const snapshot = useNotificationsStore((state) => state.preferencesSnapshot);
-  const setSnapshot = useNotificationsStore((state) => state.setPreferencesSnapshot);
+  const setSnapshot = useNotificationsStore(
+    (state) => state.setPreferencesSnapshot,
+  );
   const preferences = snapshot ?? data;
 
   const mutation = useMutation({
@@ -132,7 +127,8 @@ export const NotificationPreferences = (): React.JSX.Element => {
           className="border border-border bg-white px-3 py-2 text-xs font-medium text-primary-700"
           onChange={(event) => {
             const next = clonePreferences(preferences);
-            next.emailFrequency = event.target.value as NotificationPreference["emailFrequency"];
+            next.emailFrequency = event.target
+              .value as NotificationPreference["emailFrequency"];
             setSnapshot(next);
           }}
           value={preferences.emailFrequency}
@@ -145,7 +141,14 @@ export const NotificationPreferences = (): React.JSX.Element => {
 
       <div className="mt-4 space-y-2">
         {(
-          ["loads", "drivers", "incidents", "documents", "ai", "system"] as const
+          [
+            "loads",
+            "drivers",
+            "incidents",
+            "documents",
+            "ai",
+            "system",
+          ] as const
         ).map((category) => {
           const meta = categoryMeta[category];
           const Icon = meta.icon;
@@ -180,7 +183,9 @@ export const NotificationPreferences = (): React.JSX.Element => {
                   <Switch
                     aria-label={`Toggle ${meta.label} email notifications`}
                     checked={current.emailEnabled}
-                    onCheckedChange={() => updateCategory(category, "emailEnabled")}
+                    onCheckedChange={() =>
+                      updateCategory(category, "emailEnabled")
+                    }
                   />
                 </label>
               </div>

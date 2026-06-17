@@ -62,7 +62,9 @@ export const notificationPreferences = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => [uniqueIndex("notification_preferences_user_id_unique").on(table.userId)],
+  (table) => [
+    uniqueIndex("notification_preferences_user_id_unique").on(table.userId),
+  ],
 );
 
 export type NotificationPreferenceRecord =

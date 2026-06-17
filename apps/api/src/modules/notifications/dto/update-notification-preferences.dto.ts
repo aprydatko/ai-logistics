@@ -1,8 +1,4 @@
-import {
-  IsBoolean,
-  IsIn,
-  ValidateNested,
-} from "class-validator";
+import { IsBoolean, IsIn, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
 
 class NotificationChannelPreferenceDto {

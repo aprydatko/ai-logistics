@@ -28,9 +28,13 @@ export const NotificationCenter = (): React.JSX.Element => {
   const { data } = useQuery(notificationsQueryOptions());
   const items = useNotificationsStore((state) => state.items);
   const markAsReadLocal = useNotificationsStore((state) => state.markAsRead);
-  const markAllAsReadLocal = useNotificationsStore((state) => state.markAllAsRead);
+  const markAllAsReadLocal = useNotificationsStore(
+    (state) => state.markAllAsRead,
+  );
   const [query, setQuery] = React.useState("");
-  const [type, setType] = React.useState<Notification["category"] | "all">("all");
+  const [type, setType] = React.useState<Notification["category"] | "all">(
+    "all",
+  );
 
   const markAsReadMutation = useMutation({
     mutationFn: markNotificationRead,
@@ -55,7 +59,7 @@ export const NotificationCenter = (): React.JSX.Element => {
     },
   });
 
-  const sourceItems = items.length > 0 ? items : data ?? [];
+  const sourceItems = items.length > 0 ? items : (data ?? []);
   const filtered = sourceItems.filter((item) => {
     const matchesType = type === "all" || item.category === type;
     const matchesQuery = `${item.title} ${item.message}`
@@ -79,7 +83,10 @@ export const NotificationCenter = (): React.JSX.Element => {
         </label>
         <Button
           className="h-10 rounded-none"
-          disabled={markAllAsReadMutation.isPending || sourceItems.every((item) => item.readAt)}
+          disabled={
+            markAllAsReadMutation.isPending ||
+            sourceItems.every((item) => item.readAt)
+          }
           onClick={() => {
             markAllAsReadLocal();
             markAllAsReadMutation.mutate();

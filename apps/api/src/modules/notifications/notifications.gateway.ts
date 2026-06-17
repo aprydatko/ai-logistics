@@ -9,6 +9,7 @@ import type {
   NotificationUnreadCountResponse,
 } from "@repo/shared/src";
 import type { Server, Socket } from "socket.io";
+import type { DocumentItem } from "../documents/documents.types";
 
 import type { SocketTokenPayload } from "../auth/auth.types";
 
@@ -75,10 +76,7 @@ export class NotificationsGateway implements OnGatewayConnection {
       .emit("notification.read", { notificationId });
   }
 
-  emitUnreadCountUpdated(
-    userId: string,
-    unreadCount: number,
-  ): void {
+  emitUnreadCountUpdated(userId: string, unreadCount: number): void {
     const payload: NotificationUnreadCountResponse["data"] = { unreadCount };
     this.server
       .to(this.toUserRoom(userId))
@@ -88,7 +86,15 @@ export class NotificationsGateway implements OnGatewayConnection {
   emitDashboardIncidentStatsUpdated(userId: string): void {
     this.server
       .to(this.toUserRoom(userId))
-      .emit("dashboard.incident-stats.updated", { timestamp: new Date().toISOString() });
+      .emit("dashboard.incident-stats.updated", {
+        timestamp: new Date().toISOString(),
+      });
+  }
+
+  emitDocumentProcessingUpdated(userId: string, document: DocumentItem): void {
+    this.server
+      .to(this.toUserRoom(userId))
+      .emit("document.processing.updated", { document });
   }
 
   private extractToken(client: Socket): string | undefined {

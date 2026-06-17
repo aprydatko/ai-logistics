@@ -2,9 +2,7 @@
 
 import * as React from "react";
 
-import {
-  NotificationCenter,
-} from "./notification-center";
+import { NotificationCenter } from "./notification-center";
 import { NotificationPreferences } from "./notification-preferences";
 import { SettingsSummary } from "./settings-summary";
 

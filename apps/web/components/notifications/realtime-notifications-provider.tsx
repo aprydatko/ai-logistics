@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { Document, DocumentsListResponse } from "@repo/shared";
 import { toast } from "@repo/ui/components/toaster";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -18,6 +19,21 @@ const dashboardQueryPrefixes = [
   ["dashboard", "suggestions"],
   ["incidents"],
 ] as const;
+
+const updateDocumentsList = (
+  current: DocumentsListResponse | undefined,
+  nextDocument: Document,
+): DocumentsListResponse | undefined => {
+  if (!current) return current;
+  if (!Array.isArray(current.data)) return current;
+
+  return {
+    ...current,
+    data: current.data.map((document) =>
+      document.id === nextDocument.id ? nextDocument : document,
+    ),
+  };
+};
 
 export const RealtimeNotificationsProvider = ({
   children,
@@ -67,7 +83,10 @@ export const RealtimeNotificationsProvider = ({
         socket.on("notification.created", (notification) => {
           queryClient.setQueryData(["notifications"], (current: unknown) =>
             Array.isArray(current)
-              ? [notification, ...current.filter((item) => item?.id !== notification.id)]
+              ? [
+                  notification,
+                  ...current.filter((item) => item?.id !== notification.id),
+                ]
               : [notification],
           );
           receiveNotification(notification);
@@ -75,7 +94,9 @@ export const RealtimeNotificationsProvider = ({
           if (hasHydratedInitialList) {
             toast.info(notification.title, {
               description: notification.message,
-              onClick: notification.href ? () => router.push(notification.href) : undefined,
+              onClick: notification.href
+                ? () => router.push(notification.href)
+                : undefined,
             });
           }
         });
@@ -87,13 +108,31 @@ export const RealtimeNotificationsProvider = ({
 
         socket.on("notifications.unread-count.updated", ({ unreadCount }) => {
           setUnreadCount(unreadCount);
-          queryClient.setQueryData(["notifications", "unread-count"], unreadCount);
+          queryClient.setQueryData(
+            ["notifications", "unread-count"],
+            unreadCount,
+          );
         });
 
         socket.on("dashboard.incident-stats.updated", () => {
           for (const queryKey of dashboardQueryPrefixes) {
             void queryClient.invalidateQueries({ queryKey });
           }
+        });
+
+        socket.on("document.processing.updated", ({ document }) => {
+          const nextDocument = document as Document;
+
+          queryClient.setQueriesData(
+            { queryKey: ["documents"] },
+            (current: DocumentsListResponse | undefined) =>
+              updateDocumentsList(current, nextDocument),
+          );
+          queryClient.setQueryData(
+            ["documents", nextDocument.id],
+            nextDocument,
+          );
+          void queryClient.invalidateQueries({ queryKey: ["documents"] });
         });
       } catch {
         return;

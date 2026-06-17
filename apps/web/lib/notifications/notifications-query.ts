@@ -19,7 +19,14 @@ const notificationChannelPreferenceSchema = z.object({
 const notificationSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
-  category: z.enum(["loads", "drivers", "incidents", "documents", "ai", "system"]),
+  category: z.enum([
+    "loads",
+    "drivers",
+    "incidents",
+    "documents",
+    "ai",
+    "system",
+  ]),
   type: z.enum([
     "incident_created",
     "incident_status_changed",
@@ -98,8 +105,10 @@ export const fetchNotificationPreferences =
     const response = await fetch("/api/notifications/preferences", {
       cache: "no-store",
     });
-    if (!response.ok) throw new Error("Unable to load notification preferences");
-    return notificationPreferenceResponseSchema.parse(await response.json()).data;
+    if (!response.ok)
+      throw new Error("Unable to load notification preferences");
+    return notificationPreferenceResponseSchema.parse(await response.json())
+      .data;
   };
 
 export const markNotificationRead = async (

@@ -114,7 +114,14 @@ const withTransaction = <T extends Record<string, unknown>>(client: T): T => ({
 });
 
 const createService = (client: unknown): DocumentsService =>
-  new DocumentsService(client as never, {} as never, {} as never);
+  new DocumentsService(
+    client as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    { createDocumentProcessingNotifications: vi.fn() } as never,
+    {} as never,
+  );
 
 describe("DocumentsService", () => {
   it("lists joined documents with pagination and ISO dates", async () => {

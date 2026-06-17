@@ -70,9 +70,7 @@ export class AssistantOpenAIClient {
         throw lastError;
       } catch (error: unknown) {
         lastError =
-          error instanceof Error
-            ? error
-            : new Error("OpenAI request failed.");
+          error instanceof Error ? error : new Error("OpenAI request failed.");
 
         if (
           attempt < OPENAI_MAX_ATTEMPTS &&
