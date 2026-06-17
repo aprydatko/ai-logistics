@@ -8,5 +8,6 @@ import { AiLogsService } from "./ai-logs.service";
   imports: [AuthModule],
   controllers: [AiLogsController],
   providers: [AiLogsService],
+  exports: [AiLogsService],
 })
 export class AiLogsModule {}

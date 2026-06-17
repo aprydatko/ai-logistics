@@ -250,3 +250,309 @@ INSERT INTO "driver_activity" (
 ('60000000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-000000000001', 'document_added', 'DOT Medical Certificate added', '2026-05-18T11:00:00Z'),
 ('60000000-0000-4000-8000-000000000003', '10000000-0000-4000-8000-000000000002', 'trip_completed', 'Completed load DEMO-LD-02', '2026-06-05T16:45:00Z')
 ON CONFLICT DO NOTHING;
+
+WITH bulk_driver_seed AS (
+  SELECT
+    n,
+    (ARRAY['Arthur','Olivia','Liam','Emma','Noah','Ava','Elijah','Sophia','Mateo','Mia','Lucas','Amelia','Mason','Harper','Logan','Evelyn','James','Abigail','Benjamin','Ella'])[((n - 1) % 20) + 1] AS first_name,
+    (ARRAY['Prydatko','Johnson','Rodriguez','Kim','Davis','Martinez','Clark','Lewis','Walker','Hall','Allen','Young','King','Wright','Scott','Green','Baker','Adams','Nelson','Carter'])[(((n - 1) * 3) % 20) + 1] AS last_name,
+    (ARRAY['Texas','Illinois','Georgia','Florida','Colorado','Washington','Ohio','Arizona','Tennessee','North Carolina'])[(((n - 1)) % 10) + 1] AS license_state,
+    (ARRAY['Dallas, TX','Chicago, IL','Atlanta, GA','Miami, FL','Denver, CO','Seattle, WA','Cleveland, OH','Phoenix, AZ','Nashville, TN','Charlotte, NC'])[(((n - 1)) % 10) + 1] AS address,
+    (ARRAY['available','on_trip','off_duty','maintenance'])[(((n - 1)) % 4) + 1]::driver_status AS status
+  FROM generate_series(1, 100) AS gs(n)
+)
+INSERT INTO "drivers" (
+  "id", "driver_code", "first_name", "last_name", "email", "phone",
+  "date_of_birth", "address", "hire_date", "license_type", "license_number",
+  "license_expiration_date", "license_state", "emergency_contact",
+  "emergency_phone", "notes", "truck_number", "trailer_number",
+  "status", "rating", "is_active"
+)
+SELECT
+  ('11000000-0000-4000-8000-' || lpad((1000 + n)::text, 12, '0'))::uuid,
+  'ID-' || (3023 + n)::text,
+  first_name,
+  last_name,
+  'bulk.' || lower(first_name) || '.' || lower(last_name) || '.' || n::text || '@example.com',
+  '+1' || lpad((5550000000 + n)::text, 10, '0'),
+  (DATE '1983-01-01' + ((n - 1) * 117))::date,
+  address,
+  (DATE '2021-01-01' + ((n - 1) * 19))::date,
+  'CDL-A',
+  upper(left(license_state, 2)) || '-' || (700000 + n - 1)::text,
+  (DATE '2027-01-01' + ((n - 1) * 11))::date,
+  license_state,
+  first_name || ' Contact',
+  '+1' || lpad((5550000000 + n + 8)::text, 10, '0'),
+  initcap(replace(status::text, '_', ' ')) || ' driver in demo bulk seed batch ' || (((n - 1) / 10) + 1)::text || '.',
+  CASE
+    WHEN status <> 'off_duty' OR n % 3 = 1 THEN 'TR-' || (3023 + n)::text
+    ELSE NULL
+  END,
+  CASE
+    WHEN (status <> 'off_duty' OR n % 3 = 1) AND n % 2 = 1 THEN 'TL-' || (3023 + n)::text
+    ELSE NULL
+  END,
+  status,
+  (4.2 + ((n - 1) % 7) * 0.1)::numeric(2, 1),
+  CASE
+    WHEN status = 'off_duty' AND n % 7 = 0 THEN false
+    ELSE true
+  END
+FROM bulk_driver_seed
+ON CONFLICT ("id") DO UPDATE SET
+  "driver_code" = EXCLUDED."driver_code",
+  "first_name" = EXCLUDED."first_name",
+  "last_name" = EXCLUDED."last_name",
+  "email" = EXCLUDED."email",
+  "phone" = EXCLUDED."phone",
+  "date_of_birth" = EXCLUDED."date_of_birth",
+  "address" = EXCLUDED."address",
+  "hire_date" = EXCLUDED."hire_date",
+  "license_type" = EXCLUDED."license_type",
+  "license_number" = EXCLUDED."license_number",
+  "license_expiration_date" = EXCLUDED."license_expiration_date",
+  "license_state" = EXCLUDED."license_state",
+  "emergency_contact" = EXCLUDED."emergency_contact",
+  "emergency_phone" = EXCLUDED."emergency_phone",
+  "notes" = EXCLUDED."notes",
+  "truck_number" = EXCLUDED."truck_number",
+  "trailer_number" = EXCLUDED."trailer_number",
+  "status" = EXCLUDED."status",
+  "rating" = EXCLUDED."rating",
+  "is_active" = EXCLUDED."is_active",
+  "updated_at" = NOW();
+
+WITH bulk_vehicle_seed AS (
+  SELECT
+    "truck_number",
+    "license_state",
+    "status",
+    row_number() OVER (ORDER BY "id")::int AS n
+  FROM "drivers"
+  WHERE "id"::text LIKE '11000000-0000-4000-8000-%'
+    AND "truck_number" IS NOT NULL
+)
+INSERT INTO "vehicles" (
+  "id", "unit_number", "type", "image_url", "make", "model", "year", "vin",
+  "license_plate", "license_state", "odometer_miles", "status", "last_service_at", "next_service_at"
+)
+SELECT
+  ('22000000-0000-4000-8000-' || lpad((2000 + n)::text, 12, '0'))::uuid,
+  "truck_number",
+  'truck',
+  NULL,
+  'Freightliner',
+  'Cascadia',
+  2021 + ((n - 1) % 4),
+  'B' || lpad((2000 + n)::text, 16, '0'),
+  upper(left("license_state", 2)) || ' ' || (2000 + n)::text,
+  "license_state",
+  150000 + ((n - 1) * 3200),
+  CASE WHEN "status" = 'maintenance' THEN 'maintenance' ELSE 'active' END::vehicle_status,
+  (DATE '2026-01-01' + (n - 1))::date,
+  (DATE '2026-04-01' + (n - 1))::date
+FROM bulk_vehicle_seed
+ON CONFLICT ("unit_number") DO UPDATE SET
+  "make" = EXCLUDED."make",
+  "model" = EXCLUDED."model",
+  "year" = EXCLUDED."year",
+  "vin" = EXCLUDED."vin",
+  "license_plate" = EXCLUDED."license_plate",
+  "license_state" = EXCLUDED."license_state",
+  "odometer_miles" = EXCLUDED."odometer_miles",
+  "status" = EXCLUDED."status",
+  "last_service_at" = EXCLUDED."last_service_at",
+  "next_service_at" = EXCLUDED."next_service_at",
+  "updated_at" = NOW();
+
+INSERT INTO "driver_vehicle_assignments" (
+  "id", "driver_id", "vehicle_id", "assigned_at", "is_primary"
+)
+SELECT
+  ('33000000-0000-4000-8000-' || lpad((3000 + row_number() OVER (ORDER BY d.id))::text, 12, '0'))::uuid,
+  d."id",
+  v."id",
+  ('2026-01-01T09:00:00Z'::timestamptz + ((row_number() OVER (ORDER BY d.id) - 1) * INTERVAL '1 day')),
+  true
+FROM "drivers" AS d
+INNER JOIN "vehicles" AS v
+  ON v."unit_number" = d."truck_number"
+WHERE d."id"::text LIKE '11000000-0000-4000-8000-%'
+ON CONFLICT DO NOTHING;
+
+WITH bulk_driver_docs AS (
+  SELECT
+    d."id" AS driver_id,
+    d."driver_code",
+    row_number() OVER (ORDER BY d."id")::int AS n
+  FROM "drivers" AS d
+  WHERE d."id"::text LIKE '11000000-0000-4000-8000-%'
+)
+INSERT INTO "driver_documents" (
+  "id", "driver_id", "type", "name", "document_number",
+  "file_url", "storage_key", "mime_type", "file_size",
+  "issued_at", "expires_at"
+)
+SELECT
+  ('44000000-0000-4000-8000-' || lpad((4000 + (n * 10) + doc_index)::text, 12, '0'))::uuid,
+  driver_id,
+  CASE WHEN doc_index = 0 THEN 'license' ELSE 'medical_card' END::driver_document_type,
+  CASE WHEN doc_index = 0 THEN 'Commercial Driver License' ELSE 'DOT Medical Certificate' END,
+  driver_code || CASE WHEN doc_index = 0 THEN '-LIC' ELSE '-MED' END,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  (DATE '2024-01-01' + ((n - 1) * 5) + ((doc_index::int) * 20))::date,
+  (DATE '2027-01-01' + ((n - 1) * 9) + ((doc_index::int) * 40))::date
+FROM bulk_driver_docs
+CROSS JOIN generate_series(0, 1) AS doc_index
+WHERE doc_index = 0 OR n % 3 = 1
+ON CONFLICT DO NOTHING;
+
+WITH bulk_load_seed AS (
+  SELECT
+    n,
+    (ARRAY['Dallas, TX','Chicago, IL','Atlanta, GA','Denver, CO','Seattle, WA','Phoenix, AZ','Nashville, TN','Cleveland, OH','Kansas City, MO','Indianapolis, IN'])[(((n - 1)) % 10) + 1] AS pickup_address,
+    (ARRAY['Houston, TX','Detroit, MI','Miami, FL','Salt Lake City, UT','Portland, OR','Las Vegas, NV','Charlotte, NC','Pittsburgh, PA','St. Louis, MO','Columbus, OH'])[(((n - 1)) % 10) + 1] AS delivery_address,
+    (ARRAY[239,283,662,518,174,297,409,133,248,176])[(((n - 1)) % 10) + 1] AS miles,
+    (ARRAY['pending','assigned','in_transit','delivered','cancelled'])[(((n - 1)) % 5) + 1]::load_status AS status,
+    (ARRAY['broker-bulk-1','broker-bulk-2','broker-bulk-3','broker-bulk-4','broker-bulk-5'])[(((n - 1)) % 5) + 1] AS broker_id,
+    (ARRAY['Northstar Freight','Lone Star Cargo','Pacific Route Partners','Mountain West Brokerage','Southeast Freight Desk'])[(((n - 1)) % 5) + 1] AS broker_name,
+    (ARRAY['+13125550190','+12145550191','+12065550192','+13035550193','+14045550194'])[(((n - 1)) % 5) + 1] AS broker_phone
+  FROM generate_series(1, 120) AS gs(n)
+)
+INSERT INTO "loads" (
+  "id", "reference_number", "pickup_address", "delivery_address", "pickup_date",
+  "delivery_date", "weight", "price", "miles", "status", "broker", "route_points",
+  "timeline", "driver_id"
+)
+SELECT
+  ('55000000-0000-4000-8000-' || lpad((5000 + n)::text, 12, '0'))::uuid,
+  'BULK-LD-' || lpad(n::text, 3, '0'),
+  pickup_address,
+  delivery_address,
+  ('2026-06-01T08:00:00Z'::timestamptz + ((n - 1) * INTERVAL '6 hours')),
+  ('2026-06-01T08:00:00Z'::timestamptz + ((n - 1) * INTERVAL '6 hours') + (((miles / 45) + 4)::int * INTERVAL '1 hour')),
+  18000 + (((n - 1) % 15) * 900),
+  (1100 + (((n - 1) % 20) * 95))::numeric(12, 2),
+  miles,
+  status,
+  jsonb_build_object('id', broker_id, 'companyName', broker_name, 'phone', broker_phone),
+  jsonb_build_array(
+    jsonb_build_object('label', pickup_address || ' pickup', 'latitude', 0, 'longitude', 0),
+    jsonb_build_object('label', delivery_address || ' delivery', 'latitude', 0, 'longitude', 0)
+  ),
+  jsonb_build_array(
+    jsonb_build_object(
+      'title', 'Load created',
+      'description', 'Dispatch created BULK-LD-' || lpad(n::text, 3, '0'),
+      'dateTime', to_char(('2026-06-01T08:00:00Z'::timestamptz + ((n - 1) * INTERVAL '6 hours')) AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')
+    )
+  ),
+  CASE
+    WHEN status IN ('assigned', 'in_transit', 'delivered')
+      THEN ('11000000-0000-4000-8000-' || lpad((1000 + (((n - 1) % 100) + 1))::text, 12, '0'))::uuid
+    ELSE NULL
+  END
+FROM bulk_load_seed
+ON CONFLICT ("id") DO UPDATE SET
+  "reference_number" = EXCLUDED."reference_number",
+  "pickup_address" = EXCLUDED."pickup_address",
+  "delivery_address" = EXCLUDED."delivery_address",
+  "pickup_date" = EXCLUDED."pickup_date",
+  "delivery_date" = EXCLUDED."delivery_date",
+  "weight" = EXCLUDED."weight",
+  "price" = EXCLUDED."price",
+  "miles" = EXCLUDED."miles",
+  "status" = EXCLUDED."status",
+  "broker" = EXCLUDED."broker",
+  "route_points" = EXCLUDED."route_points",
+  "timeline" = EXCLUDED."timeline",
+  "driver_id" = EXCLUDED."driver_id",
+  "updated_at" = NOW();
+
+INSERT INTO "incidents" (
+  "id", "load_id", "title", "description", "location", "photos", "timeline",
+  "type", "priority", "status", "occurred_at", "resolved_at"
+)
+SELECT
+  ('77000000-0000-4000-8000-' || lpad((7000 + n)::text, 12, '0'))::uuid,
+  ('55000000-0000-4000-8000-' || lpad((5000 + (((n - 1) % 120) + 1))::text, 12, '0'))::uuid,
+  (ARRAY['Flat tire alert','Route delay risk','Minor yard accident','Low fuel warning','Preventive maintenance alert','Driver check-in needed'])[(((n - 1)) % 6) + 1],
+  (ARRAY[
+    'Telematics flagged abnormal tire pressure during transit.',
+    'Traffic or shipper timing may impact ETA.',
+    'A low-speed contact event was reported with no injuries.',
+    'Fuel reserve dropped below the planned threshold.',
+    'A maintenance event needs review before the next long-haul move.',
+    'Dispatch requested manual follow-up on a route exception.'
+  ])[(((n - 1)) % 6) + 1],
+  'Operations corridor',
+  '[]'::jsonb,
+  jsonb_build_array(
+    jsonb_build_object(
+      'id', 'bulk-' || n::text || '-1',
+      'dateTime', to_char(('2026-06-03T09:30:00Z'::timestamptz + ((n - 1) * INTERVAL '11 hours')) AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'),
+      'title', 'Incident detected',
+      'description', (ARRAY[
+        'Telematics flagged abnormal tire pressure during transit.',
+        'Traffic or shipper timing may impact ETA.',
+        'A low-speed contact event was reported with no injuries.',
+        'Fuel reserve dropped below the planned threshold.',
+        'A maintenance event needs review before the next long-haul move.',
+        'Dispatch requested manual follow-up on a route exception.'
+      ])[(((n - 1)) % 6) + 1],
+      'type', 'Detection',
+      'tone', CASE
+        WHEN (ARRAY['low','medium','high','critical'])[(((n - 1)) % 4) + 1] IN ('high', 'critical') THEN 'red'
+        ELSE 'blue'
+      END
+    )
+  ),
+  (ARRAY['flat_tire','delay','accident','fuel_issue','maintenance','other'])[(((n - 1)) % 6) + 1]::incident_type,
+  (ARRAY['low','medium','high','critical'])[(((n - 1)) % 4) + 1]::incident_priority,
+  (ARRAY['open','investigating','monitoring','resolved','closed'])[(((n - 1)) % 5) + 1]::incident_status,
+  ('2026-06-03T09:30:00Z'::timestamptz + ((n - 1) * INTERVAL '11 hours')),
+  CASE
+    WHEN (ARRAY['open','investigating','monitoring','resolved','closed'])[(((n - 1)) % 5) + 1] IN ('resolved', 'closed')
+      THEN ('2026-06-03T09:30:00Z'::timestamptz + ((n - 1) * INTERVAL '11 hours') + INTERVAL '4 hours')
+    ELSE NULL
+  END
+FROM generate_series(1, 45) AS gs(n)
+ON CONFLICT ("id") DO UPDATE SET
+  "load_id" = EXCLUDED."load_id",
+  "title" = EXCLUDED."title",
+  "description" = EXCLUDED."description",
+  "location" = EXCLUDED."location",
+  "photos" = EXCLUDED."photos",
+  "timeline" = EXCLUDED."timeline",
+  "type" = EXCLUDED."type",
+  "priority" = EXCLUDED."priority",
+  "status" = EXCLUDED."status",
+  "occurred_at" = EXCLUDED."occurred_at",
+  "resolved_at" = EXCLUDED."resolved_at",
+  "updated_at" = NOW();
+
+INSERT INTO "driver_activity" (
+  "id", "driver_id", "type", "description", "created_at"
+)
+SELECT
+  ('66000000-0000-4000-8000-' || lpad((6000 + n)::text, 12, '0'))::uuid,
+  ('11000000-0000-4000-8000-' || lpad((1000 + n)::text, 12, '0'))::uuid,
+  CASE
+    WHEN n % 4 = 0 THEN 'vehicle_assigned'
+    WHEN n % 4 = 1 THEN 'updated'
+    WHEN n % 4 = 2 THEN 'trip_assigned'
+    ELSE 'status_changed'
+  END::driver_activity_type,
+  CASE
+    WHEN n % 4 = 0 THEN 'Assigned to truck TR-' || (3023 + n)::text
+    WHEN n % 4 = 1 THEN 'Driver profile synced from bulk seed'
+    WHEN n % 4 = 2 THEN 'Assigned to load BULK-LD-' || lpad((((n - 1) % 120) + 1)::text, 3, '0')
+    ELSE 'Driver availability updated in bulk seed'
+  END,
+  ('2026-05-01T08:00:00Z'::timestamptz + ((n - 1) * INTERVAL '1 day'))
+FROM generate_series(1, 100) AS gs(n)
+ON CONFLICT DO NOTHING;

@@ -66,12 +66,10 @@ describe("DocumentsService upload", () => {
       storage as never,
       vision as never,
     );
-    const findOneSpy = vi
-      .spyOn(service, "findOne")
-      .mockResolvedValue({
-        success: true,
-        data: { id: "11111111-1111-4111-8111-111111111111" } as never,
-      });
+    const findOneSpy = vi.spyOn(service, "findOne").mockResolvedValue({
+      success: true,
+      data: { id: "11111111-1111-4111-8111-111111111111" } as never,
+    });
 
     const file = {
       originalname: "bol.pdf",

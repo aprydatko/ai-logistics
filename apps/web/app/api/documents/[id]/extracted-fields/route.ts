@@ -14,9 +14,5 @@ export const PATCH = async (
   context: IdRouteContext,
 ): Promise<NextResponse> => {
   const { id } = await context.params;
-  return proxyWithAuth(
-    request,
-    `documents/${id}/extracted-fields`,
-    "PATCH",
-  );
+  return proxyWithAuth(request, `documents/${id}/extracted-fields`, "PATCH");
 };

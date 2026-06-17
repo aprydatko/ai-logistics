@@ -1,11 +1,13 @@
-import {
-  AlertTriangle,
-  Clock3,
-  DollarSign,
-  Sparkles,
-  Truck,
-} from "lucide-react";
+"use client";
 
+import { AlertTriangle, Clock3, Sparkles, Truck } from "lucide-react";
+
+import type {
+  AssistantDriversTableResult,
+  AssistantIncidentsTableResult,
+  AssistantLoadsTableResult,
+  AssistantResultView,
+} from "@repo/shared";
 import {
   DataTable,
   Table,
@@ -18,122 +20,295 @@ import {
 } from "@repo/ui/components/table";
 import { cn } from "@repo/ui/lib/utils";
 
-import { delayedLoads, type Priority } from "./assistant-data";
-
-const metrics = [
-  { icon: Truck, label: "Delayed loads", tone: "red", value: "6" },
-  { icon: Clock3, label: "Total delay", tone: "teal", value: "18.4h" },
-  {
-    icon: DollarSign,
-    label: "Est. extra cost",
-    tone: "amber",
-    value: "$7,420",
-  },
-  { icon: AlertTriangle, label: "High priority", tone: "red", value: "3" },
-] as const;
-
 const toneClasses = {
   amber: "bg-amber-50 text-amber-600",
   red: "bg-red-50 text-red-600",
   teal: "bg-teal-50 text-teal-700",
 };
 
-const priorityClasses: Record<Priority, string> = {
-  High: "bg-red-50 text-red-600",
-  Low: "bg-blue-50 text-blue-600",
-  Medium: "bg-amber-50 text-amber-700",
+const statusClasses: Record<string, string> = {
+  available: "bg-emerald-50 text-emerald-700",
+  assigned: "bg-blue-50 text-blue-700",
+  cancelled: "bg-slate-100 text-slate-700",
+  closed: "bg-slate-100 text-slate-700",
+  critical: "bg-rose-50 text-rose-700",
+  delivered: "bg-emerald-50 text-emerald-700",
+  high: "bg-amber-50 text-amber-700",
+  in_transit: "bg-amber-50 text-amber-700",
+  investigating: "bg-orange-50 text-orange-700",
+  maintenance: "bg-rose-50 text-rose-700",
+  medium: "bg-blue-50 text-blue-700",
+  monitoring: "bg-cyan-50 text-cyan-700",
+  open: "bg-rose-50 text-rose-700",
+  off_duty: "bg-slate-100 text-slate-700",
+  low: "bg-emerald-50 text-emerald-700",
+  on_trip: "bg-blue-50 text-blue-700",
+  pending: "bg-violet-50 text-violet-700",
+  resolved: "bg-emerald-50 text-emerald-700",
 };
 
-export const AssistantResults = (): React.JSX.Element => (
-  <section className="relative rounded-2xl border border-border bg-card p-4 shadow-xs sm:p-5">
-    <span className="absolute -left-4 top-4 grid size-8 place-items-center rounded-full bg-ai-600 text-white shadow-md ring-4 ring-white">
-      <Sparkles className="size-4" />
-    </span>
+type AssistantResultsProps = {
+  result: AssistantResultView;
+};
 
-    <h2 className="pl-2 text-sm font-bold text-ink-900">
-      Found 6 delayed loads in the Midwest on May 27, 2025.
-    </h2>
+export const AssistantResults = ({
+  result,
+}: AssistantResultsProps): React.JSX.Element => {
+  const resultsLabel =
+    result.type === "drivers_table"
+      ? "Matching drivers"
+      : result.type === "incidents_table"
+        ? "Matching incidents"
+        : "Matching loads";
 
-    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      {metrics.map(({ icon: Icon, label, tone, value }) => (
-        <article
-          className="flex items-center gap-3 rounded-xl border border-border p-3"
-          key={label}
-        >
-          <span
-            className={cn(
-              "grid size-10 place-items-center rounded-xl",
-              toneClasses[tone],
-            )}
-          >
-            <Icon className="size-5" />
-          </span>
-          <div>
-            <p className="text-lg font-bold leading-5 text-ink-900">{value}</p>
-            <p className="mt-1 text-xs text-primary-700">{label}</p>
-          </div>
-        </article>
-      ))}
-    </div>
+  return (
+    <section className="relative rounded-2xl border border-border bg-card p-4 shadow-xs sm:p-5">
+      <span className="absolute -left-4 top-4 grid size-8 place-items-center rounded-full bg-ai-600 text-white shadow-md ring-4 ring-white">
+        <Sparkles className="size-4" />
+      </span>
 
-    <h3 className="mb-2 mt-5 text-xs font-bold uppercase tracking-[0.08em] text-primary-700">
-      Top delayed loads
-    </h3>
-    <DataTable className="shadow-none">
-      <TableScrollArea>
-        <Table className="min-w-[780px]">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Load</TableHead>
-              <TableHead>Driver</TableHead>
-              <TableHead>Delay</TableHead>
-              <TableHead>Reason</TableHead>
-              <TableHead>Priority</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {delayedLoads.map((load) => (
-              <TableRow key={load.id}>
-                <TableCell>
-                  <p className="text-xs font-bold text-ink-900">{load.id}</p>
-                  <p className="mt-1 text-xs text-primary-700">{load.route}</p>
-                </TableCell>
-                <TableCell>
+      <h2 className="pl-2 text-sm font-bold text-ink-900">{result.title}</h2>
+      {result.summary ? (
+        <p className="mt-2 pl-2 text-sm text-primary-700">{result.summary}</p>
+      ) : null}
+
+      {result.metrics.length > 0 ? (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {result.metrics.map(({ label, tone, value }) => (
+            <article
+              className="flex items-center gap-3 rounded-xl border border-border p-3"
+              key={label}
+            >
+              <span
+                className={cn(
+                  "grid size-10 place-items-center rounded-xl",
+                  toneClasses[tone],
+                )}
+              >
+                {label.toLowerCase().includes("incident") ? (
+                  <AlertTriangle className="size-5" />
+                ) : label.toLowerCase().includes("transit") ? (
+                  <Clock3 className="size-5" />
+                ) : (
+                  <Truck className="size-5" />
+                )}
+              </span>
+              <div>
+                <p className="text-lg font-bold leading-5 text-ink-900">
+                  {value}
+                </p>
+                <p className="mt-1 text-xs text-primary-700">{label}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : null}
+
+      <h3 className="mb-2 mt-5 text-xs font-bold uppercase tracking-[0.08em] text-primary-700">
+        {resultsLabel}
+      </h3>
+      {result.type === "loads_table" ? (
+        <LoadsResultsTable result={result} />
+      ) : result.type === "drivers_table" ? (
+        <DriversResultsTable result={result} />
+      ) : (
+        <IncidentsResultsTable result={result} />
+      )}
+    </section>
+  );
+};
+
+const LoadsResultsTable = ({
+  result,
+}: {
+  result: AssistantLoadsTableResult;
+}): React.JSX.Element => (
+  <DataTable className="shadow-none">
+    <TableScrollArea>
+      <Table className="min-w-[860px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Load</TableHead>
+            <TableHead>Driver</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Pickup</TableHead>
+            <TableHead>Delivery</TableHead>
+            <TableHead>Route</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {result.rows.map((load) => (
+            <TableRow key={load.id}>
+              <TableCell>
+                <p className="text-xs font-bold text-ink-900">
+                  {load.referenceNumber}
+                </p>
+                <p className="mt-1 text-xs text-primary-700">{load.id}</p>
+              </TableCell>
+              <TableCell>
+                {load.driverName ? (
                   <div className="flex items-center gap-2.5">
                     <span className="grid size-8 place-items-center rounded-full bg-primary-700 text-[0.65rem] font-bold text-white">
-                      {load.driverInitials}
+                      {load.driverInitials ?? "NA"}
                     </span>
                     <div>
                       <p className="text-xs font-semibold text-ink-900">
-                        {load.driver}
+                        {load.driverName}
                       </p>
                       <p className="mt-1 text-xs text-primary-700">
-                        {load.driverId}
+                        {load.driverCode ?? "No truck assigned"}
                       </p>
                     </div>
                   </div>
-                </TableCell>
-                <TableCell className="text-xs font-bold text-amber-600">
-                  {load.delay}
-                </TableCell>
-                <TableCell className="text-xs text-ink-900">
-                  {load.reason}
-                </TableCell>
-                <TableCell>
-                  <span
-                    className={cn(
-                      "rounded-full px-2.5 py-1 text-xs font-semibold",
-                      priorityClasses[load.priority],
-                    )}
-                  >
-                    {load.priority}
-                  </span>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableScrollArea>
-    </DataTable>
-  </section>
+                ) : (
+                  <p className="text-xs text-primary-700">Unassigned</p>
+                )}
+              </TableCell>
+              <TableCell>
+                <StatusBadge status={load.status} />
+              </TableCell>
+              <TableCell className="text-xs text-ink-900">
+                {formatDate(load.pickupDate)}
+              </TableCell>
+              <TableCell className="text-xs text-ink-900">
+                {formatDate(load.deliveryDate)}
+              </TableCell>
+              <TableCell className="text-xs text-ink-900">
+                {load.route}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableScrollArea>
+  </DataTable>
 );
+
+const DriversResultsTable = ({
+  result,
+}: {
+  result: AssistantDriversTableResult;
+}): React.JSX.Element => (
+  <DataTable className="shadow-none">
+    <TableScrollArea>
+      <Table className="min-w-[760px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Driver</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Truck</TableHead>
+            <TableHead>Trailer</TableHead>
+            <TableHead>Activity</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {result.rows.map((driver) => (
+            <TableRow key={driver.id}>
+              <TableCell>
+                <p className="text-xs font-bold text-ink-900">{driver.name}</p>
+                <p className="mt-1 text-xs text-primary-700">
+                  {driver.driverCode}
+                </p>
+              </TableCell>
+              <TableCell>
+                <StatusBadge status={driver.status} />
+              </TableCell>
+              <TableCell className="text-xs text-ink-900">
+                {driver.truckNumber
+                  ? `Truck ${driver.truckNumber}`
+                  : "Unassigned"}
+              </TableCell>
+              <TableCell className="text-xs text-ink-900">
+                {driver.trailerNumber ?? "Not assigned"}
+              </TableCell>
+              <TableCell className="text-xs text-ink-900">
+                {driver.isActive ? "Active" : "Inactive"}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableScrollArea>
+  </DataTable>
+);
+
+const IncidentsResultsTable = ({
+  result,
+}: {
+  result: AssistantIncidentsTableResult;
+}): React.JSX.Element => (
+  <DataTable className="shadow-none">
+    <TableScrollArea>
+      <Table className="min-w-[920px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Incident</TableHead>
+            <TableHead>Priority</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Load</TableHead>
+            <TableHead>Driver</TableHead>
+            <TableHead>Occurred</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {result.rows.map((incident) => (
+            <TableRow key={incident.id}>
+              <TableCell>
+                <p className="text-xs font-bold text-ink-900">
+                  {incident.title}
+                </p>
+                <p className="mt-1 text-xs text-primary-700">
+                  {formatLabel(incident.type)}
+                </p>
+              </TableCell>
+              <TableCell>
+                <StatusBadge status={incident.priority} />
+              </TableCell>
+              <TableCell>
+                <StatusBadge status={incident.status} />
+              </TableCell>
+              <TableCell className="text-xs text-ink-900">
+                {incident.loadReferenceNumber}
+              </TableCell>
+              <TableCell className="text-xs text-ink-900">
+                {incident.driverName ?? "Unassigned"}
+              </TableCell>
+              <TableCell className="text-xs text-ink-900">
+                {formatDate(incident.occurredAt)}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableScrollArea>
+  </DataTable>
+);
+
+const StatusBadge = ({ status }: { status: string }): React.JSX.Element => (
+  <span
+    className={cn(
+      "rounded-full px-2.5 py-1 text-xs font-semibold",
+      statusClasses[status] ?? "bg-surface-100 text-primary-700",
+    )}
+  >
+    {status.replaceAll("_", " ")}
+  </span>
+);
+
+const formatLabel = (value: string): string =>
+  value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+const formatDate = (value: string): string => {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(parsed);
+};

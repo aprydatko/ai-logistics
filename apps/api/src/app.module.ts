@@ -1,9 +1,11 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { ThrottlerModule, minutes } from "@nestjs/throttler";
 
 import { validateEnvironment } from "./config/environment";
 import { DatabaseModule } from "./db/database.module";
 import { AiLogsModule } from "./modules/ai-logs/ai-logs.module";
+import { AssistantModule } from "./modules/assistant/assistant.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
 import { DriversModule } from "./modules/drivers/drivers.module";
@@ -18,8 +20,16 @@ import { LoadsModule } from "./modules/loads/loads.module";
       isGlobal: true,
       validate: validateEnvironment,
     }),
+    ThrottlerModule.forRoot([
+      {
+        limit: 60,
+        name: "default",
+        ttl: minutes(1),
+      },
+    ]),
     DatabaseModule,
     AiLogsModule,
+    AssistantModule,
     AuthModule,
     DocumentsModule,
     DriversModule,

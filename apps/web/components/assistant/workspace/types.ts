@@ -1,3 +1,10 @@
+import type {
+  AssistantConversationMessage,
+  AssistantLinkedEntity,
+  AssistantReportType,
+  AssistantResultView,
+} from "@repo/shared";
+
 export type AssistantStatus =
   | "idle"
   | "loading"
@@ -6,32 +13,35 @@ export type AssistantStatus =
   | "error";
 
 export type AssistantApiResponse = {
+  conversationId?: string;
+  linkedEntity?: AssistantLinkedEntity;
   message: string;
-  model?: string;
+  reportType?: AssistantReportType;
   request?: {
     message: string;
     model: string;
   };
-  linkedEntity?: {
-    recordId: string;
-    route?: string;
-    title: string;
-    type: string;
-  };
+  resultView?: AssistantResultView;
   status?: "placeholder" | "configured" | "error";
+  usedTools?: string[];
 };
 
 export type AssistantRequestState = {
   answer: string | null;
   detail: string;
+  linkedEntity: AssistantLinkedEntity | null;
+  reportType: AssistantReportType | null;
+  resultView: AssistantResultView | null;
   status: AssistantStatus;
+  usedTools: string[];
 };
 
-export type AssistantMessage = {
+export type AssistantMessage = AssistantConversationMessage & {
   attachmentName?: string;
   id: string;
-  role: "assistant" | "user";
-  text: string;
+  linkedEntity?: AssistantLinkedEntity | null;
+  reportType?: AssistantReportType | null;
+  usedTools?: string[];
 };
 
 export type AssistantAttachment = {
@@ -47,6 +57,4 @@ export type AssistantSkill = {
   label: "Save document";
 };
 
-export type AssistantFilter = {
-  label: string;
-};
+export type AssistantFilter = { label: string };

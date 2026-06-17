@@ -1,4 +1,4 @@
-import { eq, ilike, or, type SQL } from "drizzle-orm";
+import { and, eq, ilike, or, type SQL } from "drizzle-orm";
 
 import { drivers } from "../../../db/schema";
 import type { ListDriversQueryDto } from "../dto/list-drivers-query.dto";
@@ -19,6 +19,12 @@ export function buildDriverFilters(query: ListDriversQueryDto): SQL[] {
 
   if (query.search) {
     const pattern = `%${query.search}%`;
+    const nameParts = query.search
+      .split(/\s+/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+    const firstName = nameParts[0];
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : null;
     const searchFilter = or(
       ilike(drivers.driverCode, pattern),
       ilike(drivers.firstName, pattern),
@@ -26,6 +32,18 @@ export function buildDriverFilters(query: ListDriversQueryDto): SQL[] {
       ilike(drivers.phone, pattern),
       ilike(drivers.truckNumber, pattern),
       ilike(drivers.trailerNumber, pattern),
+      firstName && lastName
+        ? and(
+            ilike(drivers.firstName, `%${firstName}%`),
+            ilike(drivers.lastName, `%${lastName}%`),
+          )
+        : undefined,
+      firstName && lastName
+        ? and(
+            ilike(drivers.firstName, `%${lastName}%`),
+            ilike(drivers.lastName, `%${firstName}%`),
+          )
+        : undefined,
     );
 
     if (searchFilter) filters.push(searchFilter);

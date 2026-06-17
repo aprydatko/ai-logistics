@@ -16,6 +16,7 @@ import type { UpdateLoadDto } from "./dto/update-load.dto";
 import type {
   AssignLoadDriverResponse,
   CreateLoadResponse,
+  LoadResponse,
   LoadsListResponse,
   UpdateLoadResponse,
 } from "./loads.types";
@@ -75,6 +76,28 @@ export class LoadsService {
         total,
         totalPages: Math.ceil(total / query.limit),
       },
+    };
+  }
+
+  async findById(id: string): Promise<LoadResponse> {
+    const client = this.databaseService.client;
+    const [load] = await client
+      .select()
+      .from(loads)
+      .where(eq(loads.id, id))
+      .limit(1);
+
+    if (!load) {
+      throw new NotFoundException("Load was not found");
+    }
+
+    const driver = load.driverId
+      ? await findLoadDriverSummary(client, load.driverId)
+      : null;
+
+    return {
+      success: true,
+      data: toLoadItem(load, driver),
     };
   }
 

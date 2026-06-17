@@ -34,6 +34,7 @@ export type LoadsListResponse = {
   };
 };
 
+export type LoadResponse = { success: true; data: LoadItem };
 export type CreateLoadResponse = { success: true; data: LoadItem };
 export type UpdateLoadResponse = { success: true; data: LoadItem };
 export type AssignLoadDriverResponse = { success: true; data: LoadItem };

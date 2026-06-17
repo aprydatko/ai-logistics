@@ -14,8 +14,10 @@ import {
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
+import { Throttle, minutes } from "@nestjs/throttler";
 import { memoryStorage } from "multer";
 
+import { AuthenticatedThrottlerGuard } from "../auth/authenticated-throttler.guard";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
@@ -57,7 +59,13 @@ export class DocumentsController {
   @Post("upload")
   @HttpCode(201)
   @Roles("admin", "dispatcher")
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, AuthenticatedThrottlerGuard)
+  @Throttle({
+    default: {
+      limit: 5,
+      ttl: minutes(10),
+    },
+  })
   @UseInterceptors(
     FileInterceptor("file", {
       storage: memoryStorage(),
