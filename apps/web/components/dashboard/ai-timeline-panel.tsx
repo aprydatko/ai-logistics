@@ -127,7 +127,7 @@ export function AiTimelinePanel(): React.JSX.Element {
     ...incidentTimelineQueryOptions(featuredIncident?.id ?? ""),
     enabled: Boolean(featuredIncident?.id),
   });
-  useIncidentTimelineLive(
+  const liveState = useIncidentTimelineLive(
     featuredIncident?.id ?? null,
     Boolean(featuredIncident),
   );
@@ -180,7 +180,11 @@ export function AiTimelinePanel(): React.JSX.Element {
             <h2 className="text-sm font-bold text-ink-900">AI timeline</h2>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-[0.65rem] font-semibold text-emerald-700">
               <span className="size-1.5 rounded-full bg-emerald-500" />
-              Live
+              {liveState === "connected"
+                ? "Live"
+                : liveState === "connecting"
+                  ? "Connecting"
+                  : "Polling fallback"}
             </span>
           </div>
           <p className="mt-1 text-xs text-primary-700">

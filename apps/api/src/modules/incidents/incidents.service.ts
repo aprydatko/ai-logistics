@@ -24,6 +24,7 @@ import {
   loads,
   type IncidentRecord,
 } from "../../db/schema";
+import { NotificationsService } from "../notifications/notifications.service";
 import type { CreateIncidentDto } from "./dto/create-incident.dto";
 import { IncidentsGateway } from "./incidents.gateway";
 import type { ListIncidentsQueryDto } from "./dto/list-incidents-query.dto";
@@ -42,6 +43,7 @@ export class IncidentsService {
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly incidentsGateway: IncidentsGateway,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -186,7 +188,14 @@ export class IncidentsService {
       throw new InternalServerErrorException("Failed to create incident");
     }
 
-    return { success: true, data: await this.findIncident(incident.id) };
+    const response: IncidentResponse = {
+      success: true,
+      data: await this.findIncident(incident.id),
+    };
+    await this.notificationsService.createIncidentNotifications(
+      this.toIncidentNotificationInput("incident_created", response.data),
+    );
+    return response;
   }
 
   /**
@@ -226,7 +235,14 @@ export class IncidentsService {
       .returning({ id: incidents.id });
 
     if (!incident) throw new NotFoundException("Incident was not found");
-    return { success: true, data: await this.findIncident(incident.id) };
+    const response: IncidentResponse = {
+      success: true,
+      data: await this.findIncident(incident.id),
+    };
+    await this.notificationsService.createIncidentNotifications(
+      this.toIncidentNotificationInput("incident_status_changed", response.data),
+    );
+    return response;
   }
 
   /**
@@ -258,6 +274,9 @@ export class IncidentsService {
     };
     this.incidentsGateway.emitTimelineUpdated(
       this.toTimelineFeed(response.data),
+    );
+    await this.notificationsService.createIncidentNotifications(
+      this.toIncidentNotificationInput("incident_timeline_updated", response.data),
     );
     return response;
   }
@@ -295,6 +314,9 @@ export class IncidentsService {
       data: await this.findIncident(incident.id),
     };
     this.incidentsGateway.emitStatusUpdated(this.toTimelineFeed(response.data));
+    await this.notificationsService.createIncidentNotifications(
+      this.toIncidentNotificationInput("incident_status_changed", response.data),
+    );
     return response;
   }
 
@@ -419,6 +441,40 @@ export class IncidentsService {
       row.load,
       row.driver?.id ? row.driver : null,
     );
+  }
+
+  private toIncidentNotificationInput(
+    type: "incident_created" | "incident_status_changed" | "incident_timeline_updated",
+    incident: IncidentItem,
+  ) {
+    const href = `/incidents/${incident.id}`;
+    const messageByType = {
+      incident_created: `Incident ${incident.title} was created for load #${incident.load.referenceNumber}.`,
+      incident_status_changed: `Incident ${incident.title} is now ${incident.status}.`,
+      incident_timeline_updated: `Timeline updated for incident ${incident.title}.`,
+    } as const;
+
+    return {
+      category: "incidents" as const,
+      entityId: incident.id,
+      entityType: "incident" as const,
+      href,
+      message: messageByType[type],
+      payload: {
+        href,
+        incidentId: incident.id,
+        priority: incident.priority,
+        status: incident.status,
+        title: incident.title,
+      },
+      title:
+        type === "incident_created"
+          ? "New incident reported"
+          : type === "incident_status_changed"
+            ? "Incident status changed"
+            : "Incident timeline updated",
+      type,
+    };
   }
 
   /**

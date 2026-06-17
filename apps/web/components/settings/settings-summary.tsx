@@ -2,8 +2,13 @@
 
 import * as React from "react";
 import { ArrowUpRight, ChevronRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 import { Switch } from "@repo/ui/components/switch";
+import {
+  notificationPreferencesQueryOptions,
+  notificationUnreadCountQueryOptions,
+} from "@/lib/notifications/notifications-query";
 
 const DetailRow = ({
   label,
@@ -37,7 +42,15 @@ const SummaryCard = ({
 );
 
 export const SettingsSummary = (): React.JSX.Element => {
+  const unreadCountQuery = useQuery(notificationUnreadCountQueryOptions());
+  const preferencesQuery = useQuery(notificationPreferencesQueryOptions());
   const [showRead, setShowRead] = React.useState(true);
+  const preferences = preferencesQuery.data;
+  const enabledCategories = preferences
+    ? (["incidents", "system"] as const)
+        .filter((category) => preferences[category].inAppEnabled)
+        .join(", ")
+    : "Loading...";
 
   return (
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
@@ -47,18 +60,16 @@ export const SettingsSummary = (): React.JSX.Element => {
             label="Unread count"
             value={
               <span className="inline-flex size-6 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-                3
+                {unreadCountQuery.data ?? "—"}
               </span>
             }
           />
           <DetailRow
             label="Email digest"
             value={
-              <select className="border border-border bg-white px-3 py-1.5">
-                <option>Daily</option>
-                <option>Weekly</option>
-                <option>Off</option>
-              </select>
+              <span className="capitalize">
+                {preferences?.emailFrequency.replaceAll("_", " ") ?? "Loading"}
+              </span>
             }
           />
           <DetailRow
@@ -126,8 +137,8 @@ export const SettingsSummary = (): React.JSX.Element => {
         <dl className="space-y-3">
           <DetailRow label="Maintenance mode" value="Off" />
           <DetailRow
-            label="Scheduled maintenance"
-            value="May 31, 02:00 – 04:00"
+            label="Enabled channels"
+            value={enabledCategories}
           />
           <DetailRow
             label="Status page"

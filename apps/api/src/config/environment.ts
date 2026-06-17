@@ -14,6 +14,8 @@ const environmentSchema = z.object({
   OPENAI_API_KEY: z.string().min(1).optional(),
   OPENAI_MODEL: z.string().default("gpt-4.1-mini"),
   OPENAI_DOCUMENT_MODEL: z.string().default("gpt-4.1-mini"),
+  RESEND_API_KEY: z.string().min(1).optional(),
+  RESEND_FROM_EMAIL: z.string().email().optional(),
 });
 
 export type Environment = z.infer<typeof environmentSchema>;

@@ -2,33 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { io } from "socket.io-client";
-import { z } from "zod";
 
+import { connectRealtimeNamespace } from "@/lib/realtime/socket-session";
 import {
   incidentTimelineQueryOptions,
   type IncidentTimelineFeed,
 } from "./incidents-query";
-
-const socketSessionSchema = z.object({
-  token: z.string().min(1),
-  expiresAt: z.string(),
-  socketUrl: z.string().url(),
-});
-
-const fetchSocketSession = async (): Promise<
-  z.infer<typeof socketSessionSchema>
-> => {
-  const response = await fetch("/api/realtime/socket-token", {
-    method: "POST",
-  });
-
-  if (!response.ok) {
-    throw new Error("Unable to create realtime socket session");
-  }
-
-  return socketSessionSchema.parse(await response.json());
-};
 
 const applyTimelineFeed = (
   current: IncidentTimelineFeed | undefined,
@@ -58,21 +37,14 @@ export const useIncidentTimelineLive = (
     }
 
     let cancelled = false;
-    let socket: ReturnType<typeof io> | null = null;
+    let socket: Awaited<ReturnType<typeof connectRealtimeNamespace>> | null =
+      null;
     setState("connecting");
 
     const connect = async (): Promise<void> => {
       try {
-        const session = await fetchSocketSession();
+        socket = await connectRealtimeNamespace("incidents");
         if (cancelled) return;
-
-        socket = io(`${session.socketUrl}/incidents`, {
-          auth: { token: session.token },
-          transports: ["websocket"],
-          withCredentials: true,
-          path: "/socket.io",
-          reconnection: true,
-        });
 
         socket.on("connect", () => {
           setState("connected");
