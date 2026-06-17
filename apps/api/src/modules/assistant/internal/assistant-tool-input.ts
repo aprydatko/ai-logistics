@@ -21,6 +21,12 @@ export const getOptionalLimit = (value: unknown): number =>
     ? Math.max(1, Math.min(5, Math.trunc(value)))
     : 5;
 
+/**
+ * Normalizes an incident search query by extracting structured filters from the search text.
+ * Extracts status, priority, and type from natural language and removes them from the search string.
+ *
+ * @param query - The incident query DTO to normalize in place
+ */
 export const normalizeIncidentSearchQuery = (
   query: ListIncidentsQueryDto,
 ): void => {
@@ -41,7 +47,10 @@ export const normalizeIncidentSearchQuery = (
     .replace(/\binciden\w*\b/g, " ")
     .replace(/\b(open|investigating|monitoring|resolved|closed)\b/g, " ")
     .replace(/\b(low|medium|high|critical)\b/g, " ")
-    .replace(/\b(flat tire|flat_tire|delay|accident|fuel issue|fuel_issue|maintenance|other)\b/g, " ")
+    .replace(
+      /\b(flat tire|flat_tire|delay|accident|fuel issue|fuel_issue|maintenance|other)\b/g,
+      " ",
+    )
     .replace(/\s+/g, " ")
     .trim();
 

@@ -1,5 +1,12 @@
 import type { AssistantReportType } from "./assistant.types";
 
+/**
+ * Detects the type of report requested from a user message.
+ * Returns undefined if the message does not appear to be a report request.
+ *
+ * @param message - The user message to analyze
+ * @returns The detected report type or undefined
+ */
 export const detectReportType = (
   message: string,
 ): AssistantReportType | undefined => {
@@ -19,6 +26,16 @@ export const detectReportType = (
   return "general";
 };
 
+/**
+ * Detects the operation type based on message content, report type, and tools used.
+ * Returns a string identifier for analytics and logging.
+ *
+ * @param params - The detection parameters
+ * @param params.message - The user message
+ * @param params.reportType - The detected report type
+ * @param params.usedTools - The tools used in the request
+ * @returns The operation identifier
+ */
 export const detectOperation = ({
   message,
   reportType,

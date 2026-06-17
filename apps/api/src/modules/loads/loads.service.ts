@@ -81,7 +81,11 @@ export class LoadsService {
 
   async findById(id: string): Promise<LoadResponse> {
     const client = this.databaseService.client;
-    const [load] = await client.select().from(loads).where(eq(loads.id, id)).limit(1);
+    const [load] = await client
+      .select()
+      .from(loads)
+      .where(eq(loads.id, id))
+      .limit(1);
 
     if (!load) {
       throw new NotFoundException("Load was not found");

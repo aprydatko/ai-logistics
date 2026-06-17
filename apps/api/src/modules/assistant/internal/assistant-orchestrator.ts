@@ -30,6 +30,18 @@ export type AssistantOrchestrationResult = {
   usedTools: AssistantToolName[];
 };
 
+/**
+ * Orchestrates the assistant interaction with OpenAI, handling tool execution loops.
+ * Executes function calls from the AI, sends results back, and builds structured table views.
+ *
+ * @param params - The orchestration parameters
+ * @param params.executeTool - Function to execute a tool call
+ * @param params.initialResponse - The initial OpenAI response
+ * @param params.message - The original user message
+ * @param params.model - The model being used
+ * @param params.requestOpenAI - Function to make follow-up OpenAI requests
+ * @returns Promise resolving to the orchestration result with message, usage, and optional views
+ */
 export const runAssistantOrchestration = async ({
   executeTool,
   initialResponse,

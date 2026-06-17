@@ -1,5 +1,12 @@
 import type { DriverDetailsSummaryInput } from "./assistant.types";
 
+/**
+ * Transforms a full driver details response into a summary format for AI consumption.
+ * Limits nested arrays (trips, documents, activity) to recent items.
+ *
+ * @param response - The full driver details response
+ * @returns A summarized driver object with limited nested data
+ */
 export const toDriverDetailsSummary = (
   response: DriverDetailsSummaryInput,
 ): Record<string, unknown> => {

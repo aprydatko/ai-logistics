@@ -5,13 +5,15 @@ import { AssistantOpenAIClient } from "./internal/assistant-openai-client";
 import { AssistantService } from "./assistant.service";
 import { AssistantToolsService } from "./assistant-tools.service";
 
-const createService = ({
-  openAIApiKey,
-}: {
-  openAIApiKey?: string | undefined;
-} = {
-  openAIApiKey: "test-key",
-}) => {
+const createService = (
+  {
+    openAIApiKey,
+  }: {
+    openAIApiKey?: string | undefined;
+  } = {
+    openAIApiKey: "test-key",
+  },
+) => {
   const aiLogsService = {
     create: vi.fn(),
   };
@@ -79,7 +81,9 @@ const createService = ({
 
 describe("AssistantService", () => {
   it("returns placeholder mode when OpenAI is not configured", async () => {
-    const { aiLogsService, service } = createService({ openAIApiKey: undefined });
+    const { aiLogsService, service } = createService({
+      openAIApiKey: undefined,
+    });
 
     await expect(
       service.respond(
@@ -670,8 +674,12 @@ describe("AssistantService", () => {
       }),
     );
     expect(driversService.findById).toHaveBeenCalledWith("driver-1");
-    const toolOutputBody = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
-    expect(JSON.stringify(toolOutputBody)).not.toContain("VERY_LARGE_BASE64_CONTENT");
+    const toolOutputBody = JSON.parse(
+      String(fetchMock.mock.calls[1]?.[1]?.body),
+    );
+    expect(JSON.stringify(toolOutputBody)).not.toContain(
+      "VERY_LARGE_BASE64_CONTENT",
+    );
     expect(JSON.stringify(toolOutputBody)).not.toContain("Huge route payload");
   });
 
@@ -728,7 +736,9 @@ describe("AssistantService", () => {
     expect(requestBody.input).toEqual([
       {
         role: "user",
-        content: [{ type: "input_text", text: "find a driver Arthur Prydatko" }],
+        content: [
+          { type: "input_text", text: "find a driver Arthur Prydatko" },
+        ],
       },
       {
         role: "assistant",
@@ -741,7 +751,9 @@ describe("AssistantService", () => {
       },
       {
         role: "user",
-        content: [{ type: "input_text", text: "What documents does this driver have?" }],
+        content: [
+          { type: "input_text", text: "What documents does this driver have?" },
+        ],
       },
     ]);
   });
@@ -833,7 +845,9 @@ describe("AssistantService", () => {
       }),
     );
 
-    const toolOutputBody = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
+    const toolOutputBody = JSON.parse(
+      String(fetchMock.mock.calls[1]?.[1]?.body),
+    );
     const nestedOutput = JSON.parse(String(toolOutputBody.input?.[0]?.output));
     expect(nestedOutput).toEqual(
       expect.objectContaining({
@@ -916,7 +930,8 @@ describe("AssistantService", () => {
     await expect(
       service.respond(
         {
-          message: "Show me assigned loads in Texas and format the result as a table",
+          message:
+            "Show me assigned loads in Texas and format the result as a table",
         },
         {
           email: "dispatcher@example.com",

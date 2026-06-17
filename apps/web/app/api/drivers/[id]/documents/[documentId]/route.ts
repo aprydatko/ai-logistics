@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { proxyWithAuth, type IdDocumentRouteContext } from "@/lib/api/proxy-with-auth";
+import {
+  proxyWithAuth,
+  type IdDocumentRouteContext,
+} from "@/lib/api/proxy-with-auth";
 
 /**
  * Handles DELETE requests to remove a specific document from a driver.

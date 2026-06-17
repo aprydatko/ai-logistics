@@ -14,6 +14,13 @@ export class AssistantAuditService {
     private readonly databaseService: DatabaseService,
   ) {}
 
+  /**
+   * Retrieves the display name for a user from the database.
+   * Falls back to email if name is not available.
+   *
+   * @param user - The authenticated user
+   * @returns Promise resolving to the user's display name
+   */
   async getUserDisplayName(user: AuthenticatedUser): Promise<string> {
     const [dbUser] = await this.databaseService.client
       .select({
@@ -32,6 +39,12 @@ export class AssistantAuditService {
     return fullName || user.email;
   }
 
+  /**
+   * Logs an assistant call to the AI logs service.
+   * Errors are silently ignored to prevent breaking assistant responses.
+   *
+   * @param payload - The log payload with call details
+   */
   async logAssistantCall(payload: CreateAiLogDto): Promise<void> {
     try {
       await this.aiLogsService.create(payload);

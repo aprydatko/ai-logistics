@@ -12,7 +12,13 @@ import { AssistantService } from "./assistant.service";
 import { AssistantToolsService } from "./assistant-tools.service";
 
 @Module({
-  imports: [AuthModule, AiLogsModule, DriversModule, LoadsModule, IncidentsModule],
+  imports: [
+    AuthModule,
+    AiLogsModule,
+    DriversModule,
+    LoadsModule,
+    IncidentsModule,
+  ],
   controllers: [AssistantController],
   providers: [
     AssistantService,

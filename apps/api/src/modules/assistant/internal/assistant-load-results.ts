@@ -3,6 +3,15 @@ import type {
   LoadSearchOutput,
 } from "./assistant.types";
 
+/**
+ * Builds a structured table result for load search output.
+ * Includes metrics for assigned and in-transit loads.
+ *
+ * @param params - The build parameters
+ * @param params.message - The original user message for title generation
+ * @param params.output - The raw search output from tool execution
+ * @returns The structured table result or undefined if no items found
+ */
 export const buildLoadsTableResult = ({
   message,
   output,
@@ -16,7 +25,9 @@ export const buildLoadsTableResult = ({
   }
 
   const title = buildLoadsTableTitle(parsed.count, message);
-  const assignedCount = parsed.items.filter((item) => item.status === "assigned").length;
+  const assignedCount = parsed.items.filter(
+    (item) => item.status === "assigned",
+  ).length;
   const inTransitCount = parsed.items.filter(
     (item) => item.status === "in_transit",
   ).length;
@@ -56,6 +67,13 @@ export const buildLoadsTableResult = ({
   };
 };
 
+/**
+ * Parses and validates load search output from tool execution.
+ * Ensures all required fields are present and correctly typed.
+ *
+ * @param output - The raw output to parse
+ * @returns The parsed load search output or undefined if invalid
+ */
 const parseLoadSearchOutput = (
   output: Record<string, unknown>,
 ): LoadSearchOutput | undefined => {
@@ -90,7 +108,9 @@ const parseLoadSearchOutput = (
         deliveryDate: candidate.deliveryDate,
         driver: typeof candidate.driver === "string" ? candidate.driver : null,
         driverCode:
-          typeof candidate.driverCode === "string" ? candidate.driverCode : null,
+          typeof candidate.driverCode === "string"
+            ? candidate.driverCode
+            : null,
         id: candidate.id,
         miles: typeof candidate.miles === "number" ? candidate.miles : 0,
         pickupAddress: candidate.pickupAddress,
@@ -107,6 +127,13 @@ const parseLoadSearchOutput = (
   };
 };
 
+/**
+ * Generates a contextual title for the loads table based on search criteria.
+ *
+ * @param count - The number of loads found
+ * @param message - The original user message
+ * @returns A descriptive title for the table
+ */
 const buildLoadsTableTitle = (count: number, message: string): string => {
   const normalized = message.toLowerCase();
   if (normalized.includes("delayed")) {

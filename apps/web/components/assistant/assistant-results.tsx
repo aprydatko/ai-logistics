@@ -173,7 +173,9 @@ const LoadsResultsTable = ({
               <TableCell className="text-xs text-ink-900">
                 {formatDate(load.deliveryDate)}
               </TableCell>
-              <TableCell className="text-xs text-ink-900">{load.route}</TableCell>
+              <TableCell className="text-xs text-ink-900">
+                {load.route}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -212,7 +214,9 @@ const DriversResultsTable = ({
                 <StatusBadge status={driver.status} />
               </TableCell>
               <TableCell className="text-xs text-ink-900">
-                {driver.truckNumber ? `Truck ${driver.truckNumber}` : "Unassigned"}
+                {driver.truckNumber
+                  ? `Truck ${driver.truckNumber}`
+                  : "Unassigned"}
               </TableCell>
               <TableCell className="text-xs text-ink-900">
                 {driver.trailerNumber ?? "Not assigned"}

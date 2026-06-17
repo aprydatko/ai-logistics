@@ -230,12 +230,10 @@ const buildStreamStatuses = (response: AssistantResponseDto): string[] => {
   return [...toolLabels, "Generating answer..."];
 };
 
-const createAssistantStreamResponse = (
-  streamBody: {
-    fetchResponse: () => Promise<AssistantResponseDto>;
-    initialStatus: string;
-  },
-): Response => {
+const createAssistantStreamResponse = (streamBody: {
+  fetchResponse: () => Promise<AssistantResponseDto>;
+  initialStatus: string;
+}): Response => {
   const encoder = new TextEncoder();
   const chunkSize = 48;
 
@@ -270,9 +268,7 @@ const createAssistantStreamResponse = (
         }
 
         controller.enqueue(
-          encoder.encode(
-            `event: done\ndata: ${JSON.stringify(response)}\n\n`,
-          ),
+          encoder.encode(`event: done\ndata: ${JSON.stringify(response)}\n\n`),
         );
         controller.close();
       } catch (error) {
@@ -303,7 +299,10 @@ export const POST = async (request: Request): Promise<Response> => {
     parsedRequest = parsed.request;
     attachment = parsed.attachment;
   } catch (error) {
-    if (error instanceof Error && error.message === "UNSUPPORTED_ATTACHMENT_TYPE") {
+    if (
+      error instanceof Error &&
+      error.message === "UNSUPPORTED_ATTACHMENT_TYPE"
+    ) {
       return NextResponse.json(
         {
           message: "Only PDF, JPEG, PNG, and WEBP attachments are supported.",
@@ -402,7 +401,11 @@ export const POST = async (request: Request): Promise<Response> => {
       return createAssistantStreamResponse({
         fetchResponse: async () => {
           const { apiResponse, responseBody } = await fetchAssistantResponse();
-          if (!apiResponse.ok || !responseBody || typeof responseBody !== "object") {
+          if (
+            !apiResponse.ok ||
+            !responseBody ||
+            typeof responseBody !== "object"
+          ) {
             return {
               message:
                 (responseBody as { message?: string } | null)?.message ??

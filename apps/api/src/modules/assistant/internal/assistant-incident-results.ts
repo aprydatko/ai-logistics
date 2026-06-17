@@ -6,6 +6,15 @@ import type {
 type IncidentPriority = IncidentSearchOutput["items"][number]["priority"];
 type IncidentStatus = IncidentSearchOutput["items"][number]["status"];
 
+/**
+ * Builds a structured table result for incident search output.
+ * Includes metrics for critical and open incidents.
+ *
+ * @param params - The build parameters
+ * @param params.message - The original user message for title generation
+ * @param params.output - The raw search output from tool execution
+ * @returns The structured table result or undefined if no items found
+ */
 export const buildIncidentsTableResult = ({
   message,
   output,
@@ -21,7 +30,9 @@ export const buildIncidentsTableResult = ({
   const criticalCount = parsed.items.filter(
     (item) => item.priority === "critical",
   ).length;
-  const openCount = parsed.items.filter((item) => item.status === "open").length;
+  const openCount = parsed.items.filter(
+    (item) => item.status === "open",
+  ).length;
 
   return {
     metrics: [
@@ -57,6 +68,13 @@ export const buildIncidentsTableResult = ({
   };
 };
 
+/**
+ * Parses and validates incident search output from tool execution.
+ * Ensures all required fields are present and correctly typed.
+ *
+ * @param output - The raw output to parse
+ * @returns The parsed incident search output or undefined if invalid
+ */
 const parseIncidentSearchOutput = (
   output: Record<string, unknown>,
 ): IncidentSearchOutput | undefined => {
@@ -105,6 +123,13 @@ const parseIncidentSearchOutput = (
   };
 };
 
+/**
+ * Generates a contextual title for the incidents table based on search criteria.
+ *
+ * @param count - The number of incidents found
+ * @param message - The original user message
+ * @returns A descriptive title for the table
+ */
 const buildIncidentsTableTitle = (count: number, message: string): string => {
   const normalized = message.toLowerCase();
   if (normalized.includes("critical")) {

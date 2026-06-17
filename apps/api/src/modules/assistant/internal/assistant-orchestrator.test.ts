@@ -42,32 +42,30 @@ describe("runAssistantOrchestration", () => {
   });
 
   it("executes tool calls, follows up with OpenAI, and builds load table results", async () => {
-    const executeTool = vi
-      .fn()
-      .mockResolvedValue({
-        linkedEntity: {
-          type: "load",
-          recordId: "load-1",
-          title: "LD-1001",
-          route: "/loads",
-        },
-        output: {
-          count: 1,
-          items: [
-            {
-              id: "load-1",
-              referenceNumber: "LD-1001",
-              status: "assigned",
-              pickupAddress: "Dallas, TX",
-              deliveryAddress: "Houston, TX",
-              pickupDate: "2026-06-17T08:00:00.000Z",
-              deliveryDate: "2026-06-17T14:00:00.000Z",
-              driver: "Sarah Davis",
-              driverCode: "TR-12",
-            },
-          ],
-        },
-      });
+    const executeTool = vi.fn().mockResolvedValue({
+      linkedEntity: {
+        type: "load",
+        recordId: "load-1",
+        title: "LD-1001",
+        route: "/loads",
+      },
+      output: {
+        count: 1,
+        items: [
+          {
+            id: "load-1",
+            referenceNumber: "LD-1001",
+            status: "assigned",
+            pickupAddress: "Dallas, TX",
+            deliveryAddress: "Houston, TX",
+            pickupDate: "2026-06-17T08:00:00.000Z",
+            deliveryDate: "2026-06-17T14:00:00.000Z",
+            driver: "Sarah Davis",
+            driverCode: "TR-12",
+          },
+        ],
+      },
+    });
     const requestOpenAI = vi.fn().mockResolvedValue({
       id: "resp_followup",
       output_text: "I found one assigned load in Texas.",
@@ -95,7 +93,8 @@ describe("runAssistantOrchestration", () => {
             },
           ],
         },
-        message: "Show me assigned loads in Texas and format the result as a table",
+        message:
+          "Show me assigned loads in Texas and format the result as a table",
         model: "gpt-4.1-mini",
         requestOpenAI,
       }),

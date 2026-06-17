@@ -1,6 +1,9 @@
 "use client";
 
-import type { AssistantConversationMessage, AssistantLinkedEntity } from "@repo/shared";
+import type {
+  AssistantConversationMessage,
+  AssistantLinkedEntity,
+} from "@repo/shared";
 import { useEffect, useState } from "react";
 
 import { uploadDocument } from "@/lib/documents/document-mutations";
@@ -52,9 +55,9 @@ export const useAssistantWorkspace = (): UseAssistantWorkspaceResult => {
     null,
   );
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
-  const [recentReferences, setRecentReferences] = useState<AssistantLinkedEntity[]>(
-    [],
-  );
+  const [recentReferences, setRecentReferences] = useState<
+    AssistantLinkedEntity[]
+  >([]);
   const [assistantState, setAssistantState] = useState<AssistantRequestState>(
     initialAssistantState,
   );
@@ -262,7 +265,10 @@ export const useAssistantWorkspace = (): UseAssistantWorkspaceResult => {
         ),
       );
       if (assistantState.linkedEntity) {
-        body.append("linkedEntity", JSON.stringify(assistantState.linkedEntity));
+        body.append(
+          "linkedEntity",
+          JSON.stringify(assistantState.linkedEntity),
+        );
       }
       if (nextAttachment) {
         body.append("file", nextAttachment.file);
@@ -396,7 +402,8 @@ export const useAssistantWorkspace = (): UseAssistantWorkspaceResult => {
       if (responseStatus === "configured" && data.message) {
         clearAttachment();
         setDraft("");
-        const linkedEntity = data.linkedEntity ?? assistantState.linkedEntity ?? null;
+        const linkedEntity =
+          data.linkedEntity ?? assistantState.linkedEntity ?? null;
         setMessages((current) => [
           ...current,
           {

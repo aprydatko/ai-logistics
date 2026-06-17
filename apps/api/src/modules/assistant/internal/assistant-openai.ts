@@ -9,6 +9,13 @@ import type {
   ToolCall,
 } from "./assistant.types";
 
+/**
+ * Builds the OpenAI input array from the assistant message DTO.
+ * Includes conversation history (last 6 messages) and current message with optional attachment.
+ *
+ * @param dto - The assistant message DTO
+ * @returns Array of message objects for OpenAI API
+ */
 export const buildOpenAIInput = (
   dto: CreateAssistantMessageDto,
 ): Array<Record<string, unknown>> => {
@@ -54,6 +61,13 @@ export const buildOpenAIInput = (
   ];
 };
 
+/**
+ * Builds the system instructions for the AI assistant.
+ * Includes context about the linked entity if provided.
+ *
+ * @param linkedEntity - Optional linked entity context
+ * @returns The system instruction string
+ */
 export const buildInstructions = (
   linkedEntity?: AssistantLinkedEntity,
 ): string => {
@@ -77,6 +91,13 @@ export const buildInstructions = (
   ].join("\n");
 };
 
+/**
+ * Extracts function calls from an OpenAI response body.
+ * Parses the output array to find function_call items.
+ *
+ * @param responseBody - The OpenAI response body
+ * @returns Array of extracted tool calls
+ */
 export const extractFunctionCalls = (
   responseBody: OpenAIResponseBody,
 ): ToolCall[] => {
@@ -110,6 +131,14 @@ export const extractFunctionCalls = (
   });
 };
 
+/**
+ * Parses tool arguments from a JSON string.
+ * Validates that the result is a non-array object.
+ *
+ * @param argumentsValue - The JSON string to parse
+ * @returns The parsed arguments object
+ * @throws InternalServerErrorException if parsing fails or result is invalid
+ */
 export const parseToolArguments = (
   argumentsValue: string,
 ): Record<string, unknown> => {
@@ -131,6 +160,13 @@ export const getResponseId = (
     ? responseBody.id
     : undefined;
 
+/**
+ * Extracts the text output from an OpenAI response body.
+ * Checks both output_text field and output array for text content.
+ *
+ * @param responseBody - The OpenAI response body
+ * @returns The extracted text or null if no text found
+ */
 export const extractOutputText = (
   responseBody: OpenAIResponseBody,
 ): string | null => {
@@ -163,6 +199,13 @@ export const extractOutputText = (
   return textParts.length > 0 ? textParts.join("\n\n") : null;
 };
 
+/**
+ * Extracts token usage information from an OpenAI response body.
+ * Returns zero values if usage data is missing.
+ *
+ * @param responseBody - The OpenAI response body
+ * @returns Object with prompt, completion, and total token counts
+ */
 export const getOpenAIUsage = (
   responseBody: OpenAIResponseBody,
 ): {
@@ -174,11 +217,23 @@ export const getOpenAIUsage = (
   return {
     completionTokens:
       typeof usage?.output_tokens === "number" ? usage.output_tokens : 0,
-    promptTokens: typeof usage?.input_tokens === "number" ? usage.input_tokens : 0,
-    totalTokens: typeof usage?.total_tokens === "number" ? usage.total_tokens : 0,
+    promptTokens:
+      typeof usage?.input_tokens === "number" ? usage.input_tokens : 0,
+    totalTokens:
+      typeof usage?.total_tokens === "number" ? usage.total_tokens : 0,
   };
 };
 
+/**
+ * Estimates the cost in USD for an OpenAI request based on token usage and model.
+ * Uses model-specific pricing per million tokens.
+ *
+ * @param params - The cost estimation parameters
+ * @param params.completionTokens - Number of completion tokens used
+ * @param params.model - The model identifier
+ * @param params.promptTokens - Number of prompt tokens used
+ * @returns The estimated cost in USD
+ */
 export const estimateCostUsd = ({
   completionTokens,
   model,
@@ -204,6 +259,13 @@ export const estimateCostUsd = ({
   );
 };
 
+/**
+ * Builds a log string representing the request input for audit purposes.
+ * Includes conversation history, current message, attachment info, and linked entity.
+ *
+ * @param dto - The assistant message DTO
+ * @returns A formatted log string
+ */
 export const buildRequestInputLog = (
   dto: CreateAssistantMessageDto,
 ): string => {

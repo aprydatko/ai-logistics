@@ -34,6 +34,13 @@ export class AssistantToolsService {
     private readonly loadsService: LoadsService,
   ) {}
 
+  /**
+   * Executes an assistant tool call based on the function name.
+   * Routes to the appropriate search or details method.
+   *
+   * @param functionCall - The tool call with name and arguments
+   * @returns Promise resolving to the tool result with optional linked entity
+   */
   async executeTool(functionCall: ToolCall): Promise<ToolResult> {
     const parsedArguments = parseToolArguments(functionCall.arguments);
 
@@ -53,16 +60,27 @@ export class AssistantToolsService {
       case "generate_incident_guidance":
         return this.generateIncidentGuidance(parsedArguments);
       default:
-        throw new InternalServerErrorException("Unsupported assistant tool call");
+        throw new InternalServerErrorException(
+          "Unsupported assistant tool call",
+        );
     }
   }
 
+  /**
+   * Searches for loads based on the provided input parameters.
+   * Returns a linked entity if exactly one load matches.
+   *
+   * @param input - The search parameters from tool arguments
+   * @returns Promise resolving to the search result with optional linked entity
+   */
   private async searchLoads(
     input: Record<string, unknown>,
   ): Promise<ToolResult> {
     const query = new ListLoadsQueryDto();
     query.search = getOptionalString(input.search);
-    query.status = getOptionalString(input.status) as ListLoadsQueryDto["status"];
+    query.status = getOptionalString(
+      input.status,
+    ) as ListLoadsQueryDto["status"];
     query.driverId = getOptionalString(input.driverId);
     query.pickupFrom = getOptionalDateString(input.pickupFrom);
     query.pickupTo = getOptionalDateString(input.pickupTo);
@@ -102,12 +120,21 @@ export class AssistantToolsService {
     };
   }
 
+  /**
+   * Searches for drivers based on the provided input parameters.
+   * Returns a linked entity if exactly one driver matches.
+   *
+   * @param input - The search parameters from tool arguments
+   * @returns Promise resolving to the search result with optional linked entity
+   */
   private async searchDrivers(
     input: Record<string, unknown>,
   ): Promise<ToolResult> {
     const query = new ListDriversQueryDto();
     query.search = getOptionalString(input.search);
-    query.status = getOptionalString(input.status) as ListDriversQueryDto["status"];
+    query.status = getOptionalString(
+      input.status,
+    ) as ListDriversQueryDto["status"];
     query.truckNumber = getOptionalString(input.truckNumber);
     query.trailerNumber = getOptionalString(input.trailerNumber);
     query.isActive = getOptionalBoolean(input.isActive);
@@ -143,14 +170,25 @@ export class AssistantToolsService {
     };
   }
 
+  /**
+   * Searches for incidents based on the provided input parameters.
+   * Returns a linked entity if exactly one incident matches.
+   *
+   * @param input - The search parameters from tool arguments
+   * @returns Promise resolving to the search result with optional linked entity
+   */
   private async searchIncidents(
     input: Record<string, unknown>,
   ): Promise<ToolResult> {
     const query = new ListIncidentsQueryDto();
     query.search = getOptionalString(input.search);
     query.type = getOptionalString(input.type) as ListIncidentsQueryDto["type"];
-    query.priority = getOptionalString(input.priority) as ListIncidentsQueryDto["priority"];
-    query.status = getOptionalString(input.status) as ListIncidentsQueryDto["status"];
+    query.priority = getOptionalString(
+      input.priority,
+    ) as ListIncidentsQueryDto["priority"];
+    query.status = getOptionalString(
+      input.status,
+    ) as ListIncidentsQueryDto["status"];
     query.driverId = getOptionalString(input.driverId);
     query.loadId = getOptionalString(input.loadId);
     query.page = 1;
@@ -188,6 +226,12 @@ export class AssistantToolsService {
     };
   }
 
+  /**
+   * Retrieves detailed information for a specific load by ID.
+   *
+   * @param input - The input containing loadId
+   * @returns Promise resolving to the load details with linked entity
+   */
   private async getLoadDetails(
     input: Record<string, unknown>,
   ): Promise<ToolResult> {
@@ -207,6 +251,13 @@ export class AssistantToolsService {
     };
   }
 
+  /**
+   * Retrieves detailed information for a specific driver by ID.
+   * Supports resolving driver identifiers (UUID, driver code, or name).
+   *
+   * @param input - The input containing driverId
+   * @returns Promise resolving to the driver details with linked entity
+   */
   private async getDriverDetails(
     input: Record<string, unknown>,
   ): Promise<ToolResult> {
@@ -228,6 +279,12 @@ export class AssistantToolsService {
     };
   }
 
+  /**
+   * Retrieves detailed information for a specific incident by ID.
+   *
+   * @param input - The input containing incidentId
+   * @returns Promise resolving to the incident details with linked entity
+   */
   private async getIncidentDetails(
     input: Record<string, unknown>,
   ): Promise<ToolResult> {
@@ -247,6 +304,13 @@ export class AssistantToolsService {
     };
   }
 
+  /**
+   * Generates read-only recommended next steps for an incident.
+   * Builds escalation level and context-specific guidance based on incident priority, status, and type.
+   *
+   * @param input - The input containing incidentId and optional focus area
+   * @returns Promise resolving to the incident guidance with linked entity
+   */
   private async generateIncidentGuidance(
     input: Record<string, unknown>,
   ): Promise<ToolResult> {
@@ -256,7 +320,10 @@ export class AssistantToolsService {
     const incident = response.data;
 
     const nextSteps = this.buildIncidentNextSteps(incident, focus);
-    const escalation = this.getIncidentEscalation(incident.priority, incident.status);
+    const escalation = this.getIncidentEscalation(
+      incident.priority,
+      incident.status,
+    );
 
     return {
       linkedEntity: {
@@ -274,6 +341,14 @@ export class AssistantToolsService {
     };
   }
 
+  /**
+   * Builds a list of recommended next steps for an incident.
+   * Steps are customized based on incident priority, status, and optional focus area.
+   *
+   * @param incident - The incident details
+   * @param focus - Optional focus area (e.g., 'driver', 'customer')
+   * @returns Array of recommended next steps
+   */
   private buildIncidentNextSteps(
     incident: IncidentDetailsInput,
     focus?: string,
@@ -290,11 +365,18 @@ export class AssistantToolsService {
     }
 
     if (incident.status === "open") {
-      steps.push("Assign an owner and move the incident into active investigation.");
+      steps.push(
+        "Assign an owner and move the incident into active investigation.",
+      );
     }
 
-    if (incident.status === "investigating" || incident.status === "monitoring") {
-      steps.push("Capture the next expected update time so the team knows when to re-check the incident.");
+    if (
+      incident.status === "investigating" ||
+      incident.status === "monitoring"
+    ) {
+      steps.push(
+        "Capture the next expected update time so the team knows when to re-check the incident.",
+      );
     }
 
     if (focus?.toLowerCase().includes("driver")) {
@@ -312,6 +394,14 @@ export class AssistantToolsService {
     return steps;
   }
 
+  /**
+   * Determines the appropriate escalation level for an incident.
+   * Based on priority and status combinations.
+   *
+   * @param priority - The incident priority
+   * @param status - The incident status
+   * @returns The escalation level: 'urgent', 'ops_manager', or 'monitor'
+   */
   private getIncidentEscalation(
     priority: IncidentDetailsInput["priority"],
     status: IncidentDetailsInput["status"],
@@ -325,6 +415,14 @@ export class AssistantToolsService {
     return "monitor";
   }
 
+  /**
+   * Resolves a driver identifier to a UUID.
+   * Supports UUIDs, driver codes, and full names. Performs search for non-UUID identifiers.
+   *
+   * @param identifier - The driver identifier (UUID, code, or name)
+   * @returns Promise resolving to the driver UUID
+   * @throws NotFoundException if driver is not found or multiple matches exist
+   */
   private async resolveDriverIdentifier(identifier: string): Promise<string> {
     const normalizedIdentifier = identifier.trim();
 
@@ -340,7 +438,9 @@ export class AssistantToolsService {
     const response = await this.driversService.findAll(query);
     const normalizedSearch = normalizedIdentifier.toLowerCase();
     const exactDriver = response.data.find((driver) => {
-      const fullName = `${driver.firstName} ${driver.lastName}`.trim().toLowerCase();
+      const fullName = `${driver.firstName} ${driver.lastName}`
+        .trim()
+        .toLowerCase();
       return (
         driver.driverCode.toLowerCase() === normalizedSearch ||
         fullName === normalizedSearch
@@ -365,6 +465,14 @@ export class AssistantToolsService {
     throw new NotFoundException(`Driver "${identifier}" was not found.`);
   }
 
+  /**
+   * Validates that a value is a non-empty string and returns it trimmed.
+   *
+   * @param value - The value to validate
+   * @param field - The field name for error message
+   * @returns The trimmed string value
+   * @throws InternalServerErrorException if value is invalid
+   */
   private requireString(value: unknown, field: string): string {
     if (typeof value === "string" && value.trim()) {
       return value.trim();

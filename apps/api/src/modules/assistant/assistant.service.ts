@@ -12,7 +12,10 @@ import type {
   AssistantResponseDto,
   CreateAssistantMessageDto,
 } from "./dto/create-assistant-message.dto";
-import { supportedModels, toolDefinitions } from "./internal/assistant.constants";
+import {
+  supportedModels,
+  toolDefinitions,
+} from "./internal/assistant.constants";
 import {
   detectOperation,
   detectReportType,
@@ -140,7 +143,9 @@ export class AssistantService {
         },
         status: "configured",
         usedTools: orchestration.usedTools,
-        ...(orchestration.resultView ? { resultView: orchestration.resultView } : {}),
+        ...(orchestration.resultView
+          ? { resultView: orchestration.resultView }
+          : {}),
       };
     } catch (error: unknown) {
       const message = this.normalizeErrorMessage(error);
@@ -170,6 +175,13 @@ export class AssistantService {
     }
   }
 
+  /**
+   * Resolves the OpenAI model to use for the request.
+   * Uses the requested model if supported, otherwise falls back to configured model or default.
+   *
+   * @param requestedModel - The model requested by the client
+   * @returns The resolved model identifier
+   */
   private resolveModel(requestedModel?: string): string {
     if (requestedModel && supportedModels.has(requestedModel)) {
       return requestedModel;
@@ -178,9 +190,18 @@ export class AssistantService {
     const configuredModel = this.configService.get("OPENAI_MODEL", {
       infer: true,
     });
-    return supportedModels.has(configuredModel) ? configuredModel : "gpt-4.1-mini";
+    return supportedModels.has(configuredModel)
+      ? configuredModel
+      : "gpt-4.1-mini";
   }
 
+  /**
+   * Normalizes an error to a user-friendly message.
+   * Handles specific error types and provides fallback messages.
+   *
+   * @param error - The error to normalize
+   * @returns A user-friendly error message
+   */
   private normalizeErrorMessage(error: unknown): string {
     if (error instanceof NotFoundException) {
       const message = error.message.trim();

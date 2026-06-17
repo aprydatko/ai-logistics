@@ -5,6 +5,15 @@ import type {
 
 type DriverSearchStatus = DriverSearchOutput["items"][number]["status"];
 
+/**
+ * Builds a structured table result for driver search output.
+ * Includes metrics for available and on-trip drivers.
+ *
+ * @param params - The build parameters
+ * @param params.message - The original user message for title generation
+ * @param params.output - The raw search output from tool execution
+ * @returns The structured table result or undefined if no items found
+ */
 export const buildDriversTableResult = ({
   message,
   output,
@@ -20,7 +29,9 @@ export const buildDriversTableResult = ({
   const availableCount = parsed.items.filter(
     (item) => item.status === "available",
   ).length;
-  const onTripCount = parsed.items.filter((item) => item.status === "on_trip").length;
+  const onTripCount = parsed.items.filter(
+    (item) => item.status === "on_trip",
+  ).length;
 
   return {
     metrics: [
@@ -55,6 +66,13 @@ export const buildDriversTableResult = ({
   };
 };
 
+/**
+ * Parses and validates driver search output from tool execution.
+ * Ensures all required fields are present and correctly typed.
+ *
+ * @param output - The raw output to parse
+ * @returns The parsed driver search output or undefined if invalid
+ */
 const parseDriverSearchOutput = (
   output: Record<string, unknown>,
 ): DriverSearchOutput | undefined => {
@@ -99,7 +117,9 @@ const parseDriverSearchOutput = (
             ? candidate.trailerNumber
             : null,
         truckNumber:
-          typeof candidate.truckNumber === "string" ? candidate.truckNumber : null,
+          typeof candidate.truckNumber === "string"
+            ? candidate.truckNumber
+            : null,
       },
     ];
   });
@@ -110,6 +130,13 @@ const parseDriverSearchOutput = (
   };
 };
 
+/**
+ * Generates a contextual title for the drivers table based on search criteria.
+ *
+ * @param count - The number of drivers found
+ * @param message - The original user message
+ * @returns A descriptive title for the table
+ */
 const buildDriversTableTitle = (count: number, message: string): string => {
   const normalized = message.toLowerCase();
   if (normalized.includes("available")) {

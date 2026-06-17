@@ -1,4 +1,12 @@
-import { AlertTriangle, ChevronRight, MapPinned, ShieldCheck, Truck, UserRound, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronRight,
+  MapPinned,
+  ShieldCheck,
+  Truck,
+  UserRound,
+  X,
+} from "lucide-react";
 
 import { Button } from "@repo/ui/components/button";
 import type { AssistantSkill } from "./workspace/types";
@@ -9,9 +17,23 @@ const skills: AssistantSkill[] = [
 ];
 
 const capabilities = [
-  { detail: "Search live loads and summarize status, route, and assignment context.", icon: Truck, label: "Loads Q&A" },
-  { detail: "Find drivers by name, code, truck, status, and recent trip context.", icon: UserRound, label: "Drivers Q&A" },
-  { detail: "Review incidents and suggest next steps without changing data.", icon: AlertTriangle, label: "Incident guidance" },
+  {
+    detail:
+      "Search live loads and summarize status, route, and assignment context.",
+    icon: Truck,
+    label: "Loads Q&A",
+  },
+  {
+    detail:
+      "Find drivers by name, code, truck, status, and recent trip context.",
+    icon: UserRound,
+    label: "Drivers Q&A",
+  },
+  {
+    detail: "Review incidents and suggest next steps without changing data.",
+    icon: AlertTriangle,
+    label: "Incident guidance",
+  },
 ];
 
 type Filter = {
@@ -74,7 +96,9 @@ export const AssistantContextPanel = ({
       </section>
 
       <section>
-        <h3 className="text-xs font-bold text-ink-900">Assistant can help with</h3>
+        <h3 className="text-xs font-bold text-ink-900">
+          Assistant can help with
+        </h3>
         <div className="mt-2 divide-y divide-border/60">
           {capabilities.map(({ detail, icon: Icon, label }) => (
             <div className="flex h-10 items-center gap-3" key={label}>
@@ -95,36 +119,40 @@ export const AssistantContextPanel = ({
       <section>
         <h3 className="text-xs font-bold text-ink-900">Recent references</h3>
         <div className="mt-2 divide-y divide-border/60">
-          {recentReferences.length > 0 ? recentReferences.map((reference) => {
-            const Icon =
-              reference.type === "load"
-                ? Truck
-                : reference.type === "driver"
-                  ? UserRound
-                  : AlertTriangle;
+          {recentReferences.length > 0 ? (
+            recentReferences.map((reference) => {
+              const Icon =
+                reference.type === "load"
+                  ? Truck
+                  : reference.type === "driver"
+                    ? UserRound
+                    : AlertTriangle;
 
-            return (
-            <button
-              className="flex w-full items-center gap-3 py-3 text-left transition hover:bg-surface-50"
-              key={reference.recordId}
-              onClick={() => onAction(`What should I know about ${reference.title}?`)}
-              type="button"
-            >
-              <Icon className="size-4 shrink-0 text-primary-700" />
-              <span className="min-w-0 flex-1">
-                <strong className="block truncate text-xs text-ink-900">
-                  {reference.title}
-                </strong>
-                <span className="mt-0.5 block truncate text-[0.65rem] text-primary-700">
-                  {reference.type} · {reference.recordId}
-                </span>
-              </span>
-              <span className="rounded-full bg-emerald-50 px-2 py-1 text-[0.65rem] font-semibold text-emerald-700">
-                Open
-              </span>
-            </button>
-            );
-          }) : (
+              return (
+                <button
+                  className="flex w-full items-center gap-3 py-3 text-left transition hover:bg-surface-50"
+                  key={reference.recordId}
+                  onClick={() =>
+                    onAction(`What should I know about ${reference.title}?`)
+                  }
+                  type="button"
+                >
+                  <Icon className="size-4 shrink-0 text-primary-700" />
+                  <span className="min-w-0 flex-1">
+                    <strong className="block truncate text-xs text-ink-900">
+                      {reference.title}
+                    </strong>
+                    <span className="mt-0.5 block truncate text-[0.65rem] text-primary-700">
+                      {reference.type} · {reference.recordId}
+                    </span>
+                  </span>
+                  <span className="rounded-full bg-emerald-50 px-2 py-1 text-[0.65rem] font-semibold text-emerald-700">
+                    Open
+                  </span>
+                </button>
+              );
+            })
+          ) : (
             <p className="py-2 text-xs text-primary-700">
               Ask about a load, driver, or incident to pin live references here.
             </p>
