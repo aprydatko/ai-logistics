@@ -13,7 +13,7 @@ export const toolDefinitions = [
     type: "function",
     name: "search_loads",
     description:
-      "Find loads by search text, status, date range, or driver assignment for user questions and reports.",
+      "Find loads by search text, status, date range, or driver assignment for user questions, reports, and requests to list or format matching loads in a table.",
     parameters: {
       type: "object",
       additionalProperties: false,
@@ -35,7 +35,7 @@ export const toolDefinitions = [
     type: "function",
     name: "search_drivers",
     description:
-      "Find drivers by name, code, truck, trailer, status, or activity state.",
+      "Find drivers by name, code, truck, trailer, status, or activity state for user questions and for requests to list or format matching drivers in a table.",
     parameters: {
       type: "object",
       additionalProperties: false,

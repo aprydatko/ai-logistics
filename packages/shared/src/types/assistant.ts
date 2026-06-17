@@ -49,4 +49,24 @@ export type AssistantLoadsTableResult = {
   type: "loads_table";
 };
 
-export type AssistantResultView = AssistantLoadsTableResult;
+export type AssistantDriversTableRow = {
+  driverCode: string;
+  id: string;
+  isActive: boolean;
+  name: string;
+  status: "available" | "on_trip" | "off_duty" | "maintenance";
+  trailerNumber: string | null;
+  truckNumber: string | null;
+};
+
+export type AssistantDriversTableResult = {
+  metrics: AssistantLoadsTableMetric[];
+  rows: AssistantDriversTableRow[];
+  summary?: string;
+  title: string;
+  type: "drivers_table";
+};
+
+export type AssistantResultView =
+  | AssistantLoadsTableResult
+  | AssistantDriversTableResult;

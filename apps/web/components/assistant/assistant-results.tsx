@@ -2,7 +2,11 @@
 
 import { Clock3, Sparkles, Truck } from "lucide-react";
 
-import type { AssistantLoadsTableResult } from "@repo/shared";
+import type {
+  AssistantDriversTableResult,
+  AssistantLoadsTableResult,
+  AssistantResultView,
+} from "@repo/shared";
 import {
   DataTable,
   Table,
@@ -22,128 +26,199 @@ const toneClasses = {
 };
 
 const statusClasses: Record<string, string> = {
+  available: "bg-emerald-50 text-emerald-700",
   assigned: "bg-blue-50 text-blue-700",
   cancelled: "bg-slate-100 text-slate-700",
   delivered: "bg-emerald-50 text-emerald-700",
   in_transit: "bg-amber-50 text-amber-700",
+  maintenance: "bg-rose-50 text-rose-700",
+  off_duty: "bg-slate-100 text-slate-700",
+  on_trip: "bg-blue-50 text-blue-700",
   pending: "bg-violet-50 text-violet-700",
 };
 
 type AssistantResultsProps = {
-  result: AssistantLoadsTableResult;
+  result: AssistantResultView;
 };
 
 export const AssistantResults = ({
   result,
-}: AssistantResultsProps): React.JSX.Element => (
-  <section className="relative rounded-2xl border border-border bg-card p-4 shadow-xs sm:p-5">
-    <span className="absolute -left-4 top-4 grid size-8 place-items-center rounded-full bg-ai-600 text-white shadow-md ring-4 ring-white">
-      <Sparkles className="size-4" />
-    </span>
+}: AssistantResultsProps): React.JSX.Element => {
+  const resultsLabel =
+    result.type === "drivers_table" ? "Matching drivers" : "Matching loads";
 
-    <h2 className="pl-2 text-sm font-bold text-ink-900">{result.title}</h2>
-    {result.summary ? (
-      <p className="mt-2 pl-2 text-sm text-primary-700">{result.summary}</p>
-    ) : null}
+  return (
+    <section className="relative rounded-2xl border border-border bg-card p-4 shadow-xs sm:p-5">
+      <span className="absolute -left-4 top-4 grid size-8 place-items-center rounded-full bg-ai-600 text-white shadow-md ring-4 ring-white">
+        <Sparkles className="size-4" />
+      </span>
 
-    {result.metrics.length > 0 ? (
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {result.metrics.map(({ label, tone, value }) => (
-          <article
-            className="flex items-center gap-3 rounded-xl border border-border p-3"
-            key={label}
-          >
-            <span
-              className={cn(
-                "grid size-10 place-items-center rounded-xl",
-                toneClasses[tone],
-              )}
+      <h2 className="pl-2 text-sm font-bold text-ink-900">{result.title}</h2>
+      {result.summary ? (
+        <p className="mt-2 pl-2 text-sm text-primary-700">{result.summary}</p>
+      ) : null}
+
+      {result.metrics.length > 0 ? (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {result.metrics.map(({ label, tone, value }) => (
+            <article
+              className="flex items-center gap-3 rounded-xl border border-border p-3"
+              key={label}
             >
-              {label.toLowerCase().includes("transit") ? (
-                <Clock3 className="size-5" />
-              ) : (
-                <Truck className="size-5" />
-              )}
-            </span>
-            <div>
-              <p className="text-lg font-bold leading-5 text-ink-900">{value}</p>
-              <p className="mt-1 text-xs text-primary-700">{label}</p>
-            </div>
-          </article>
-        ))}
-      </div>
-    ) : null}
+              <span
+                className={cn(
+                  "grid size-10 place-items-center rounded-xl",
+                  toneClasses[tone],
+                )}
+              >
+                {label.toLowerCase().includes("transit") ? (
+                  <Clock3 className="size-5" />
+                ) : (
+                  <Truck className="size-5" />
+                )}
+              </span>
+              <div>
+                <p className="text-lg font-bold leading-5 text-ink-900">
+                  {value}
+                </p>
+                <p className="mt-1 text-xs text-primary-700">{label}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : null}
 
-    <h3 className="mb-2 mt-5 text-xs font-bold uppercase tracking-[0.08em] text-primary-700">
-      Matching loads
-    </h3>
-    <DataTable className="shadow-none">
-      <TableScrollArea>
-        <Table className="min-w-[860px]">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Load</TableHead>
-              <TableHead>Driver</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Pickup</TableHead>
-              <TableHead>Delivery</TableHead>
-              <TableHead>Route</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {result.rows.map((load) => (
-              <TableRow key={load.id}>
-                <TableCell>
-                  <p className="text-xs font-bold text-ink-900">
-                    {load.referenceNumber}
-                  </p>
-                  <p className="mt-1 text-xs text-primary-700">{load.id}</p>
-                </TableCell>
-                <TableCell>
-                  {load.driverName ? (
-                    <div className="flex items-center gap-2.5">
-                      <span className="grid size-8 place-items-center rounded-full bg-primary-700 text-[0.65rem] font-bold text-white">
-                        {load.driverInitials ?? "NA"}
-                      </span>
-                      <div>
-                        <p className="text-xs font-semibold text-ink-900">
-                          {load.driverName}
-                        </p>
-                        <p className="mt-1 text-xs text-primary-700">
-                          {load.driverCode ?? "No truck assigned"}
-                        </p>
-                      </div>
+      <h3 className="mb-2 mt-5 text-xs font-bold uppercase tracking-[0.08em] text-primary-700">
+        {resultsLabel}
+      </h3>
+      {result.type === "loads_table" ? (
+        <LoadsResultsTable result={result} />
+      ) : (
+        <DriversResultsTable result={result} />
+      )}
+    </section>
+  );
+};
+
+const LoadsResultsTable = ({
+  result,
+}: {
+  result: AssistantLoadsTableResult;
+}): React.JSX.Element => (
+  <DataTable className="shadow-none">
+    <TableScrollArea>
+      <Table className="min-w-[860px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Load</TableHead>
+            <TableHead>Driver</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Pickup</TableHead>
+            <TableHead>Delivery</TableHead>
+            <TableHead>Route</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {result.rows.map((load) => (
+            <TableRow key={load.id}>
+              <TableCell>
+                <p className="text-xs font-bold text-ink-900">
+                  {load.referenceNumber}
+                </p>
+                <p className="mt-1 text-xs text-primary-700">{load.id}</p>
+              </TableCell>
+              <TableCell>
+                {load.driverName ? (
+                  <div className="flex items-center gap-2.5">
+                    <span className="grid size-8 place-items-center rounded-full bg-primary-700 text-[0.65rem] font-bold text-white">
+                      {load.driverInitials ?? "NA"}
+                    </span>
+                    <div>
+                      <p className="text-xs font-semibold text-ink-900">
+                        {load.driverName}
+                      </p>
+                      <p className="mt-1 text-xs text-primary-700">
+                        {load.driverCode ?? "No truck assigned"}
+                      </p>
                     </div>
-                  ) : (
-                    <p className="text-xs text-primary-700">Unassigned</p>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <span
-                    className={cn(
-                      "rounded-full px-2.5 py-1 text-xs font-semibold",
-                      statusClasses[load.status] ?? "bg-surface-100 text-primary-700",
-                    )}
-                  >
-                    {load.status.replaceAll("_", " ")}
-                  </span>
-                </TableCell>
-                <TableCell className="text-xs text-ink-900">
-                  {formatDate(load.pickupDate)}
-                </TableCell>
-                <TableCell className="text-xs text-ink-900">
-                  {formatDate(load.deliveryDate)}
-                </TableCell>
-                <TableCell className="text-xs text-ink-900">
-                  {load.route}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableScrollArea>
-    </DataTable>
-  </section>
+                  </div>
+                ) : (
+                  <p className="text-xs text-primary-700">Unassigned</p>
+                )}
+              </TableCell>
+              <TableCell>
+                <StatusBadge status={load.status} />
+              </TableCell>
+              <TableCell className="text-xs text-ink-900">
+                {formatDate(load.pickupDate)}
+              </TableCell>
+              <TableCell className="text-xs text-ink-900">
+                {formatDate(load.deliveryDate)}
+              </TableCell>
+              <TableCell className="text-xs text-ink-900">{load.route}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableScrollArea>
+  </DataTable>
+);
+
+const DriversResultsTable = ({
+  result,
+}: {
+  result: AssistantDriversTableResult;
+}): React.JSX.Element => (
+  <DataTable className="shadow-none">
+    <TableScrollArea>
+      <Table className="min-w-[760px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Driver</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Truck</TableHead>
+            <TableHead>Trailer</TableHead>
+            <TableHead>Activity</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {result.rows.map((driver) => (
+            <TableRow key={driver.id}>
+              <TableCell>
+                <p className="text-xs font-bold text-ink-900">{driver.name}</p>
+                <p className="mt-1 text-xs text-primary-700">
+                  {driver.driverCode}
+                </p>
+              </TableCell>
+              <TableCell>
+                <StatusBadge status={driver.status} />
+              </TableCell>
+              <TableCell className="text-xs text-ink-900">
+                {driver.truckNumber ? `Truck ${driver.truckNumber}` : "Unassigned"}
+              </TableCell>
+              <TableCell className="text-xs text-ink-900">
+                {driver.trailerNumber ?? "Not assigned"}
+              </TableCell>
+              <TableCell className="text-xs text-ink-900">
+                {driver.isActive ? "Active" : "Inactive"}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableScrollArea>
+  </DataTable>
+);
+
+const StatusBadge = ({ status }: { status: string }): React.JSX.Element => (
+  <span
+    className={cn(
+      "rounded-full px-2.5 py-1 text-xs font-semibold",
+      statusClasses[status] ?? "bg-surface-100 text-primary-700",
+    )}
+  >
+    {status.replaceAll("_", " ")}
+  </span>
 );
 
 const formatDate = (value: string): string => {

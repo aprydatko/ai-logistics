@@ -115,13 +115,35 @@ type AssistantLoadsTableRow = {
   status: string;
 };
 
-type AssistantResultView = {
+type AssistantDriversTableRow = {
+  driverCode: string;
+  id: string;
+  isActive: boolean;
+  name: string;
+  status: "available" | "on_trip" | "off_duty" | "maintenance";
+  trailerNumber: string | null;
+  truckNumber: string | null;
+};
+
+type AssistantLoadsResultView = {
   metrics: AssistantLoadsTableMetric[];
   rows: AssistantLoadsTableRow[];
   summary?: string;
   title: string;
   type: "loads_table";
 };
+
+type AssistantDriversResultView = {
+  metrics: AssistantLoadsTableMetric[];
+  rows: AssistantDriversTableRow[];
+  summary?: string;
+  title: string;
+  type: "drivers_table";
+};
+
+type AssistantResultView =
+  | AssistantLoadsResultView
+  | AssistantDriversResultView;
 
 type AssistantResponseStatus = "placeholder" | "configured" | "error";
 

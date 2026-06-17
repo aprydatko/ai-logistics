@@ -76,7 +76,7 @@ export const AssistantWorkspace = (): React.JSX.Element => {
               messages={messages}
               onToggle={() => setIsMessageThreadOpen((current) => !current)}
             />
-            {assistantState.resultView?.type === "loads_table" ? (
+            {assistantState.resultView ? (
               <AssistantResults result={assistantState.resultView} />
             ) : null}
           </div>

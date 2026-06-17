@@ -1,3 +1,4 @@
+import { buildDriversTableResult } from "./assistant-driver-results";
 import { InternalServerErrorException } from "@nestjs/common";
 
 import { buildLoadsTableResult } from "./assistant-load-results";
@@ -71,6 +72,12 @@ export const runAssistantOrchestration = async ({
       }
       if (functionCall.name === "search_loads") {
         resultView = buildLoadsTableResult({
+          message,
+          output: result.output,
+        });
+      }
+      if (functionCall.name === "search_drivers") {
+        resultView = buildDriversTableResult({
           message,
           output: result.output,
         });

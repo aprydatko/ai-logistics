@@ -248,6 +248,131 @@ describe("AssistantService", () => {
     );
   });
 
+  it("runs driver search tools and returns a drivers table result", async () => {
+    const { driversService, service } = createService();
+    driversService.findAll.mockResolvedValue({
+      success: true,
+      data: [
+        {
+          id: "driver-1",
+          userId: "user-2",
+          driverCode: "ID-1024",
+          firstName: "Arthur",
+          lastName: "Prydatko",
+          email: "arthur@example.com",
+          phone: "+10000000000",
+          avatarUrl: null,
+          dateOfBirth: null,
+          address: null,
+          hireDate: "2026-01-01",
+          licenseType: "CDL-A",
+          licenseNumber: "AA-123",
+          licenseExpirationDate: "2028-01-01",
+          licenseState: "Texas",
+          emergencyContact: null,
+          emergencyPhone: null,
+          notes: null,
+          rating: 4.8,
+          truckNumber: "TR-01",
+          trailerNumber: "TL-09",
+          isActive: true,
+          status: "available",
+          currentLocation: undefined,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+      pagination: {
+        page: 1,
+        limit: 1,
+        total: 1,
+        totalPages: 1,
+      },
+    });
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          id: "resp_1",
+          output: [
+            {
+              type: "function_call",
+              name: "search_drivers",
+              call_id: "call_1",
+              arguments: JSON.stringify({
+                search: "Arthur",
+                status: "available",
+              }),
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          id: "resp_2",
+          output_text: "I found one available driver.",
+          usage: {
+            input_tokens: 70,
+            output_tokens: 16,
+            total_tokens: 86,
+          },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      service.respond(
+        {
+          message: "list available drivers and show the results in a table",
+        },
+        {
+          email: "dispatcher@example.com",
+          id: "user-1",
+          role: "dispatcher",
+        },
+      ),
+    ).resolves.toEqual({
+      conversationId: expect.any(String),
+      linkedEntity: {
+        type: "driver",
+        recordId: "driver-1",
+        title: "Arthur Prydatko",
+        route: "/drivers/driver-1",
+      },
+      message: "I found one available driver.",
+      reportType: undefined,
+      request: {
+        message: "list available drivers and show the results in a table",
+        model: "gpt-4.1-mini",
+      },
+      resultView: {
+        metrics: [
+          { label: "Drivers found", tone: "red", value: "1" },
+          { label: "Available", tone: "teal", value: "1" },
+          { label: "On trip", tone: "amber", value: "0" },
+        ],
+        rows: [
+          {
+            driverCode: "ID-1024",
+            id: "driver-1",
+            isActive: true,
+            name: "Arthur Prydatko",
+            status: "available",
+            trailerNumber: "TL-09",
+            truckNumber: "TR-01",
+          },
+        ],
+        summary: "1 driver matched your request.",
+        title: "Found 1 available drivers matching your request.",
+        type: "drivers_table",
+      },
+      status: "configured",
+      usedTools: ["search_drivers"],
+    });
+    expect(driversService.findAll).toHaveBeenCalledOnce();
+  });
+
   it("resolves get_driver_details by driver code before loading details", async () => {
     const { driversService, service } = createService();
     driversService.findAll.mockResolvedValue({
