@@ -1,16 +1,16 @@
-import type { AdminDispatcherRole, UserRole } from '../../common/roles';
-import { ADMIN_DISPATCHER_ROLES } from '../../common/roles';
+import type { AdminDispatcherRole, UserRole } from "../../common/roles";
+import { ADMIN_DISPATCHER_ROLES } from "../../common/roles";
 
-export const AI_PROCESSING_QUEUE = 'ai-processing';
-export const DOCUMENT_PROCESSING_QUEUE = 'document-processing';
-export const EMAIL_NOTIFICATIONS_QUEUE = 'email-notifications';
+export const AI_PROCESSING_QUEUE = "ai-processing";
+export const DOCUMENT_PROCESSING_QUEUE = "document-processing";
+export const EMAIL_NOTIFICATIONS_QUEUE = "email-notifications";
 
-export const REDIS_CONNECTION = 'REDIS_CONNECTION';
-export const AI_PROCESSING_QUEUE_TOKEN = 'AI_PROCESSING_QUEUE_TOKEN';
+export const REDIS_CONNECTION = "REDIS_CONNECTION";
+export const AI_PROCESSING_QUEUE_TOKEN = "AI_PROCESSING_QUEUE_TOKEN";
 export const DOCUMENT_PROCESSING_QUEUE_TOKEN =
-  'DOCUMENT_PROCESSING_QUEUE_TOKEN';
+  "DOCUMENT_PROCESSING_QUEUE_TOKEN";
 export const EMAIL_NOTIFICATIONS_QUEUE_TOKEN =
-  'EMAIL_NOTIFICATIONS_QUEUE_TOKEN';
+  "EMAIL_NOTIFICATIONS_QUEUE_TOKEN";
 
 export const QUEUE_DEFINITIONS = [
   [AI_PROCESSING_QUEUE_TOKEN, AI_PROCESSING_QUEUE],
@@ -19,7 +19,7 @@ export const QUEUE_DEFINITIONS = [
 ] as const satisfies ReadonlyArray<readonly [string, string]>;
 
 export const QUEUE_DASHBOARD_ROLES: ReadonlySet<UserRole> = new Set(
-  ADMIN_DISPATCHER_ROLES
+  ADMIN_DISPATCHER_ROLES,
 );
 
 export type QueueDashboardRole = AdminDispatcherRole;

@@ -20,6 +20,67 @@ const makeSelectChain = (result: unknown) => {
   return chain;
 };
 
+type PreferenceFixture = {
+  id: string;
+  userId: string;
+  emailFrequency: "off" | "instant" | "daily";
+  aiInAppEnabled: boolean;
+  aiEmailEnabled: boolean;
+  documentsInAppEnabled: boolean;
+  documentsEmailEnabled: boolean;
+  driversInAppEnabled: boolean;
+  driversEmailEnabled: boolean;
+  incidentsInAppEnabled: boolean;
+  incidentsEmailEnabled: boolean;
+  loadsInAppEnabled: boolean;
+  loadsEmailEnabled: boolean;
+  systemInAppEnabled: boolean;
+  systemEmailEnabled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+const buildPreference = (
+  overrides: Partial<PreferenceFixture> = {},
+): PreferenceFixture => ({
+  id: "33333333-3333-4333-8333-333333333333",
+  userId: "22222222-2222-4222-8222-222222222222",
+  emailFrequency: "off",
+  aiEmailEnabled: false,
+  aiInAppEnabled: true,
+  documentsEmailEnabled: false,
+  documentsInAppEnabled: true,
+  driversEmailEnabled: false,
+  driversInAppEnabled: true,
+  incidentsEmailEnabled: false,
+  incidentsInAppEnabled: true,
+  loadsEmailEnabled: false,
+  loadsInAppEnabled: true,
+  systemEmailEnabled: false,
+  systemInAppEnabled: false,
+  createdAt: new Date("2026-06-17T10:00:00.000Z"),
+  updatedAt: new Date("2026-06-17T10:00:00.000Z"),
+  ...overrides,
+});
+
+const buildService = (deps: {
+  client: unknown;
+  gateway?: unknown;
+  delivery?: unknown;
+  queue?: unknown;
+}): NotificationsService =>
+  new NotificationsService(
+    { client: deps.client } as never,
+    (deps.gateway ?? {
+      emitDashboardIncidentStatsUpdated: vi.fn(),
+      emitNotificationCreated: vi.fn(),
+      emitNotificationRead: vi.fn(),
+      emitUnreadCountUpdated: vi.fn(),
+    }) as never,
+    (deps.delivery ?? { sendNotificationEmail: vi.fn() }) as never,
+    (deps.queue ?? { add: vi.fn() }) as never,
+  );
+
 describe("NotificationsService", () => {
   it("maps notifications to API payload", async () => {
     const now = new Date("2026-06-17T10:00:00.000Z");
@@ -205,5 +266,129 @@ describe("NotificationsService", () => {
       recipient.id,
       1,
     );
+  });
+
+  it("upgrades legacy document preferences on first read", async () => {
+    // A legacy row: documents disabled, everything else at the original
+    // defaults, frequency = off — must be upgraded to documentsInAppEnabled=true.
+    const legacyPreference = buildPreference({
+      documentsInAppEnabled: false,
+      documentsEmailEnabled: false,
+    });
+    const upgraded = buildPreference({
+      documentsInAppEnabled: true,
+      updatedAt: new Date("2026-06-17T10:05:00.000Z"),
+    });
+    const preferenceRows = makeSelectChain([legacyPreference]);
+    const updateReturning = vi.fn().mockResolvedValue([upgraded]);
+    const updateWhere = vi.fn().mockReturnValue({ returning: updateReturning });
+    const updateSet = vi.fn().mockReturnValue({ where: updateWhere });
+    const client = {
+      select: vi.fn().mockReturnValue(preferenceRows),
+      update: vi.fn().mockReturnValue({ set: updateSet }),
+    };
+    const service = buildService({ client });
+
+    const result = await service.getPreferences(legacyPreference.userId);
+
+    expect(updateSet).toHaveBeenCalledWith(
+      expect.objectContaining({ documentsInAppEnabled: true }),
+    );
+    expect(result.data.documents.inAppEnabled).toBe(true);
+  });
+
+  it("does not upgrade preference rows that the user has customized", async () => {
+    // Any deviation from the default shape means the user explicitly
+    // touched their preferences — leave the row alone.
+    const customized = buildPreference({
+      driversInAppEnabled: false, // differs from default true
+    });
+    const preferenceRows = makeSelectChain([customized]);
+    const updateMock = vi.fn();
+    const client = {
+      select: vi.fn().mockReturnValue(preferenceRows),
+      update: updateMock,
+    };
+    const service = buildService({ client });
+
+    const result = await service.getPreferences(customized.userId);
+
+    expect(updateMock).not.toHaveBeenCalled();
+    expect(result.data.drivers.inAppEnabled).toBe(false);
+  });
+
+  it("throws NotFoundException when marking another user's notification as read", async () => {
+    // The update WHERE includes userId, so a foreign id matches zero rows.
+    const updateReturning = vi.fn().mockResolvedValue([]);
+    const updateWhere = vi.fn().mockReturnValue({ returning: updateReturning });
+    const updateSet = vi.fn().mockReturnValue({ where: updateWhere });
+    const client = {
+      update: vi.fn().mockReturnValue({ set: updateSet }),
+    };
+    const service = buildService({ client });
+
+    await expect(
+      service.markAsRead(
+        "22222222-2222-4222-8222-222222222222",
+        "99999999-9999-4999-8999-999999999999",
+      ),
+    ).rejects.toThrow("Notification was not found");
+  });
+
+  it("skips dispatch when no channel is enabled", async () => {
+    // Recipient with a customized preference (drivers disabled) so we
+    // bypass the legacy-document upgrade path and reach the channel
+    // resolution with all document channels off.
+    const recipient = {
+      email: "u@example.com",
+      firstName: "U",
+      id: "22222222-2222-4222-8222-222222222222",
+      lastName: "Ser",
+    };
+    const preference = buildPreference({
+      userId: recipient.id,
+      driversInAppEnabled: false, // marks row as "customized" -> no upgrade
+      documentsInAppEnabled: false,
+      documentsEmailEnabled: false,
+    });
+    const recipientRows = makeSelectChain([recipient]);
+    const preferenceRows = makeSelectChain([preference]);
+    const insertMock = vi.fn();
+    const client = {
+      insert: insertMock,
+      select: vi
+        .fn()
+        .mockReturnValueOnce(recipientRows)
+        .mockReturnValueOnce(preferenceRows),
+    };
+    const service = buildService({ client });
+
+    await expect(
+      service.createDocumentProcessingNotifications({
+        documentId: "55555555-5555-4555-8555-555555555555",
+        fileName: "bill-of-lading.pdf",
+        // uploader is someone else -> forceInApp is false
+        status: "complete",
+        uploadedByUserId: "77777777-7777-4777-8777-777777777777",
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(insertMock).not.toHaveBeenCalled();
+  });
+
+  it("no-ops document notifications while status is processing", async () => {
+    const selectMock = vi.fn();
+    const client = { select: selectMock };
+    const service = buildService({ client });
+
+    await expect(
+      service.createDocumentProcessingNotifications({
+        documentId: "55555555-5555-4555-8555-555555555555",
+        fileName: "rate-confirmation.pdf",
+        status: "processing",
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(selectMock).not.toHaveBeenCalled();
   });
 });

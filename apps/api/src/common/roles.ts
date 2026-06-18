@@ -6,7 +6,7 @@
  * be reflected in both. Keeping it local to the API avoids adding a
  * dependency on `@repo/shared` just for the role literal set.
  */
-export const USER_ROLES = ['admin', 'dispatcher', 'manager', 'driver'] as const;
+export const USER_ROLES = ["admin", "dispatcher", "manager", "driver"] as const;
 
 export type UserRole = (typeof USER_ROLES)[number];
 
@@ -15,8 +15,8 @@ export type UserRole = (typeof USER_ROLES)[number];
  * (e.g. Bull Board dashboard, incident/document management APIs).
  */
 export const ADMIN_DISPATCHER_ROLES = [
-  'admin',
-  'dispatcher',
+  "admin",
+  "dispatcher",
 ] as const satisfies readonly UserRole[];
 
 export type AdminDispatcherRole = (typeof ADMIN_DISPATCHER_ROLES)[number];
@@ -26,9 +26,9 @@ export type AdminDispatcherRole = (typeof ADMIN_DISPATCHER_ROLES)[number];
  * to the original uploader.
  */
 export const DOCUMENT_RECIPIENT_ROLES = [
-  'admin',
-  'dispatcher',
-  'manager',
+  "admin",
+  "dispatcher",
+  "manager",
 ] as const satisfies readonly UserRole[];
 
 export type DocumentRecipientRole = (typeof DOCUMENT_RECIPIENT_ROLES)[number];
@@ -39,5 +39,5 @@ export type DocumentRecipientRole = (typeof DOCUMENT_RECIPIENT_ROLES)[number];
  * instead of throwing.
  */
 export const isUserRole = (value: unknown): value is UserRole =>
-  typeof value === 'string' &&
+  typeof value === "string" &&
   (USER_ROLES as readonly string[]).includes(value);

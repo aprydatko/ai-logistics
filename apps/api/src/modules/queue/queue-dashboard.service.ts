@@ -1,16 +1,16 @@
-import { createBullBoard } from '@bull-board/api';
-import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
-import { ExpressAdapter } from '@bull-board/express';
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import type { Queue } from 'bullmq';
+import { createBullBoard } from "@bull-board/api";
+import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
+import { ExpressAdapter } from "@bull-board/express";
+import { Inject, Injectable, OnModuleInit } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import type { Queue } from "bullmq";
 
-import type { Environment } from '../../config/environment';
+import type { Environment } from "../../config/environment";
 import {
   AI_PROCESSING_QUEUE_TOKEN,
   DOCUMENT_PROCESSING_QUEUE_TOKEN,
   EMAIL_NOTIFICATIONS_QUEUE_TOKEN,
-} from './queue.constants';
+} from "./queue.constants";
 
 /**
  * Wires the Bull Board UI to the three BullMQ queues (AI, document,
@@ -28,9 +28,9 @@ export class QueueDashboardService implements OnModuleInit {
     configService: ConfigService<Environment, true>,
     @Inject(AI_PROCESSING_QUEUE_TOKEN) aiQueue: Queue,
     @Inject(DOCUMENT_PROCESSING_QUEUE_TOKEN) documentQueue: Queue,
-    @Inject(EMAIL_NOTIFICATIONS_QUEUE_TOKEN) emailQueue: Queue
+    @Inject(EMAIL_NOTIFICATIONS_QUEUE_TOKEN) emailQueue: Queue,
   ) {
-    this.basePath = configService.get('BULL_BOARD_PATH', { infer: true });
+    this.basePath = configService.get("BULL_BOARD_PATH", { infer: true });
     this.serverAdapter.setBasePath(this.basePath);
     this.queues = [aiQueue, documentQueue, emailQueue];
   }

@@ -1,3 +1,4 @@
+import { Logger } from "@nestjs/common";
 import {
   OnGatewayConnection,
   WebSocketGateway,
@@ -34,6 +35,8 @@ export class NotificationsGateway implements OnGatewayConnection {
   @WebSocketServer()
   server!: Server;
 
+  private readonly logger = new Logger(NotificationsGateway.name);
+
   constructor(private readonly jwtService: JwtService) {}
 
   async handleConnection(client: RealtimeSocket): Promise<void> {
@@ -59,7 +62,8 @@ export class NotificationsGateway implements OnGatewayConnection {
       };
 
       await client.join(this.toUserRoom(payload.sub));
-    } catch {
+    } catch (error) {
+      this.logger.warn("WebSocket connection failed: invalid token", error);
       client.disconnect();
     }
   }
