@@ -122,6 +122,13 @@ export class MetricsService {
     registers: [this.registry],
   });
 
+  private readonly cacheRequestsTotal = new Counter({
+    name: "cache_requests_total",
+    help: "Total cache lookups by namespace and outcome",
+    labelNames: ["namespace", "outcome"] as const,
+    registers: [this.registry],
+  });
+
   private readonly apiUptimeSeconds = new Gauge({
     name: "api_uptime_seconds",
     help: "API process uptime in seconds",
@@ -172,6 +179,13 @@ export class MetricsService {
 
   setRedisUp(isUp: boolean): void {
     this.redisUp.set(isUp ? 1 : 0);
+  }
+
+  recordCacheRequest(
+    namespace: string,
+    outcome: "hit" | "miss" | "read_error" | "write_error",
+  ): void {
+    this.cacheRequestsTotal.inc({ namespace, outcome });
   }
 
   recordAssistantRequest(input: {

@@ -9,6 +9,8 @@ import { and, count, desc, eq, inArray, ne } from "drizzle-orm";
 
 import { DatabaseService } from "../../db/database.service";
 import { drivers, driverActivity, loads } from "../../db/schema";
+import { CacheService } from "../cache/cache.service";
+import { buildCacheKey } from "../cache/cache.utils";
 import type { AssignLoadDriverDto } from "./dto/assign-load-driver.dto";
 import type { CreateLoadDto } from "./dto/create-load.dto";
 import type { ListLoadsQueryDto } from "./dto/list-loads-query.dto";
@@ -39,7 +41,10 @@ import {
 
 @Injectable()
 export class LoadsService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   /**
    * Returns a paginated, filtered list of loads with their assigned driver summaries.
@@ -54,51 +59,65 @@ export class LoadsService {
    * @returns Paginated load list with driver summaries and page metadata
    */
   async findAll(query: ListLoadsQueryDto): Promise<LoadsListResponse> {
-    const filters = buildLoadFilters(query);
-    const where = filters.length > 0 ? and(...filters) : undefined;
-    const client = this.databaseService.client;
-    const [rows, countRows] = await Promise.all([
-      loadListSelect(client)
-        .where(where)
-        .orderBy(desc(loads.pickupDate), desc(loads.createdAt))
-        .limit(query.limit)
-        .offset((query.page - 1) * query.limit),
-      client.select({ total: count() }).from(loads).where(where),
-    ]);
-    const total = countRows[0]?.total ?? 0;
+    return this.cacheService.getOrSet(
+      "loads",
+      buildCacheKey("loads", "find-all", query),
+      this.cacheService.getTtl("list"),
+      async () => {
+        const filters = buildLoadFilters(query);
+        const where = filters.length > 0 ? and(...filters) : undefined;
+        const client = this.databaseService.client;
+        const [rows, countRows] = await Promise.all([
+          loadListSelect(client)
+            .where(where)
+            .orderBy(desc(loads.pickupDate), desc(loads.createdAt))
+            .limit(query.limit)
+            .offset((query.page - 1) * query.limit),
+          client.select({ total: count() }).from(loads).where(where),
+        ]);
+        const total = countRows[0]?.total ?? 0;
 
-    return {
-      success: true,
-      data: rows.map(toLoadListItem),
-      pagination: {
-        page: query.page,
-        limit: query.limit,
-        total,
-        totalPages: Math.ceil(total / query.limit),
+        return {
+          success: true,
+          data: rows.map(toLoadListItem),
+          pagination: {
+            page: query.page,
+            limit: query.limit,
+            total,
+            totalPages: Math.ceil(total / query.limit),
+          },
+        };
       },
-    };
+    );
   }
 
   async findById(id: string): Promise<LoadResponse> {
-    const client = this.databaseService.client;
-    const [load] = await client
-      .select()
-      .from(loads)
-      .where(eq(loads.id, id))
-      .limit(1);
+    return this.cacheService.getOrSet(
+      "loads",
+      buildCacheKey("loads", "find-by-id", { id }),
+      this.cacheService.getTtl("detail"),
+      async () => {
+        const client = this.databaseService.client;
+        const [load] = await client
+          .select()
+          .from(loads)
+          .where(eq(loads.id, id))
+          .limit(1);
 
-    if (!load) {
-      throw new NotFoundException("Load was not found");
-    }
+        if (!load) {
+          throw new NotFoundException("Load was not found");
+        }
 
-    const driver = load.driverId
-      ? await findLoadDriverSummary(client, load.driverId)
-      : null;
+        const driver = load.driverId
+          ? await findLoadDriverSummary(client, load.driverId)
+          : null;
 
-    return {
-      success: true,
-      data: toLoadItem(load, driver),
-    };
+        return {
+          success: true,
+          data: toLoadItem(load, driver),
+        };
+      },
+    );
   }
 
   /**
@@ -132,6 +151,7 @@ export class LoadsService {
         throw new InternalServerErrorException("Failed to create load");
       }
 
+      await this.invalidateLoadReadCaches();
       return { success: true, data: toLoadItem(load, null) };
     } catch (error: unknown) {
       if (isPostgresUniqueViolation(error)) {
@@ -249,8 +269,9 @@ export class LoadsService {
           averageSpeedMph: dto.averageSpeedMph,
           estimatedDeliveryAt: deliveryDate.toISOString(),
         },
-      });
+        });
 
+      await this.invalidateLoadReadCaches();
       return {
         success: true,
         data: toLoadItem(assignedLoad, {
@@ -349,6 +370,7 @@ export class LoadsService {
       const driver = load.driverId
         ? await findLoadDriverSummary(client, load.driverId)
         : null;
+      await this.invalidateLoadReadCaches();
       return { success: true, data: toLoadItem(load, driver) };
     } catch (error: unknown) {
       if (isPostgresUniqueViolation(error)) {
@@ -356,5 +378,13 @@ export class LoadsService {
       }
       throw error;
     }
+  }
+
+  private async invalidateLoadReadCaches(): Promise<void> {
+    await Promise.all([
+      this.cacheService.invalidateNamespace("loads"),
+      this.cacheService.invalidateNamespace("documents"),
+      this.cacheService.invalidateNamespace("incidents"),
+    ]);
   }
 }

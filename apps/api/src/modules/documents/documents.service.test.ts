@@ -10,6 +10,11 @@ import type {
 } from "../../db/schema";
 import { DocumentsService } from "./documents.service";
 
+const cacheService = {
+  getOrSet: vi.fn(async (_key, _ttl, factory) => factory()),
+  invalidateNamespace: vi.fn().mockResolvedValue(undefined),
+};
+
 const document: DocumentRecord = {
   id: "11111111-1111-4111-8111-111111111111",
   fileName: "bol-1001.pdf",
@@ -120,6 +125,7 @@ const withTransaction = <T extends Record<string, unknown>>(client: T): T => ({
 const createService = (client: unknown): DocumentsService =>
   new DocumentsService(
     client as never,
+    cacheService as never,
     {} as never,
     {} as never,
     {} as never,
@@ -394,6 +400,7 @@ describe("DocumentsService", () => {
     };
     const service = new DocumentsService(
       { client } as never,
+      cacheService as never,
       storage as never,
       {} as never,
       {} as never,
@@ -443,6 +450,7 @@ describe("DocumentsService", () => {
     };
     const service = new DocumentsService(
       { client } as never,
+      cacheService as never,
       storage as never,
       {} as never,
       {} as never,

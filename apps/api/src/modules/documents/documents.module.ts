@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/auth.module";
+import { CacheModule } from "../cache/cache.module";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { QueueModule } from "../queue/queue.module";
 import { DocumentProcessingWorkerService } from "./document-processing-worker.service";
@@ -10,7 +11,7 @@ import { DocumentVisionService } from "./document-vision.service";
 import { DocumentsService } from "./documents.service";
 
 @Module({
-  imports: [AuthModule, QueueModule, NotificationsModule],
+  imports: [AuthModule, QueueModule, NotificationsModule, CacheModule],
   controllers: [DocumentsController],
   providers: [
     DocumentsService,

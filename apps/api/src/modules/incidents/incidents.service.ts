@@ -37,11 +37,14 @@ import type {
   IncidentTimelineResponse,
   IncidentsListResponse,
 } from "./incidents.types";
+import { CacheService } from "../cache/cache.service";
+import { buildCacheKey } from "../cache/cache.utils";
 
 @Injectable()
 export class IncidentsService {
   constructor(
     private readonly databaseService: DatabaseService,
+    private readonly cacheService: CacheService,
     private readonly incidentsGateway: IncidentsGateway,
     private readonly notificationsService: NotificationsService,
   ) {}
@@ -60,59 +63,66 @@ export class IncidentsService {
    * @returns Paginated incident list with load and driver summaries
    */
   async findAll(query: ListIncidentsQueryDto): Promise<IncidentsListResponse> {
-    const filters = this.buildFilters(query);
-    const where = filters.length > 0 ? and(...filters) : undefined;
-    const order = query.sortOrder === "asc" ? asc : desc;
-    const orderColumn = this.getSortColumn(query.sortBy);
-    const baseQuery = this.databaseService.client
-      .select({
-        incident: incidents,
-        load: {
-          id: loads.id,
-          referenceNumber: loads.referenceNumber,
-        },
-        driver: {
-          id: drivers.id,
-          firstName: drivers.firstName,
-          lastName: drivers.lastName,
-          avatarUrl: drivers.avatarUrl,
-          truckNumber: drivers.truckNumber,
-        },
-      })
-      .from(incidents)
-      .innerJoin(loads, eq(incidents.loadId, loads.id))
-      .leftJoin(drivers, eq(loads.driverId, drivers.id))
-      .where(where);
+    return this.cacheService.getOrSet(
+      "incidents",
+      buildCacheKey("incidents", "find-all", query),
+      this.cacheService.getTtl("list"),
+      async () => {
+        const filters = this.buildFilters(query);
+        const where = filters.length > 0 ? and(...filters) : undefined;
+        const order = query.sortOrder === "asc" ? asc : desc;
+        const orderColumn = this.getSortColumn(query.sortBy);
+        const baseQuery = this.databaseService.client
+          .select({
+            incident: incidents,
+            load: {
+              id: loads.id,
+              referenceNumber: loads.referenceNumber,
+            },
+            driver: {
+              id: drivers.id,
+              firstName: drivers.firstName,
+              lastName: drivers.lastName,
+              avatarUrl: drivers.avatarUrl,
+              truckNumber: drivers.truckNumber,
+            },
+          })
+          .from(incidents)
+          .innerJoin(loads, eq(incidents.loadId, loads.id))
+          .leftJoin(drivers, eq(loads.driverId, drivers.id))
+          .where(where);
 
-    const [rows, countRows] = await Promise.all([
-      baseQuery
-        .orderBy(order(orderColumn), desc(incidents.id))
-        .limit(query.limit)
-        .offset((query.page - 1) * query.limit),
-      this.databaseService.client
-        .select({ total: count() })
-        .from(incidents)
-        .innerJoin(loads, eq(incidents.loadId, loads.id))
-        .where(where),
-    ]);
-    const total = countRows[0]?.total ?? 0;
+        const [rows, countRows] = await Promise.all([
+          baseQuery
+            .orderBy(order(orderColumn), desc(incidents.id))
+            .limit(query.limit)
+            .offset((query.page - 1) * query.limit),
+          this.databaseService.client
+            .select({ total: count() })
+            .from(incidents)
+            .innerJoin(loads, eq(incidents.loadId, loads.id))
+            .where(where),
+        ]);
+        const total = countRows[0]?.total ?? 0;
 
-    return {
-      success: true,
-      data: rows.map((row) =>
-        this.toIncident(
-          row.incident,
-          row.load,
-          row.driver?.id ? row.driver : null,
-        ),
-      ),
-      pagination: {
-        page: query.page,
-        limit: query.limit,
-        total,
-        totalPages: Math.ceil(total / query.limit),
+        return {
+          success: true,
+          data: rows.map((row) =>
+            this.toIncident(
+              row.incident,
+              row.load,
+              row.driver?.id ? row.driver : null,
+            ),
+          ),
+          pagination: {
+            page: query.page,
+            limit: query.limit,
+            total,
+            totalPages: Math.ceil(total / query.limit),
+          },
+        };
       },
-    };
+    );
   }
 
   /**
@@ -123,7 +133,12 @@ export class IncidentsService {
    * @throws NotFoundException if incident does not exist
    */
   async findOne(id: string): Promise<IncidentResponse> {
-    return { success: true, data: await this.findIncident(id) };
+    return this.cacheService.getOrSet(
+      "incidents",
+      buildCacheKey("incidents", "find-one", { id }),
+      this.cacheService.getTtl("detail"),
+      async () => ({ success: true, data: await this.findIncident(id) }),
+    );
   }
 
   /**
@@ -137,22 +152,29 @@ export class IncidentsService {
    * @throws NotFoundException if incident does not exist
    */
   async findTimeline(id: string): Promise<IncidentTimelineResponse> {
-    const incident = await this.findIncident(id);
+    return this.cacheService.getOrSet(
+      "incidents",
+      buildCacheKey("incidents", "find-timeline", { id }),
+      this.cacheService.getTtl("detail"),
+      async () => {
+        const incident = await this.findIncident(id);
 
-    return {
-      success: true,
-      data: {
-        incidentId: incident.id,
-        updatedAt: incident.updatedAt,
-        status: incident.status,
-        priority: incident.priority,
-        items: [...incident.timeline].sort(
-          (left, right) =>
-            new Date(right.dateTime).getTime() -
-            new Date(left.dateTime).getTime(),
-        ),
+        return {
+          success: true,
+          data: {
+            incidentId: incident.id,
+            updatedAt: incident.updatedAt,
+            status: incident.status,
+            priority: incident.priority,
+            items: [...incident.timeline].sort(
+              (left, right) =>
+                new Date(right.dateTime).getTime() -
+                new Date(left.dateTime).getTime(),
+            ),
+          },
+        };
       },
-    };
+    );
   }
 
   /**
@@ -195,6 +217,7 @@ export class IncidentsService {
     await this.notificationsService.createIncidentNotifications(
       this.toIncidentNotificationInput("incident_created", response.data),
     );
+    await this.invalidateIncidentReadCaches();
     return response;
   }
 
@@ -245,6 +268,7 @@ export class IncidentsService {
         response.data,
       ),
     );
+    await this.invalidateIncidentReadCaches();
     return response;
   }
 
@@ -284,6 +308,7 @@ export class IncidentsService {
         response.data,
       ),
     );
+    await this.invalidateIncidentReadCaches();
     return response;
   }
 
@@ -326,6 +351,7 @@ export class IncidentsService {
         response.data,
       ),
     );
+    await this.invalidateIncidentReadCaches();
     return response;
   }
 
@@ -573,5 +599,9 @@ export class IncidentsService {
     }
 
     return fallbackIso;
+  }
+
+  private async invalidateIncidentReadCaches(): Promise<void> {
+    await this.cacheService.invalidateNamespace("incidents");
   }
 }

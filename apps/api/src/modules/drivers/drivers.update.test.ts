@@ -9,6 +9,11 @@ import type { DriverRecord } from "../../db/schema";
 import { UpdateDriverDto } from "./dto/update-driver.dto";
 import { DriversService } from "./drivers.service";
 
+const cacheService = {
+  getOrSet: vi.fn(async (_key, _ttl, factory) => factory()),
+  invalidateNamespace: vi.fn().mockResolvedValue(undefined),
+};
+
 const driver: DriverRecord = {
   id: "22222222-2222-2222-2222-222222222222",
   driverCode: "DR-1001",
@@ -71,7 +76,7 @@ const createService = (updateResult: unknown[]) => {
   };
   const service = new DriversService({
     client,
-  } as unknown as ConstructorParameters<typeof DriversService>[0]);
+  } as unknown as ConstructorParameters<typeof DriversService>[0], cacheService as never);
 
   return { client, service, updateChain };
 };

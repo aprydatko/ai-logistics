@@ -9,6 +9,11 @@ import type { LoadRecord } from "../../db/schema";
 import { UpdateLoadDto } from "./dto/update-load.dto";
 import { LoadsService } from "./loads.service";
 
+const cacheService = {
+  getOrSet: vi.fn(async (_key, _ttl, factory) => factory()),
+  invalidateNamespace: vi.fn().mockResolvedValue(undefined),
+};
+
 const load: LoadRecord = {
   id: "22222222-2222-2222-2222-222222222222",
   referenceNumber: "LD-1001",
@@ -64,7 +69,7 @@ const createUpdateService = (updateResult: unknown[]) => {
     client,
     service: new LoadsService({
       client,
-    } as unknown as ConstructorParameters<typeof LoadsService>[0]),
+    } as unknown as ConstructorParameters<typeof LoadsService>[0], cacheService as never),
     updateChain,
   };
 };
@@ -130,7 +135,7 @@ describe("LoadsService", () => {
   it("rejects delivery before pickup", async () => {
     const service = new LoadsService({
       client: {},
-    } as unknown as ConstructorParameters<typeof LoadsService>[0]);
+    } as unknown as ConstructorParameters<typeof LoadsService>[0], cacheService as never);
 
     await expect(
       service.create({

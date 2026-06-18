@@ -4,6 +4,11 @@ import { describe, expect, it, vi } from "vitest";
 import type { DriverRecord } from "../../db/schema";
 import { DriversService } from "./drivers.service";
 
+const cacheService = {
+  getOrSet: vi.fn(async (_key, _ttl, factory) => factory()),
+  invalidateNamespace: vi.fn().mockResolvedValue(undefined),
+};
+
 const dto = {
   driverCode: " DR-1001 ",
   email: " JOHN.SMITH@EXAMPLE.COM ",
@@ -79,7 +84,7 @@ const createService = (selectResult: unknown[], insertResult: unknown[]) => {
   };
   const service = new DriversService({
     client,
-  } as unknown as ConstructorParameters<typeof DriversService>[0]);
+  } as unknown as ConstructorParameters<typeof DriversService>[0], cacheService as never);
 
   return { client, insertChain, service };
 };
