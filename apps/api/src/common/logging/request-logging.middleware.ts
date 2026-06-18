@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 
+import { MetricsService } from "../metrics/metrics.service";
 import type { AuthenticatedUser } from "../../modules/auth/auth.types";
 import { RequestContextService } from "./request-context.service";
 import { WinstonLoggerService } from "./winston-logger.service";
@@ -15,6 +16,7 @@ export const createRequestLoggingMiddleware =
   (
     logger: WinstonLoggerService,
     requestContext: RequestContextService,
+    metrics: MetricsService,
   ) =>
   (request: Request, response: Response, next: NextFunction): void => {
     const startedAt = process.hrtime.bigint();
@@ -25,6 +27,12 @@ export const createRequestLoggingMiddleware =
       const userId = authenticatedRequest.user?.id;
 
       requestContext.setUserId(userId);
+      metrics.recordHttpRequest({
+        durationMs,
+        method: request.method,
+        route: authenticatedRequest.route?.path ?? request.path ?? "unknown",
+        statusCode: response.statusCode,
+      });
       logger.logHttpRequest({
         durationMs,
         method: request.method,

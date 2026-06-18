@@ -8,6 +8,7 @@ import { Worker, type Job } from "bullmq";
 
 import { SentryService } from "../../common/logging/sentry.service";
 import { WinstonLoggerService } from "../../common/logging/winston-logger.service";
+import { MetricsService } from "../../common/metrics/metrics.service";
 import {
   AI_PROCESSING_QUEUE,
   REDIS_CONNECTION,
@@ -32,6 +33,7 @@ export class AssistantAiWorkerService implements OnModuleInit, OnModuleDestroy {
     private readonly assistantService: AssistantService,
     private readonly logger: WinstonLoggerService,
     private readonly sentry: SentryService,
+    private readonly metrics: MetricsService,
   ) {}
 
   onModuleInit(): void {
@@ -55,6 +57,7 @@ export class AssistantAiWorkerService implements OnModuleInit, OnModuleDestroy {
     );
 
     this.worker.on("completed", (job) => {
+      this.metrics.incrementQueueJob(AI_PROCESSING_QUEUE, "completed");
       this.logger.info("Assistant queue job completed", {
         context: AssistantAiWorkerService.name,
         event: "queue_job_completed",
@@ -65,6 +68,7 @@ export class AssistantAiWorkerService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.worker.on("failed", (job, error) => {
+      this.metrics.incrementQueueJob(AI_PROCESSING_QUEUE, "failed");
       this.logger.errorWithMeta("Assistant queue job failed", error, {
         context: AssistantAiWorkerService.name,
         event: "queue_job_failed",

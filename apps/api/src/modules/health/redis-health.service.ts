@@ -1,6 +1,7 @@
 import { Inject, Injectable, OnModuleDestroy } from "@nestjs/common";
 import Redis from "ioredis";
 
+import { MetricsService } from "../../common/metrics/metrics.service";
 import { REDIS_CONNECTION } from "../queue/queue.constants";
 import type { RedisConnectionOptions } from "../queue/queue.types";
 
@@ -11,6 +12,7 @@ export class RedisHealthService implements OnModuleDestroy {
   constructor(
     @Inject(REDIS_CONNECTION)
     connection: RedisConnectionOptions,
+    private readonly metrics: MetricsService,
   ) {
     this.client = new Redis({
       db: connection.db,
@@ -24,10 +26,16 @@ export class RedisHealthService implements OnModuleDestroy {
   }
 
   async ping(): Promise<"reachable"> {
-    await this.client.connect();
-    await this.client.ping();
+    try {
+      await this.client.connect();
+      await this.client.ping();
+      this.metrics.setRedisUp(true);
 
-    return "reachable";
+      return "reachable";
+    } catch (error) {
+      this.metrics.setRedisUp(false);
+      throw error;
+    }
   }
 
   async onModuleDestroy(): Promise<void> {

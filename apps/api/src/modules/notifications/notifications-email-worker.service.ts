@@ -8,6 +8,7 @@ import { Worker, type Job } from "bullmq";
 
 import { SentryService } from "../../common/logging/sentry.service";
 import { WinstonLoggerService } from "../../common/logging/winston-logger.service";
+import { MetricsService } from "../../common/metrics/metrics.service";
 import {
   EMAIL_NOTIFICATIONS_QUEUE,
   REDIS_CONNECTION,
@@ -30,6 +31,7 @@ export class NotificationsEmailWorkerService
     private readonly notificationsDeliveryService: NotificationsDeliveryService,
     private readonly logger: WinstonLoggerService,
     private readonly sentry: SentryService,
+    private readonly metrics: MetricsService,
   ) {}
 
   onModuleInit(): void {
@@ -52,6 +54,7 @@ export class NotificationsEmailWorkerService
     );
 
     this.worker.on("completed", (job) => {
+      this.metrics.incrementQueueJob(EMAIL_NOTIFICATIONS_QUEUE, "completed");
       this.logger.info("Email notification job completed", {
         context: NotificationsEmailWorkerService.name,
         event: "queue_job_completed",
@@ -62,6 +65,7 @@ export class NotificationsEmailWorkerService
     });
 
     this.worker.on("failed", (job, error) => {
+      this.metrics.incrementQueueJob(EMAIL_NOTIFICATIONS_QUEUE, "failed");
       this.logger.errorWithMeta("Email notification job failed", error, {
         context: NotificationsEmailWorkerService.name,
         event: "queue_job_failed",

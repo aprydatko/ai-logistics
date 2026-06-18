@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { MetricsService } from "../../common/metrics/metrics.service";
 import { AssistantAuditService } from "./assistant-audit.service";
 import { AssistantOpenAIClient } from "./internal/assistant-openai-client";
 import { AssistantService } from "./assistant.service";
@@ -60,6 +61,9 @@ const createService = (
     aiLogsService as never,
     databaseService as never,
   );
+  const metricsService = {
+    recordAssistantRequest: vi.fn(),
+  } as unknown as MetricsService;
 
   return {
     aiLogsService,
@@ -68,6 +72,7 @@ const createService = (
     loadsService,
     service: new AssistantService(
       configService as never,
+      metricsService as never,
       assistantAuditService as never,
       new AssistantOpenAIClient(configService as never) as never,
       new AssistantToolsService(

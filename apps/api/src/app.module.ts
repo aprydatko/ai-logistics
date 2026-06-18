@@ -4,6 +4,7 @@ import { ThrottlerModule, minutes } from "@nestjs/throttler";
 
 import { validateEnvironment } from "./config/environment";
 import { LoggingModule } from "./common/logging/logging.module";
+import { MetricsModule } from "./common/metrics/metrics.module";
 import { DatabaseModule } from "./db/database.module";
 import { AiLogsModule } from "./modules/ai-logs/ai-logs.module";
 import { AssistantModule } from "./modules/assistant/assistant.module";
@@ -24,6 +25,7 @@ import { QueueModule } from "./modules/queue/queue.module";
       validate: validateEnvironment,
     }),
     LoggingModule,
+    MetricsModule,
     ThrottlerModule.forRoot([
       {
         limit: 60,

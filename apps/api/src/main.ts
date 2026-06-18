@@ -10,6 +10,7 @@ import { createRequestLoggingMiddleware } from "./common/logging/request-logging
 import { RequestContextService } from "./common/logging/request-context.service";
 import { SentryService } from "./common/logging/sentry.service";
 import { WinstonLoggerService } from "./common/logging/winston-logger.service";
+import { MetricsService } from "./common/metrics/metrics.service";
 import type { Environment } from "./config/environment";
 import { QueueDashboardAuthService } from "./modules/queue/queue-dashboard-auth.service";
 import { QueueDashboardService } from "./modules/queue/queue-dashboard.service";
@@ -22,6 +23,7 @@ async function bootstrap(): Promise<void> {
   const logger = app.get(WinstonLoggerService);
   const requestContext = app.get(RequestContextService);
   const sentry = app.get(SentryService);
+  const metrics = app.get(MetricsService);
 
   app.useLogger(logger);
 
@@ -29,7 +31,7 @@ async function bootstrap(): Promise<void> {
   app.useBodyParser("json", { limit: "7mb" });
   app.use(helmet());
   app.use(createRequestContextMiddleware(requestContext));
-  app.use(createRequestLoggingMiddleware(logger, requestContext));
+  app.use(createRequestLoggingMiddleware(logger, requestContext, metrics));
   app.enableCors({
     credentials: true,
     origin: configService.get("WEB_ORIGIN", { infer: true }),

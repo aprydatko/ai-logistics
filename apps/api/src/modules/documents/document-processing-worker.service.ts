@@ -8,6 +8,7 @@ import { Worker, type Job } from "bullmq";
 
 import { SentryService } from "../../common/logging/sentry.service";
 import { WinstonLoggerService } from "../../common/logging/winston-logger.service";
+import { MetricsService } from "../../common/metrics/metrics.service";
 import {
   DOCUMENT_PROCESSING_QUEUE,
   REDIS_CONNECTION,
@@ -30,6 +31,7 @@ export class DocumentProcessingWorkerService
     private readonly documentsService: DocumentsService,
     private readonly logger: WinstonLoggerService,
     private readonly sentry: SentryService,
+    private readonly metrics: MetricsService,
   ) {}
 
   onModuleInit(): void {
@@ -53,6 +55,7 @@ export class DocumentProcessingWorkerService
     );
 
     this.worker.on("completed", (job) => {
+      this.metrics.incrementQueueJob(DOCUMENT_PROCESSING_QUEUE, "completed");
       this.logger.info("Document processing job completed", {
         context: DocumentProcessingWorkerService.name,
         event: "queue_job_completed",
@@ -63,6 +66,7 @@ export class DocumentProcessingWorkerService
     });
 
     this.worker.on("failed", (job, error) => {
+      this.metrics.incrementQueueJob(DOCUMENT_PROCESSING_QUEUE, "failed");
       this.logger.errorWithMeta("Document processing job failed", error, {
         context: DocumentProcessingWorkerService.name,
         event: "queue_job_failed",
