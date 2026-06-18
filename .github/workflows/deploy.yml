@@ -62,5 +62,11 @@ jobs:
             git checkout main
             git pull --ff-only origin main
 
-            docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+            if ! docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build; then
+              docker compose --env-file .env.production -f docker-compose.prod.yml ps
+              docker compose --env-file .env.production -f docker-compose.prod.yml logs --tail=200 migrate api web
+              exit 1
+            fi
+
+            docker compose --env-file .env.production -f docker-compose.prod.yml ps
             docker image prune -f
