@@ -46,16 +46,26 @@ export function assertUploadFilePresent(
  * @throws BadRequestException if MIME type or size validation fails
  */
 export function validateUploadFile(file: Express.Multer.File): void {
+  validateUploadDescriptor({
+    mimeType: file.mimetype,
+    fileSize: file.size,
+  });
+}
+
+export function validateUploadDescriptor(input: {
+  mimeType: string;
+  fileSize: number;
+}): void {
   if (
     !ALLOWED_UPLOAD_MIME_TYPES.includes(
-      file.mimetype as (typeof ALLOWED_UPLOAD_MIME_TYPES)[number],
+      input.mimeType as (typeof ALLOWED_UPLOAD_MIME_TYPES)[number],
     )
   ) {
     throw new BadRequestException(
       "Only PDF, JPEG, PNG, and WEBP documents are supported",
     );
   }
-  if (file.size > MAX_UPLOAD_FILE_SIZE_BYTES) {
+  if (input.fileSize > MAX_UPLOAD_FILE_SIZE_BYTES) {
     throw new BadRequestException("Document must be 5 MB or smaller");
   }
 }

@@ -3,7 +3,7 @@
 import type { Document } from "@repo/shared";
 import Image from "next/image";
 
-import { resolveDocumentFileUrl } from "@/lib/documents/document-file-url";
+import { useDocumentFileUrl } from "@/lib/documents/use-document-file-url";
 
 export const FilePreview = ({
   document,
@@ -12,7 +12,7 @@ export const FilePreview = ({
   document: Document;
   isFullscreen: boolean;
 }): React.JSX.Element => {
-  const resolvedFileUrl = resolveDocumentFileUrl(document.fileUrl);
+  const resolvedFileUrl = useDocumentFileUrl(document);
 
   if (!resolvedFileUrl) {
     return (

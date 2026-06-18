@@ -26,6 +26,11 @@ export const documentStatusEnum = pgEnum("document_status", [
   "needs_review",
 ]);
 
+export const documentStorageProviderEnum = pgEnum("document_storage_provider", [
+  "local",
+  "s3",
+]);
+
 export const documents = pgTable(
   "documents",
   {
@@ -35,6 +40,12 @@ export const documents = pgTable(
     mimeType: varchar("mime_type", { length: 100 }),
     fileUrl: text("file_url"),
     storagePath: text("storage_path"),
+    storageProvider: documentStorageProviderEnum("storage_provider")
+      .default("local")
+      .notNull(),
+    storageBucket: varchar("storage_bucket", { length: 255 }),
+    objectKey: text("object_key"),
+    etag: varchar("etag", { length: 255 }),
     type: documentTypeEnum("type").notNull(),
     status: documentStatusEnum("status").notNull(),
     uploadedByUserId: uuid("uploaded_by_user_id").references(() => users.id, {
@@ -64,6 +75,8 @@ export const documents = pgTable(
     index("documents_status_idx").on(table.status),
     index("documents_uploaded_by_user_id_idx").on(table.uploadedByUserId),
     index("documents_uploaded_at_idx").on(table.uploadedAt),
+    index("documents_storage_provider_idx").on(table.storageProvider),
+    index("documents_object_key_idx").on(table.objectKey),
   ],
 );
 

@@ -12,6 +12,12 @@ const document = {
   fileSize: 2048,
   fileUrl: "data:application/pdf;base64,JVBERi0xLjQ=",
   mimeType: "application/pdf",
+  storage: {
+    provider: "s3",
+    bucket: "documents",
+    objectKey: "documents/2026-06-18/test.pdf",
+    etag: "etag-1",
+  },
   pageCount: 2,
   extractionModel: "Document Extractor v2.1",
   processingTimeMs: 4200,

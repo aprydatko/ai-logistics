@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-import { resolveDocumentFileUrl } from "@/lib/documents/document-file-url";
+import { useDocumentFileUrl } from "@/lib/documents/use-document-file-url";
 import { Button } from "@repo/ui/components/button";
 
 import { formatUploadedAt } from "./review-data";
@@ -52,7 +52,7 @@ export const DocumentReviewHeader = ({
   activeTab: DocumentReviewTab;
   onTabChange: (tab: DocumentReviewTab) => void;
 }): React.JSX.Element => {
-  const resolvedFileUrl = resolveDocumentFileUrl(document.fileUrl);
+  const resolvedFileUrl = useDocumentFileUrl(document);
   const badge = statusBadge[document.status];
   const BadgeIcon = badge.icon;
 
@@ -114,11 +114,13 @@ export const DocumentReviewHeader = ({
             )}
           </div>
           <div className="flex gap-3">
-            <Button asChild className="h-10" variant="outline">
-              <a download={document.fileName} href={resolvedFileUrl}>
-                <Download /> Download
-              </a>
-            </Button>
+            {resolvedFileUrl ? (
+              <Button asChild className="h-10" variant="outline">
+                <a download={document.fileName} href={resolvedFileUrl}>
+                  <Download /> Download
+                </a>
+              </Button>
+            ) : null}
           </div>
         </div>
       </div>

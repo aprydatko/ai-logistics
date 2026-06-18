@@ -1,3 +1,4 @@
+/* eslint-disable turbo/no-undeclared-env-vars */
 import type { Server } from "node:http";
 
 declare global {
@@ -5,6 +6,10 @@ declare global {
 }
 
 const globalTeardown = async (): Promise<void> => {
+  if (process.env.PLAYWRIGHT_REAL_API === "1") {
+    return;
+  }
+
   if (!globalThis.__authMockServer) {
     return;
   }

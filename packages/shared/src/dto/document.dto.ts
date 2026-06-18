@@ -1,7 +1,9 @@
 import type {
   Document,
+  DocumentFileAccess,
   DocumentStatus,
   DocumentType,
+  DocumentUploadSession,
 } from "../types/document.js";
 
 export type ListDocumentsQueryDto = {
@@ -59,6 +61,30 @@ export type UpdateDocumentAuditEventDto = {
 
 export type ReplaceDocumentAuditEventsDto = {
   events: UpdateDocumentAuditEventDto[];
+};
+
+export type InitiateDocumentUploadDto = {
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  type: DocumentType;
+  driverId?: string;
+  loadId?: string;
+  analyzeWithVision?: boolean;
+};
+
+export type CompleteDocumentUploadDto = {
+  uploadId: string;
+};
+
+export type DocumentUploadSessionResponse = {
+  success: true;
+  data: DocumentUploadSession;
+};
+
+export type DocumentFileAccessResponse = {
+  success: true;
+  data: DocumentFileAccess;
 };
 
 export type DocumentsListResponse = {

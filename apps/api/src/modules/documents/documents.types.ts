@@ -2,6 +2,7 @@ import type {
   DocumentAuditEventRecord,
   DocumentExtractedFieldRecord,
   DocumentRecord,
+  DocumentUploadRecord,
 } from "../../db/schema";
 
 export type DocumentAuditEventItem = Omit<
@@ -29,13 +30,23 @@ export type DocumentItem = Omit<
   | "driverId"
   | "fileUrl"
   | "loadId"
+  | "etag"
+  | "objectKey"
   | "storagePath"
+  | "storageBucket"
+  | "storageProvider"
   | "updatedAt"
   | "uploadedAt"
   | "uploadedByUserId"
 > & {
   fileUrl: string | null;
   mimeType: string | null;
+  storage: {
+    provider: DocumentRecord["storageProvider"];
+    bucket: string | null;
+    objectKey: string | null;
+    etag: string | null;
+  };
   uploadedBy: {
     id: string;
     firstName: string;
@@ -69,6 +80,23 @@ export type DocumentsListResult = {
 };
 
 export type DocumentResult = { success: true; data: DocumentItem };
+export type DocumentUploadSessionResult = {
+  success: true;
+  data: {
+    id: DocumentUploadRecord["id"];
+    status: DocumentUploadRecord["status"];
+    uploadUrl: string;
+    objectKey: string;
+    expiresAt: string;
+  };
+};
+export type DocumentFileAccessResult = {
+  success: true;
+  data: {
+    url: string;
+    expiresAt: string;
+  };
+};
 export type DeleteDocumentResult = {
   success: true;
   data: { id: string };

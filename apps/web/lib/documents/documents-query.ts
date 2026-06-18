@@ -1,6 +1,7 @@
 import type {
   Document,
   DocumentAuditEvent,
+  DocumentFileAccessResponse,
   DocumentExtractedField,
   DocumentsListResponse,
   DocumentResponse,
@@ -73,6 +74,12 @@ export const documentSchema: z.ZodType<Document> = z.object({
   fileSize: z.number().int().nonnegative(),
   fileUrl: z.string().nullable(),
   mimeType: z.string().nullable(),
+  storage: z.object({
+    provider: z.enum(["local", "s3"]),
+    bucket: z.string().nullable(),
+    objectKey: z.string().nullable(),
+    etag: z.string().nullable(),
+  }),
   pageCount: z.number().int().positive().nullable(),
   extractionModel: z.string().nullable(),
   processingTimeMs: z.number().int().nonnegative().nullable(),
@@ -121,6 +128,15 @@ const documentResponseSchema: z.ZodType<DocumentResponse> = z.object({
   data: documentSchema,
 });
 
+const documentFileAccessResponseSchema: z.ZodType<DocumentFileAccessResponse> =
+  z.object({
+    success: z.literal(true),
+    data: z.object({
+      url: z.string().min(1),
+      expiresAt: z.string(),
+    }),
+  });
+
 const toSearchParams = (filters: ListDocumentsQueryDto): URLSearchParams => {
   const params = new URLSearchParams();
   if (filters.search) params.set("search", filters.search);
@@ -149,6 +165,16 @@ export const fetchDocument = async (documentId: string): Promise<Document> => {
   return documentResponseSchema.parse(await response.json()).data;
 };
 
+export const fetchDocumentFileAccess = async (
+  documentId: string,
+): Promise<DocumentFileAccessResponse["data"]> => {
+  const response = await fetch(`/api/documents/${documentId}/file-access`, {
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error("Unable to load document file");
+  return documentFileAccessResponseSchema.parse(await response.json()).data;
+};
+
 export const documentsQueryOptions = (filters: ListDocumentsQueryDto) =>
   queryOptions({
     placeholderData: keepPreviousData,
@@ -160,4 +186,11 @@ export const documentQueryOptions = (documentId: string) =>
   queryOptions({
     queryKey: ["documents", documentId],
     queryFn: () => fetchDocument(documentId),
+  });
+
+export const documentFileAccessQueryOptions = (documentId: string) =>
+  queryOptions({
+    queryKey: ["documents", documentId, "file-access"],
+    queryFn: () => fetchDocumentFileAccess(documentId),
+    staleTime: 60_000,
   });

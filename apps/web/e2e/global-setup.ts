@@ -1,14 +1,21 @@
+/* eslint-disable turbo/no-undeclared-env-vars */
 import {
   createServer,
   type IncomingMessage,
   type Server,
   type ServerResponse,
 } from "node:http";
+import { spawnSync } from "node:child_process";
 import { once } from "node:events";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 declare global {
   var __authMockServer: Server | undefined;
 }
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const AUTH_USER = {
   id: "user_1",
@@ -76,6 +83,50 @@ const handleAuthLogin = async (
 };
 
 const globalSetup = async (): Promise<void> => {
+  if (process.env.PLAYWRIGHT_REAL_API === "1") {
+    const apiHealthUrl =
+      process.env.PLAYWRIGHT_REAL_API_HEALTH_URL ??
+      "http://127.0.0.1:3001/api/health";
+
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      try {
+        const response = await fetch(apiHealthUrl, { cache: "no-store" });
+        if (response.ok) {
+          break;
+        }
+      } catch {
+        // Retry while the local API is still starting up.
+      }
+
+      if (attempt === 19) {
+        throw new Error(`Real API is unavailable at ${apiHealthUrl}`);
+      }
+
+      await new Promise((resolvePromise) =>
+        setTimeout(resolvePromise, 1_000),
+      );
+    }
+
+    const repoRoot = resolve(__dirname, "..", "..");
+    const ensureUser = spawnSync(
+      "pnpm",
+      ["--filter", "api", "exec", "node", "scripts/ensure-e2e-dispatcher.mjs"],
+      {
+        cwd: repoRoot,
+        encoding: "utf8",
+        shell: true,
+      },
+    );
+
+    if (ensureUser.status !== 0) {
+      throw new Error(
+        ensureUser.stderr || ensureUser.stdout || "Failed to prepare E2E user",
+      );
+    }
+
+    return;
+  }
+
   const server = createServer((request, response) => {
     if (request.method === "POST" && request.url === "/api/auth/login") {
       void handleAuthLogin(request, response);

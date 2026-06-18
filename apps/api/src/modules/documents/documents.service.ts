@@ -3,23 +3,30 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  StreamableFile,
 } from "@nestjs/common";
 import type { Queue } from "bullmq";
-import { and, asc, count, desc, eq, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, lt, or } from "drizzle-orm";
 
 import { DatabaseService } from "../../db/database.service";
 import {
   documentAuditEvents,
   documents,
   documentExtractedFields,
+  documentUploads,
   drivers,
   loads,
   users,
 } from "../../db/schema";
 import { NotificationsGateway } from "../notifications/notifications.gateway";
 import { NotificationsService } from "../notifications/notifications.service";
-import { DocumentStorageService } from "./document-storage.service";
+import {
+  type StoredDocumentFile,
+  DocumentStorageService,
+} from "./document-storage.service";
 import { DocumentVisionService } from "./document-vision.service";
+import type { CompleteDocumentUploadDto } from "./dto/complete-document-upload.dto";
+import type { InitiateDocumentUploadDto } from "./dto/initiate-document-upload.dto";
 import type { ListDocumentsQueryDto } from "./dto/list-documents-query.dto";
 import type { CreateDocumentDto } from "./dto/create-document.dto";
 import type { UpdateDocumentAuditEventDto } from "./dto/update-document-audit-event.dto";
@@ -28,8 +35,10 @@ import type { UpdateDocumentExtractedFieldDto } from "./dto/update-document-extr
 import type { UploadDocumentDto } from "./dto/upload-document.dto";
 import type {
   DeleteDocumentResult,
+  DocumentFileAccessResult,
   DocumentResult,
   DocumentsListResult,
+  DocumentUploadSessionResult,
 } from "./documents.types";
 import {
   toDocumentAuditEventItem,
@@ -47,6 +56,7 @@ import {
   persistUploadAuditEvent,
   persistVisionAnalysis,
   resolveUploadStatus,
+  validateUploadDescriptor,
   validateUploadFile,
 } from "./internal/document-upload";
 import { DOCUMENT_PROCESSING_QUEUE_TOKEN } from "../queue/queue.constants";
@@ -64,27 +74,6 @@ export class DocumentsService {
     private readonly documentProcessingQueue: Queue<DocumentProcessingJobData>,
   ) {}
 
-  /**
-   * Retrieves a paginated list of documents with filtering and sorting.
-   *
-   * This method builds dynamic SQL filters based on query parameters, executes
-   * parallel queries for data and total count, and maps database records to
-   * the API response format including related driver and load information.
-   *
-   * @param query - Query parameters for filtering, sorting, and pagination
-   * @returns Paginated list of documents with metadata
-   *
-   * @example
-   * ```ts
-   * const result = await documentsService.findAll({
-   *   page: 1,
-   *   limit: 10,
-   *   search: "invoice",
-   *   sortBy: "uploadedAt",
-   *   sortOrder: "desc"
-   * });
-   * ```
-   */
   async findAll(query: ListDocumentsQueryDto): Promise<DocumentsListResult> {
     const filters = buildDocumentFilters(query);
     const where = filters.length > 0 ? and(...filters) : undefined;
@@ -127,17 +116,6 @@ export class DocumentsService {
     };
   }
 
-  /**
-   * Retrieves a single document by ID with all related data.
-   *
-   * This method fetches the document record along with its extracted fields
-   * and audit events in parallel queries. It validates document existence
-   * and maps all related data to the API response format.
-   *
-   * @param id - The document UUID
-   * @returns Document with extracted fields and audit events
-   * @throws NotFoundException if document doesn't exist
-   */
   async findOne(id: string): Promise<DocumentResult> {
     const client = this.databaseService.client;
     const [[row], extractedFields, auditEvents] = await Promise.all([
@@ -171,36 +149,12 @@ export class DocumentsService {
     };
   }
 
-  /**
-   * Creates a new document record without file upload.
-   *
-   * This method validates driver and load relations if provided, creates a
-   * document record in the database, and returns the complete document with
-   * all related data. The file URL and storage path are null since no file
-   * is uploaded in this operation.
-   *
-   * @param dto - Document creation data
-   * @param uploadedByUserId - ID of the user creating the document
-   * @returns Created document with all related data
-   * @throws BadRequestException if document creation fails
-   * @throws NotFoundException if driver or load doesn't exist
-   */
   async create(
     dto: CreateDocumentDto,
     uploadedByUserId: string,
   ): Promise<DocumentResult> {
     const client = this.databaseService.client;
-    if (dto.driverId) {
-      await assertDocumentRelationExists(
-        client,
-        drivers,
-        dto.driverId,
-        "Driver",
-      );
-    }
-    if (dto.loadId) {
-      await assertDocumentRelationExists(client, loads, dto.loadId, "Load");
-    }
+    await this.assertRelations(dto.driverId, dto.loadId);
 
     const [created] = await client
       .insert(documents)
@@ -210,6 +164,10 @@ export class DocumentsService {
         mimeType: dto.mimeType,
         fileUrl: null,
         storagePath: null,
+        storageProvider: "local",
+        storageBucket: null,
+        objectKey: null,
+        etag: null,
         type: dto.type,
         status: dto.status,
         uploadedByUserId,
@@ -223,36 +181,12 @@ export class DocumentsService {
     return this.findOne(created.id);
   }
 
-  /**
-   * Updates an existing document with the provided fields.
-   *
-   * This method performs a partial update on the document record, validating
-   * that at least one field is provided and that driver/load relations exist
-   * if they are being updated. Only non-undefined fields are updated.
-   *
-   * @param id - The document UUID
-   * @param dto - Partial document data to update
-   * @returns Updated document with all related data
-   * @throws BadRequestException if no fields are provided
-   * @throws NotFoundException if document doesn't exist
-   */
   async update(id: string, dto: UpdateDocumentDto): Promise<DocumentResult> {
     if (!Object.values(dto).some((value) => value !== undefined)) {
       throw new BadRequestException("At least one field must be provided");
     }
 
-    const client = this.databaseService.client;
-    if (dto.driverId) {
-      await assertDocumentRelationExists(
-        client,
-        drivers,
-        dto.driverId,
-        "Driver",
-      );
-    }
-    if (dto.loadId) {
-      await assertDocumentRelationExists(client, loads, dto.loadId, "Load");
-    }
+    await this.assertRelations(dto.driverId, dto.loadId);
 
     const values = {
       ...(dto.fileName !== undefined && { fileName: dto.fileName }),
@@ -270,7 +204,7 @@ export class DocumentsService {
       ...(dto.loadId !== undefined && { loadId: dto.loadId }),
       updatedAt: new Date(),
     };
-    const [updated] = await client
+    const [updated] = await this.databaseService.client
       .update(documents)
       .set(values)
       .where(eq(documents.id, id))
@@ -280,24 +214,6 @@ export class DocumentsService {
     return this.findOne(id);
   }
 
-  /**
-   * Uploads a document file with optional AI vision analysis.
-   *
-   * This complex method handles the complete document upload workflow:
-   * - Validates file presence and format
-   * - Validates driver and load relations
-   * - Saves file to storage
-   * - Optionally performs AI vision analysis
-   * - Creates document record with analysis results
-   * - Persists extracted fields and audit events as side effects
-   *
-   * @param file - The uploaded file from multer
-   * @param dto - Upload configuration including type and analysis options
-   * @param uploadedByUserId - ID of the user uploading the document
-   * @returns Created document with all related data
-   * @throws BadRequestException if file validation fails or upload fails
-   * @throws NotFoundException if driver or load doesn't exist
-   */
   async upload(
     file: Express.Multer.File | undefined,
     dto: UploadDocumentDto,
@@ -305,109 +221,291 @@ export class DocumentsService {
   ): Promise<DocumentResult> {
     assertUploadFilePresent(file);
     validateUploadFile(file);
+    await this.assertRelations(dto.driverId, dto.loadId);
 
-    const client = this.databaseService.client;
-    if (dto.driverId) {
-      await assertDocumentRelationExists(
-        client,
-        drivers,
-        dto.driverId,
-        "Driver",
-      );
-    }
-    if (dto.loadId) {
-      await assertDocumentRelationExists(client, loads, dto.loadId, "Load");
-    }
-
-    const startedAt = Date.now();
     const savedFile = await this.documentStorageService.save(file);
+    const analysisStartedAt = Date.now();
     const shouldQueueAnalysis =
       dto.analyzeWithVision !== false && this.documentVisionService.isEnabled;
-    const analysis = shouldQueueAnalysis
-      ? null
-      : dto.analyzeWithVision !== false
-        ? await this.documentVisionService.analyze(file)
-        : null;
-    const processingTimeMs = analysis ? Date.now() - startedAt : null;
+    const analysis =
+      shouldQueueAnalysis || dto.analyzeWithVision === false
+        ? null
+        : await this.documentVisionService.analyze({
+            buffer: file.buffer,
+            mimeType: file.mimetype,
+            fileName: file.originalname,
+          });
 
-    const [created] = await client
-      .insert(documents)
-      .values({
+    return this.createDocumentFromStoredFile(
+      {
         fileName: file.originalname,
         fileSize: file.size,
         mimeType: file.mimetype,
-        fileUrl: savedFile.fileUrl,
-        storagePath: savedFile.storagePath,
         type: dto.type,
-        status: shouldQueueAnalysis
-          ? "processing"
-          : resolveUploadStatus(analysis),
-        uploadedByUserId,
         driverId: dto.driverId,
         loadId: dto.loadId,
-        extractionModel: analysis?.extractionModel ?? null,
-        processingTimeMs,
-        uploadedAt: new Date(),
-      })
-      .returning({ id: documents.id });
+        analyzeWithVision: dto.analyzeWithVision !== false,
+      },
+      uploadedByUserId,
+      savedFile,
+      {
+        queueAnalysis: shouldQueueAnalysis,
+        analysis,
+        processingTimeMs: analysis ? Date.now() - analysisStartedAt : null,
+      },
+    );
+  }
 
-    if (!created) throw new BadRequestException("Unable to upload document");
+  async initiateUpload(
+    dto: InitiateDocumentUploadDto,
+    uploadedByUserId: string,
+  ): Promise<DocumentUploadSessionResult> {
+    validateUploadDescriptor({
+      mimeType: dto.mimeType,
+      fileSize: dto.fileSize,
+    });
+    await this.assertRelations(dto.driverId, dto.loadId);
 
-    await persistUploadAuditEvent(client, created.id);
-    if (analysis?.extractedFields.length) {
-      await persistVisionAnalysis(client, created.id, analysis);
-    }
-    if (shouldQueueAnalysis) {
-      await this.documentProcessingQueue.add(
-        "analyze-document",
-        { documentId: created.id },
-        {
-          attempts: 3,
-          backoff: {
-            type: "exponential",
-            delay: 2_000,
-          },
-          removeOnComplete: 100,
-          removeOnFail: 100,
-        },
+    if (this.documentStorageService.defaultProvider !== "s3") {
+      throw new BadRequestException(
+        "Direct uploads require S3-compatible storage to be configured",
       );
     }
 
-    return this.findOne(created.id);
+    const objectKey = this.documentStorageService.buildObjectKey(
+      dto.fileName,
+      dto.mimeType,
+    );
+    const { uploadUrl, expiresAt } =
+      await this.documentStorageService.createPresignedUploadUrl({
+        objectKey,
+        mimeType: dto.mimeType,
+      });
+
+    const [created] = await this.databaseService.client
+      .insert(documentUploads)
+      .values({
+        storageProvider: "s3",
+        bucket: this.documentStorageService.defaultBucket,
+        objectKey,
+        originalFileName: dto.fileName,
+        mimeType: dto.mimeType,
+        fileSize: dto.fileSize,
+        type: dto.type,
+        driverId: dto.driverId,
+        loadId: dto.loadId,
+        uploadedByUserId,
+        analyzeWithVision: dto.analyzeWithVision !== false,
+        status: "pending",
+        expiresAt,
+      })
+      .returning();
+
+    if (!created) {
+      throw new BadRequestException("Unable to create document upload session");
+    }
+
+    return {
+      success: true,
+      data: {
+        id: created.id,
+        status: created.status,
+        uploadUrl,
+        objectKey: created.objectKey,
+        expiresAt: created.expiresAt.toISOString(),
+      },
+    };
+  }
+
+  async completeUpload(
+    uploadId: string,
+    _dto: CompleteDocumentUploadDto,
+    uploadedByUserId: string,
+  ): Promise<DocumentResult> {
+    await this.expireStaleUploads();
+
+    const [upload] = await this.databaseService.client
+      .select()
+      .from(documentUploads)
+      .where(eq(documentUploads.id, uploadId))
+      .limit(1);
+
+    if (!upload || upload.uploadedByUserId !== uploadedByUserId) {
+      throw new NotFoundException("Document upload session was not found");
+    }
+    if (upload.status === "completed") {
+      throw new BadRequestException("Document upload session already completed");
+    }
+    if (upload.status === "expired" || upload.expiresAt.getTime() <= Date.now()) {
+      throw new BadRequestException("Document upload session has expired");
+    }
+
+    const objectMetadata = await this.documentStorageService.stat({
+      storageProvider: upload.storageProvider,
+      storagePath: null,
+      storageBucket: upload.bucket,
+      objectKey: upload.objectKey,
+    });
+
+    const document = await this.createDocumentFromStoredFile(
+      {
+        fileName: upload.originalFileName,
+        fileSize: objectMetadata.size,
+        mimeType: upload.mimeType,
+        type: upload.type,
+        driverId: upload.driverId ?? undefined,
+        loadId: upload.loadId ?? undefined,
+        analyzeWithVision: upload.analyzeWithVision,
+      },
+      uploadedByUserId,
+      {
+        fileUrl: null,
+        storagePath: null,
+        storageProvider: upload.storageProvider,
+        storageBucket: upload.bucket,
+        objectKey: upload.objectKey,
+        etag: objectMetadata.etag,
+      },
+      {
+        queueAnalysis: upload.analyzeWithVision && this.documentVisionService.isEnabled,
+        analysis: null,
+        processingTimeMs: null,
+      },
+    );
+
+    await this.databaseService.client
+      .update(documentUploads)
+      .set({
+        status: "completed",
+        etag: objectMetadata.etag,
+        completedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(documentUploads.id, upload.id));
+
+    return document;
+  }
+
+  async getFileAccess(documentId: string): Promise<DocumentFileAccessResult> {
+    const [document] = await this.databaseService.client
+      .select({
+        id: documents.id,
+        fileName: documents.fileName,
+        fileUrl: documents.fileUrl,
+        storageProvider: documents.storageProvider,
+        storageBucket: documents.storageBucket,
+        objectKey: documents.objectKey,
+      })
+      .from(documents)
+      .where(eq(documents.id, documentId))
+      .limit(1);
+
+    if (!document) {
+      throw new NotFoundException("Document was not found");
+    }
+
+    if (document.storageProvider === "s3") {
+      if (!document.storageBucket || !document.objectKey) {
+        throw new BadRequestException("Document storage reference is missing");
+      }
+
+      const access = await this.documentStorageService.createPresignedDownloadUrl({
+        bucket: document.storageBucket,
+        objectKey: document.objectKey,
+        fileName: document.fileName,
+      });
+
+      return {
+        success: true,
+        data: {
+          url: access.url,
+          expiresAt: access.expiresAt.toISOString(),
+        },
+      };
+    }
+
+    if (!document.fileUrl) {
+      throw new BadRequestException("Document file URL is missing");
+    }
+
+    return {
+      success: true,
+      data: {
+        url: `/api/documents/${document.id}/file`,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+      },
+    };
+  }
+
+  async getFileStream(documentId: string): Promise<{
+    file: StreamableFile;
+    fileName: string;
+    mimeType: string;
+  }> {
+    const [document] = await this.databaseService.client
+      .select({
+        id: documents.id,
+        fileName: documents.fileName,
+        mimeType: documents.mimeType,
+        storagePath: documents.storagePath,
+        storageProvider: documents.storageProvider,
+        storageBucket: documents.storageBucket,
+        objectKey: documents.objectKey,
+      })
+      .from(documents)
+      .where(eq(documents.id, documentId))
+      .limit(1);
+
+    if (!document || !document.mimeType) {
+      throw new NotFoundException("Document was not found");
+    }
+
+    const buffer = await this.documentStorageService.read({
+      storageProvider: document.storageProvider,
+      storagePath: document.storagePath,
+      storageBucket: document.storageBucket,
+      objectKey: document.objectKey,
+    });
+
+    return {
+      file: new StreamableFile(buffer),
+      fileName: document.fileName,
+      mimeType: document.mimeType,
+    };
   }
 
   async processQueuedAnalysis(documentId: string): Promise<void> {
-    const client = this.databaseService.client;
-    const [document] = await client
+    const [document] = await this.databaseService.client
       .select({
         id: documents.id,
         fileName: documents.fileName,
         fileSize: documents.fileSize,
         mimeType: documents.mimeType,
         storagePath: documents.storagePath,
+        storageProvider: documents.storageProvider,
+        storageBucket: documents.storageBucket,
+        objectKey: documents.objectKey,
       })
       .from(documents)
       .where(eq(documents.id, documentId))
       .limit(1);
 
-    if (!document?.storagePath || !document.mimeType) return;
+    if (!document?.mimeType) return;
 
     const startedAt = Date.now();
-    const buffer = await this.documentStorageService.read(document.storagePath);
+    const buffer = await this.documentStorageService.read({
+      storageProvider: document.storageProvider,
+      storagePath: document.storagePath,
+      storageBucket: document.storageBucket,
+      objectKey: document.objectKey,
+    });
     const analysis = await this.documentVisionService.analyze({
       buffer,
-      destination: "",
-      encoding: "7bit",
-      fieldname: "file",
-      filename: "",
-      mimetype: document.mimeType,
-      originalname: document.fileName,
-      path: document.storagePath,
-      size: document.fileSize,
-      stream: undefined as never,
+      mimeType: document.mimeType,
+      fileName: document.fileName,
     });
 
-    await client
+    await this.databaseService.client
       .update(documents)
       .set({
         extractionModel: analysis?.extractionModel ?? null,
@@ -418,58 +516,12 @@ export class DocumentsService {
       .where(eq(documents.id, documentId));
 
     if (analysis?.extractedFields.length) {
-      await persistVisionAnalysis(client, documentId, analysis);
+      await persistVisionAnalysis(this.databaseService.client, documentId, analysis);
     }
 
     await this.emitDocumentProcessingUpdated(documentId);
   }
 
-  private async emitDocumentProcessingUpdated(
-    documentId: string,
-  ): Promise<void> {
-    const document = await this.findOne(documentId);
-    const recipients = await this.findDocumentStatusRecipients();
-
-    for (const recipient of recipients) {
-      this.notificationsGateway.emitDocumentProcessingUpdated(
-        recipient.id,
-        document.data,
-      );
-    }
-
-    await this.notificationsService.createDocumentProcessingNotifications({
-      documentId: document.data.id,
-      fileName: document.data.fileName,
-      status: document.data.status,
-      uploadedByUserId: document.data.uploadedBy?.id ?? null,
-    });
-  }
-
-  private async findDocumentStatusRecipients(): Promise<Array<{ id: string }>> {
-    return this.databaseService.client
-      .select({ id: users.id })
-      .from(users)
-      .where(
-        and(
-          eq(users.isActive, true),
-          or(eq(users.role, "admin"), eq(users.role, "dispatcher")),
-        ),
-      );
-  }
-
-  /**
-   * Replaces all extracted fields for a document with new values.
-   *
-   * This method performs a complete replacement operation: it deletes all existing
-   * extracted fields for the document and inserts the new set. This ensures atomic
-   * updates and maintains data consistency. The method validates document existence
-   * before performing the operation.
-   *
-   * @param id - The document UUID
-   * @param fields - Array of extracted field data to replace existing fields
-   * @returns Updated document with new extracted fields
-   * @throws NotFoundException if document doesn't exist
-   */
   async replaceExtractedFields(
     id: string,
     fields: UpdateDocumentExtractedFieldDto[],
@@ -516,19 +568,6 @@ export class DocumentsService {
     return this.findOne(id);
   }
 
-  /**
-   * Replaces all audit events for a document with new values.
-   *
-   * This method performs a complete replacement operation: it deletes all existing
-   * audit events for the document and inserts the new set. This ensures atomic
-   * updates and maintains data consistency. The method validates document existence
-   * before performing the operation.
-   *
-   * @param id - The document UUID
-   * @param events - Array of audit event data to replace existing events
-   * @returns Updated document with new audit events
-   * @throws NotFoundException if document doesn't exist
-   */
   async replaceAuditEvents(
     id: string,
     events: UpdateDocumentAuditEventDto[],
@@ -571,17 +610,6 @@ export class DocumentsService {
     return this.findOne(id);
   }
 
-  /**
-   * Deletes a document by ID.
-   *
-   * This method permanently removes a document record from the database.
-   * Note that this does not delete the physical file from storage - that
-   * should be handled separately if needed.
-   *
-   * @param id - The document UUID
-   * @returns Deletion confirmation with deleted document ID
-   * @throws NotFoundException if document doesn't exist
-   */
   async remove(id: string): Promise<DeleteDocumentResult> {
     const [deleted] = await this.databaseService.client
       .delete(documents)
@@ -590,5 +618,135 @@ export class DocumentsService {
 
     if (!deleted) throw new NotFoundException("Document was not found");
     return { success: true, data: deleted };
+  }
+
+  private async createDocumentFromStoredFile(
+    input: {
+      fileName: string;
+      fileSize: number;
+      mimeType: string;
+      type: UploadDocumentDto["type"];
+      driverId?: string;
+      loadId?: string;
+      analyzeWithVision: boolean;
+    },
+    uploadedByUserId: string,
+    storedFile: StoredDocumentFile,
+    options: {
+      queueAnalysis: boolean;
+      analysis: Awaited<ReturnType<DocumentVisionService["analyze"]>>;
+      processingTimeMs: number | null;
+    },
+  ): Promise<DocumentResult> {
+    const [created] = await this.databaseService.client
+      .insert(documents)
+      .values({
+        fileName: input.fileName,
+        fileSize: input.fileSize,
+        mimeType: input.mimeType,
+        fileUrl: storedFile.fileUrl,
+        storagePath: storedFile.storagePath,
+        storageProvider: storedFile.storageProvider,
+        storageBucket: storedFile.storageBucket,
+        objectKey: storedFile.objectKey,
+        etag: storedFile.etag,
+        type: input.type,
+        status: options.queueAnalysis
+          ? "processing"
+          : resolveUploadStatus(options.analysis),
+        uploadedByUserId,
+        driverId: input.driverId,
+        loadId: input.loadId,
+        extractionModel: options.analysis?.extractionModel ?? null,
+        processingTimeMs: options.processingTimeMs,
+        uploadedAt: new Date(),
+      })
+      .returning({ id: documents.id });
+
+    if (!created) throw new BadRequestException("Unable to upload document");
+
+    await persistUploadAuditEvent(this.databaseService.client, created.id);
+    if (options.analysis?.extractedFields.length) {
+      await persistVisionAnalysis(
+        this.databaseService.client,
+        created.id,
+        options.analysis,
+      );
+    }
+    if (options.queueAnalysis) {
+      await this.documentProcessingQueue.add(
+        "analyze-document",
+        { documentId: created.id },
+        {
+          attempts: 3,
+          backoff: { type: "exponential", delay: 2_000 },
+          removeOnComplete: 100,
+          removeOnFail: 100,
+        },
+      );
+    }
+
+    return this.findOne(created.id);
+  }
+
+  private async assertRelations(
+    driverId?: string | null,
+    loadId?: string | null,
+  ): Promise<void> {
+    const client = this.databaseService.client;
+    if (driverId) {
+      await assertDocumentRelationExists(client, drivers, driverId, "Driver");
+    }
+    if (loadId) {
+      await assertDocumentRelationExists(client, loads, loadId, "Load");
+    }
+  }
+
+  private async expireStaleUploads(): Promise<void> {
+    await this.databaseService.client
+      .update(documentUploads)
+      .set({
+        status: "expired",
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(documentUploads.status, "pending"),
+          lt(documentUploads.expiresAt, new Date()),
+        ),
+      );
+  }
+
+  private async emitDocumentProcessingUpdated(
+    documentId: string,
+  ): Promise<void> {
+    const document = await this.findOne(documentId);
+    const recipients = await this.findDocumentStatusRecipients();
+
+    for (const recipient of recipients) {
+      this.notificationsGateway.emitDocumentProcessingUpdated(
+        recipient.id,
+        document.data,
+      );
+    }
+
+    await this.notificationsService.createDocumentProcessingNotifications({
+      documentId: document.data.id,
+      fileName: document.data.fileName,
+      status: document.data.status,
+      uploadedByUserId: document.data.uploadedBy?.id ?? null,
+    });
+  }
+
+  private async findDocumentStatusRecipients(): Promise<Array<{ id: string }>> {
+    return this.databaseService.client
+      .select({ id: users.id })
+      .from(users)
+      .where(
+        and(
+          eq(users.isActive, true),
+          or(eq(users.role, "admin"), eq(users.role, "dispatcher")),
+        ),
+      );
   }
 }

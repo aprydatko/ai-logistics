@@ -28,6 +28,12 @@ export function toDocumentItem(
     fileSize: document.fileSize,
     fileUrl,
     mimeType,
+    storage: {
+      provider: document.storageProvider,
+      bucket: document.storageBucket,
+      objectKey: document.objectKey,
+      etag: document.etag,
+    },
     pageCount: document.pageCount,
     extractionModel: document.extractionModel,
     processingTimeMs: document.processingTimeMs,

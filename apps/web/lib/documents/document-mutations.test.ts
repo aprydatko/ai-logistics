@@ -5,6 +5,7 @@ import {
   replaceDocumentAuditEvents,
   replaceDocumentExtractedFields,
   updateDocument,
+  uploadDocument,
 } from "./document-mutations";
 
 const document = {
@@ -13,6 +14,12 @@ const document = {
   fileSize: 2048,
   fileUrl: null,
   mimeType: "application/pdf",
+  storage: {
+    provider: "local",
+    bucket: null,
+    objectKey: null,
+    etag: null,
+  },
   pageCount: null,
   extractionModel: null,
   processingTimeMs: null,
@@ -162,5 +169,78 @@ describe("document mutations", () => {
     await expect(deleteDocument(document.id)).rejects.toThrow(
       "Unable to delete document",
     );
+  });
+
+  it("fails fast locally when presigned uploads are unavailable", async () => {
+    vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/documents/uploads/initiate") {
+        return new Response(
+          JSON.stringify({
+            message:
+              "Direct uploads require S3-compatible storage to be configured",
+          }),
+          { status: 400 },
+        );
+      }
+
+      throw new Error(`Unexpected fetch call: ${url}`);
+    });
+
+    vi.stubGlobal("window", {
+      location: { hostname: "localhost" },
+    } as Window & typeof globalThis);
+
+    await expect(
+      uploadDocument({
+        file: new File(["pdf"], "local-test.pdf", {
+          type: "application/pdf",
+        }),
+        type: "bill_of_lading",
+      }),
+    ).rejects.toThrow(
+      "Presigned document upload is unavailable locally. Fix the MinIO/S3 configuration instead of falling back to the legacy upload route.",
+    );
+  });
+
+  it("keeps legacy fallback outside local environments when direct uploads are unavailable", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url === "/api/documents/uploads/initiate") {
+        return new Response(
+          JSON.stringify({
+            message:
+              "Direct uploads require S3-compatible storage to be configured",
+          }),
+          { status: 400 },
+        );
+      }
+
+      if (url === "/api/documents/upload") {
+        return new Response(JSON.stringify({ success: true, data: document }));
+      }
+
+      throw new Error(`Unexpected fetch call: ${url}`);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("window", {
+      location: { hostname: "example.com" },
+    } as Window & typeof globalThis);
+
+    await expect(
+      uploadDocument({
+        file: new File(["pdf"], "remote-test.pdf", {
+          type: "application/pdf",
+        }),
+        type: "bill_of_lading",
+      }),
+    ).resolves.toEqual(document);
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/documents/upload", {
+      method: "POST",
+      body: expect.any(FormData),
+    });
   });
 });

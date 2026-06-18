@@ -13,6 +13,7 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "test:e2e": "pnpm build && playwright test",
+    "test:e2e:documents:real": "node -e \"const { spawnSync } = require('node:child_process'); const result = spawnSync('npx', ['playwright', 'test', 'e2e/documents-upload.spec.ts'], { stdio: 'inherit', shell: true, env: { ...process.env, PLAYWRIGHT_REAL_API: '1' } }); process.exit(result.status ?? 1);\"",
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {

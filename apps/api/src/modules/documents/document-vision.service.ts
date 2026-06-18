@@ -18,6 +18,12 @@ export type DocumentVisionAnalysis = {
   extractedFields: VisionExtractedField[];
 };
 
+export type DocumentVisionInput = {
+  buffer: Buffer;
+  mimeType: string;
+  fileName: string;
+};
+
 @Injectable()
 export class DocumentVisionService {
   private readonly logger = new Logger(DocumentVisionService.name);
@@ -52,17 +58,15 @@ export class DocumentVisionService {
    * }
    * ```
    */
-  async analyze(
-    file: Express.Multer.File,
-  ): Promise<DocumentVisionAnalysis | null> {
+  async analyze(file: DocumentVisionInput): Promise<DocumentVisionAnalysis | null> {
     if (!this.openai) return null;
 
     const content =
-      file.mimetype === "application/pdf"
+      file.mimeType === "application/pdf"
         ? [
             {
               type: "input_file" as const,
-              filename: file.originalname,
+              filename: file.fileName,
               file_data: file.buffer.toString("base64"),
               detail: "low" as const,
             },
@@ -71,7 +75,7 @@ export class DocumentVisionService {
             {
               type: "input_image" as const,
               detail: "low" as const,
-              image_url: `data:${file.mimetype};base64,${file.buffer.toString("base64")}`,
+              image_url: `data:${file.mimeType};base64,${file.buffer.toString("base64")}`,
             },
           ];
 

@@ -3,6 +3,7 @@ export * from "./drivers";
 export * from "./driver-profile";
 export * from "./document-audit-events";
 export * from "./document-extracted-fields";
+export * from "./document-uploads";
 export * from "./documents";
 export * from "./incidents";
 export * from "./loads";

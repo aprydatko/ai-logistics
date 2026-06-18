@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -16,6 +17,7 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import { Throttle, minutes } from "@nestjs/throttler";
 import { memoryStorage } from "multer";
+import type { Response } from "express";
 
 import { AuthenticatedThrottlerGuard } from "../auth/authenticated-throttler.guard";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
@@ -26,10 +28,14 @@ import { RolesGuard } from "../auth/roles.guard";
 import { DocumentsService } from "./documents.service";
 import type {
   DeleteDocumentResult,
+  DocumentFileAccessResult,
   DocumentResult,
+  DocumentUploadSessionResult,
   DocumentsListResult,
 } from "./documents.types";
+import { CompleteDocumentUploadDto } from "./dto/complete-document-upload.dto";
 import { CreateDocumentDto } from "./dto/create-document.dto";
+import { InitiateDocumentUploadDto } from "./dto/initiate-document-upload.dto";
 import { ListDocumentsQueryDto } from "./dto/list-documents-query.dto";
 import { ReplaceDocumentAuditEventsDto } from "./dto/replace-document-audit-events.dto";
 import { ReplaceDocumentExtractedFieldsDto } from "./dto/replace-document-extracted-fields.dto";
@@ -80,11 +86,68 @@ export class DocumentsController {
     return this.documentsService.upload(file, dto, user.id);
   }
 
+  @Post("uploads/initiate")
+  @HttpCode(201)
+  @Roles("admin", "dispatcher")
+  @UseGuards(RolesGuard, AuthenticatedThrottlerGuard)
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: minutes(10),
+    },
+  })
+  initiateUpload(
+    @Body() dto: InitiateDocumentUploadDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<DocumentUploadSessionResult> {
+    return this.documentsService.initiateUpload(dto, user.id);
+  }
+
+  @Post("uploads/:uploadId/complete")
+  @HttpCode(201)
+  @Roles("admin", "dispatcher")
+  @UseGuards(RolesGuard, AuthenticatedThrottlerGuard)
+  @Throttle({
+    default: {
+      limit: 10,
+      ttl: minutes(10),
+    },
+  })
+  completeUpload(
+    @Param("uploadId", new ParseUUIDPipe()) uploadId: string,
+    @Body() dto: CompleteDocumentUploadDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<DocumentResult> {
+    return this.documentsService.completeUpload(uploadId, dto, user.id);
+  }
+
   @Get(":id")
   findOne(
     @Param("id", new ParseUUIDPipe()) id: string,
   ): Promise<DocumentResult> {
     return this.documentsService.findOne(id);
+  }
+
+  @Get(":id/file-access")
+  getFileAccess(
+    @Param("id", new ParseUUIDPipe()) id: string,
+  ): Promise<DocumentFileAccessResult> {
+    return this.documentsService.getFileAccess(id);
+  }
+
+  @Get(":id/file")
+  async getFile(
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.documentsService.getFileStream(id);
+    response.setHeader("Cache-Control", "no-store");
+    response.setHeader("Content-Type", result.mimeType);
+    response.setHeader(
+      "Content-Disposition",
+      `inline; filename="${result.fileName}"`,
+    );
+    return result.file;
   }
 
   @Patch(":id")

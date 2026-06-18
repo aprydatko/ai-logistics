@@ -7,6 +7,12 @@ export type DocumentType =
   | "driver_license";
 
 export type DocumentStatus = "complete" | "processing" | "needs_review";
+export type DocumentStorageProvider = "local" | "s3";
+export type DocumentUploadStatus =
+  | "pending"
+  | "uploaded"
+  | "completed"
+  | "expired";
 export type DocumentExtractedFieldStatus =
   | "extracted"
   | "edited"
@@ -36,6 +42,26 @@ export type DocumentUploaderSummary = {
   id: string;
   firstName: string;
   lastName: string;
+};
+
+export type DocumentStorageInfo = {
+  provider: DocumentStorageProvider;
+  bucket: string | null;
+  objectKey: string | null;
+  etag: string | null;
+};
+
+export type DocumentUploadSession = {
+  id: string;
+  status: DocumentUploadStatus;
+  uploadUrl: string;
+  objectKey: string;
+  expiresAt: ISODateString;
+};
+
+export type DocumentFileAccess = {
+  url: string;
+  expiresAt: ISODateString;
 };
 
 export type DocumentExtractedField = {
@@ -70,6 +96,7 @@ export interface Document extends BaseEntity {
   fileSize: number;
   fileUrl: string | null;
   mimeType: string | null;
+  storage: DocumentStorageInfo;
   pageCount: number | null;
   extractionModel: string | null;
   processingTimeMs: number | null;

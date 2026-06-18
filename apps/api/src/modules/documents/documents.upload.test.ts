@@ -47,6 +47,10 @@ describe("DocumentsService upload", () => {
       save: vi.fn().mockResolvedValue({
         fileUrl: "/documents/2026-06-16/test.pdf",
         storagePath: "D:\\uploads\\test.pdf",
+        storageProvider: "local",
+        storageBucket: null,
+        objectKey: null,
+        etag: null,
       }),
     };
     const vision = {
@@ -92,7 +96,11 @@ describe("DocumentsService upload", () => {
     });
 
     expect(storage.save).toHaveBeenCalledWith(file);
-    expect(vision.analyze).toHaveBeenCalledWith(file);
+    expect(vision.analyze).toHaveBeenCalledWith({
+      buffer: file.buffer,
+      mimeType: "application/pdf",
+      fileName: "bol.pdf",
+    });
     expect(insertDocumentValues).toHaveBeenCalledWith(
       expect.objectContaining({
         fileName: "bol.pdf",
@@ -100,6 +108,10 @@ describe("DocumentsService upload", () => {
         mimeType: "application/pdf",
         fileUrl: "/documents/2026-06-16/test.pdf",
         storagePath: "D:\\uploads\\test.pdf",
+        storageProvider: "local",
+        storageBucket: null,
+        objectKey: null,
+        etag: null,
         type: "bill_of_lading",
         status: "needs_review",
       }),

@@ -13,7 +13,7 @@ import {
 
 import { FilePreview } from "../file-preview";
 import { ReviewIconButton } from "../review-icon-button";
-import { resolveDocumentFileUrl } from "@/lib/documents/document-file-url";
+import { useDocumentFileUrl } from "@/lib/documents/use-document-file-url";
 
 export const DocumentPreviewSection = ({
   document,
@@ -26,7 +26,7 @@ export const DocumentPreviewSection = ({
   onToggleFullscreen: () => void;
   previewRef: React.RefObject<HTMLElement | null>;
 }): React.JSX.Element => {
-  const resolvedFileUrl = resolveDocumentFileUrl(document.fileUrl);
+  const resolvedFileUrl = useDocumentFileUrl(document);
   const pageCount = document.pageCount ?? 1;
 
   return (

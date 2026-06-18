@@ -1,8 +1,11 @@
 import type {
+  CompleteDocumentUploadDto,
   CreateDocumentDto,
   DeleteDocumentResponse,
   Document,
   DocumentResponse,
+  DocumentUploadSessionResponse,
+  InitiateDocumentUploadDto,
   ReplaceDocumentAuditEventsDto,
   ReplaceDocumentExtractedFieldsDto,
   UpdateDocumentDto,
@@ -22,8 +25,34 @@ const deleteDocumentResponseSchema: z.ZodType<DeleteDocumentResponse> =
     data: z.object({ id: z.string().uuid() }),
   });
 
+const documentUploadSessionResponseSchema: z.ZodType<DocumentUploadSessionResponse> =
+  z.object({
+    success: z.literal(true),
+    data: z.object({
+      id: z.string().uuid(),
+      status: z.enum(["pending", "uploaded", "completed", "expired"]),
+      uploadUrl: z.string().url(),
+      objectKey: z.string().min(1),
+      expiresAt: z.string(),
+    }),
+  });
+
 type ApiErrorBody = {
   message?: string;
+};
+
+const isLocalDocumentUploadEnvironment = (): boolean => {
+  if (typeof window === "undefined") return false;
+
+  return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+};
+
+const shouldUseLegacyDocumentUploadFallback = (error: unknown): boolean => {
+  return (
+    error instanceof Error &&
+    error.message.includes("S3-compatible storage") &&
+    !isLocalDocumentUploadEnvironment()
+  );
 };
 
 export const extractDocumentApiError = async (
@@ -74,6 +103,138 @@ export const createDocument = async (
 };
 
 export const uploadDocument = async ({
+  analyzeWithVision,
+  driverId,
+  file,
+  loadId,
+  type,
+}: {
+  analyzeWithVision?: boolean;
+  driverId?: string;
+  file: File;
+  loadId?: string;
+  type:
+    | "bill_of_lading"
+    | "proof_of_delivery"
+    | "rate_confirmation"
+    | "driver_license";
+}): Promise<Document> => {
+  try {
+    const session = await initiateDocumentUpload({
+      analyzeWithVision,
+      driverId,
+      file,
+      loadId,
+      type,
+    });
+
+    await uploadFileToPresignedUrl(session.uploadUrl, file);
+    return completeDocumentUpload({
+      uploadId: session.id,
+    });
+  } catch (error) {
+    if (shouldUseLegacyDocumentUploadFallback(error)) {
+      return uploadDocumentLegacy({
+        analyzeWithVision,
+        driverId,
+        file,
+        loadId,
+        type,
+      });
+    }
+
+    if (
+      isLocalDocumentUploadEnvironment() &&
+      error instanceof Error &&
+      error.message.includes("S3-compatible storage")
+    ) {
+      throw new Error(
+        "Presigned document upload is unavailable locally. Fix the MinIO/S3 configuration instead of falling back to the legacy upload route.",
+      );
+    }
+
+    throw error;
+  }
+};
+
+const initiateDocumentUpload = async ({
+  analyzeWithVision,
+  driverId,
+  file,
+  loadId,
+  type,
+}: {
+  analyzeWithVision?: boolean;
+  driverId?: string;
+  file: File;
+  loadId?: string;
+  type: InitiateDocumentUploadDto["type"];
+}): Promise<DocumentUploadSessionResponse["data"]> => {
+  const payload: InitiateDocumentUploadDto = {
+    fileName: file.name,
+    fileSize: file.size,
+    mimeType: file.type,
+    type,
+    analyzeWithVision,
+    ...(driverId ? { driverId } : {}),
+    ...(loadId ? { loadId } : {}),
+  };
+
+  const response = await fetch("/api/documents/uploads/initiate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(
+      await extractDocumentApiError(
+        response,
+        "Unable to start document upload",
+      ),
+    );
+  }
+
+  return documentUploadSessionResponseSchema.parse(await response.json()).data;
+};
+
+const uploadFileToPresignedUrl = async (
+  uploadUrl: string,
+  file: File,
+): Promise<void> => {
+  const response = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": file.type,
+    },
+    body: file,
+  });
+
+  if (!response.ok) {
+    throw new Error("Unable to upload file to storage");
+  }
+};
+
+const completeDocumentUpload = async ({
+  uploadId,
+}: CompleteDocumentUploadDto): Promise<Document> => {
+  const response = await fetch(`/api/documents/uploads/${uploadId}/complete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ uploadId }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      await extractDocumentApiError(
+        response,
+        "Unable to complete document upload",
+      ),
+    );
+  }
+
+  return documentResponseSchema.parse(await response.json()).data;
+};
+
+const uploadDocumentLegacy = async ({
   analyzeWithVision,
   driverId,
   file,

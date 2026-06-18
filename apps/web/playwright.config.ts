@@ -1,3 +1,4 @@
+/* eslint-disable turbo/no-undeclared-env-vars */
 import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
@@ -21,7 +22,7 @@ export default defineConfig({
     env: {
       API_BASE_URL: "http://127.0.0.1:3001/api",
     },
-    reuseExistingServer: false,
+    reuseExistingServer: process.env.PLAYWRIGHT_REAL_API === "1",
     timeout: 120_000,
     url: "http://127.0.0.1:3000",
   },
