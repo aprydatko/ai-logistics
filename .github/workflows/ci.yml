@@ -382,6 +382,7 @@ jobs:
         run: pnpm --filter web test:e2e:documents:real
         env:
           CI: true
+          DATABASE_URL: postgresql://ai_logistics:ai_logistics@127.0.0.1:5432/ai_logistics
           PLAYWRIGHT_REAL_API: "1"
           PLAYWRIGHT_REAL_API_HEALTH_URL: http://127.0.0.1:3001/api/health
 
