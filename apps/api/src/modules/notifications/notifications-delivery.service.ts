@@ -43,12 +43,13 @@ export class NotificationsDeliveryService {
       return;
     }
 
-    const maxRetries = this.configService.get("EMAIL_RETRY_MAX_ATTEMPTS", {
-      infer: true,
-    });
-    const initialDelay = this.configService.get(
+    const maxRetries = this.getPositiveIntegerConfig(
+      "EMAIL_RETRY_MAX_ATTEMPTS",
+      3,
+    );
+    const initialDelay = this.getPositiveIntegerConfig(
       "EMAIL_RETRY_INITIAL_DELAY_MS",
-      { infer: true },
+      1000,
     );
 
     let lastError: Error | null = null;
@@ -70,7 +71,7 @@ export class NotificationsDeliveryService {
         });
 
         if (!response.ok) {
-          const body = await response.text().catch(() => "");
+          const body = await Promise.resolve(response.text()).catch(() => "");
           lastError = new Error(
             `Resend email failed: ${response.status} ${body}`,
           );
@@ -111,6 +112,16 @@ export class NotificationsDeliveryService {
 
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private getPositiveIntegerConfig(
+    key: "EMAIL_RETRY_MAX_ATTEMPTS" | "EMAIL_RETRY_INITIAL_DELAY_MS",
+    fallback: number,
+  ): number {
+    const value = this.configService.get(key, { infer: true });
+    return typeof value === "number" && Number.isInteger(value) && value > 0
+      ? value
+      : fallback;
   }
 
   /**
