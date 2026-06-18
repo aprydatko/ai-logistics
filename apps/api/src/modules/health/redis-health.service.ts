@@ -27,7 +27,10 @@ export class RedisHealthService implements OnModuleDestroy {
 
   async ping(): Promise<"reachable"> {
     try {
-      await this.client.connect();
+      if (this.client.status === "wait") {
+        await this.client.connect();
+      }
+
       await this.client.ping();
       this.metrics.setRedisUp(true);
 
