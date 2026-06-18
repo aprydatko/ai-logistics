@@ -145,10 +145,21 @@ test.describe("documents upload", () => {
 
     expect(uploadedDocument.fileName).toBe(fileName);
 
-    const fileAccessResponse = await page.request.get(
-      `/api/documents/${uploadedDocument.id}/file-access`,
-    );
-    expect(fileAccessResponse.ok()).toBe(true);
+    const fileAccessResult = await page.evaluate(async (documentId) => {
+      const response = await fetch(`/api/documents/${documentId}/file-access`, {
+        method: "GET",
+      });
+
+      return {
+        ok: response.ok,
+        status: response.status,
+        body: await response.text(),
+      };
+    }, uploadedDocument.id);
+    expect(
+      fileAccessResult.ok,
+      `file-access failed with status ${fileAccessResult.status}: ${fileAccessResult.body}`,
+    ).toBe(true);
 
     expect(
       directUploadResponses.some(
