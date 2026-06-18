@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { Worker, type Job } from "bullmq";
 
+import { SentryService } from "../../common/logging/sentry.service";
 import { WinstonLoggerService } from "../../common/logging/winston-logger.service";
 import {
   AI_PROCESSING_QUEUE,
@@ -30,6 +31,7 @@ export class AssistantAiWorkerService implements OnModuleInit, OnModuleDestroy {
     private readonly connection: RedisConnectionOptions,
     private readonly assistantService: AssistantService,
     private readonly logger: WinstonLoggerService,
+    private readonly sentry: SentryService,
   ) {}
 
   onModuleInit(): void {
@@ -70,6 +72,24 @@ export class AssistantAiWorkerService implements OnModuleInit, OnModuleDestroy {
         userId: job?.data.user.id,
         jobId: job?.id,
       });
+      this.sentry.captureException(error, {
+        extra: {
+          jobId: job?.id,
+          operation: AI_PROCESSING_QUEUE,
+        },
+        tags: {
+          area: "queue",
+          event: "queue_job_failed",
+          operation: AI_PROCESSING_QUEUE,
+        },
+        user: job?.data.user.id
+          ? {
+              email: job.data.user.email,
+              id: job.data.user.id,
+              username: job.data.user.email,
+            }
+          : undefined,
+      });
     });
 
     this.worker.on("error", (error) => {
@@ -77,6 +97,13 @@ export class AssistantAiWorkerService implements OnModuleInit, OnModuleDestroy {
         context: AssistantAiWorkerService.name,
         event: "queue_worker_error",
         operation: AI_PROCESSING_QUEUE,
+      });
+      this.sentry.captureException(error, {
+        tags: {
+          area: "queue",
+          event: "queue_worker_error",
+          operation: AI_PROCESSING_QUEUE,
+        },
       });
     });
   }

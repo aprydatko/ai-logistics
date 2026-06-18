@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { Worker, type Job } from "bullmq";
 
+import { SentryService } from "../../common/logging/sentry.service";
 import { WinstonLoggerService } from "../../common/logging/winston-logger.service";
 import {
   EMAIL_NOTIFICATIONS_QUEUE,
@@ -28,6 +29,7 @@ export class NotificationsEmailWorkerService
     private readonly connection: RedisConnectionOptions,
     private readonly notificationsDeliveryService: NotificationsDeliveryService,
     private readonly logger: WinstonLoggerService,
+    private readonly sentry: SentryService,
   ) {}
 
   onModuleInit(): void {
@@ -67,6 +69,24 @@ export class NotificationsEmailWorkerService
         userId: job?.data.recipient.id,
         jobId: job?.id,
       });
+      this.sentry.captureException(error, {
+        extra: {
+          jobId: job?.id,
+          operation: EMAIL_NOTIFICATIONS_QUEUE,
+        },
+        tags: {
+          area: "queue",
+          event: "queue_job_failed",
+          operation: EMAIL_NOTIFICATIONS_QUEUE,
+        },
+        user: job?.data.recipient.id
+          ? {
+              email: job.data.recipient.email,
+              id: job.data.recipient.id,
+              username: job.data.recipient.email,
+            }
+          : undefined,
+      });
     });
 
     this.worker.on("error", (error) => {
@@ -74,6 +94,13 @@ export class NotificationsEmailWorkerService
         context: NotificationsEmailWorkerService.name,
         event: "queue_worker_error",
         operation: EMAIL_NOTIFICATIONS_QUEUE,
+      });
+      this.sentry.captureException(error, {
+        tags: {
+          area: "queue",
+          event: "queue_worker_error",
+          operation: EMAIL_NOTIFICATIONS_QUEUE,
+        },
       });
     });
   }

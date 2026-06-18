@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { Worker, type Job } from "bullmq";
 
+import { SentryService } from "../../common/logging/sentry.service";
 import { WinstonLoggerService } from "../../common/logging/winston-logger.service";
 import {
   DOCUMENT_PROCESSING_QUEUE,
@@ -28,6 +29,7 @@ export class DocumentProcessingWorkerService
     private readonly connection: RedisConnectionOptions,
     private readonly documentsService: DocumentsService,
     private readonly logger: WinstonLoggerService,
+    private readonly sentry: SentryService,
   ) {}
 
   onModuleInit(): void {
@@ -68,6 +70,18 @@ export class DocumentProcessingWorkerService
         linkedEntity: job?.data.documentId,
         jobId: job?.id,
       });
+      this.sentry.captureException(error, {
+        extra: {
+          documentId: job?.data.documentId,
+          jobId: job?.id,
+          operation: DOCUMENT_PROCESSING_QUEUE,
+        },
+        tags: {
+          area: "queue",
+          event: "queue_job_failed",
+          operation: DOCUMENT_PROCESSING_QUEUE,
+        },
+      });
     });
 
     this.worker.on("error", (error) => {
@@ -75,6 +89,13 @@ export class DocumentProcessingWorkerService
         context: DocumentProcessingWorkerService.name,
         event: "queue_worker_error",
         operation: DOCUMENT_PROCESSING_QUEUE,
+      });
+      this.sentry.captureException(error, {
+        tags: {
+          area: "queue",
+          event: "queue_worker_error",
+          operation: DOCUMENT_PROCESSING_QUEUE,
+        },
       });
     });
   }
