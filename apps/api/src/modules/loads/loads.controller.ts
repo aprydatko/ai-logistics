@@ -21,6 +21,8 @@ import { LoadsService } from "./loads.service";
 import type {
   AssignLoadDriverResponse,
   CreateLoadResponse,
+  LoadActivityResponse,
+  LoadMetricsResponse,
   LoadResponse,
   LoadsListResponse,
   UpdateLoadResponse,
@@ -34,6 +36,16 @@ export class LoadsController {
   @Get()
   findAll(@Query() query: ListLoadsQueryDto): Promise<LoadsListResponse> {
     return this.loadsService.findAll(query);
+  }
+
+  @Get("metrics")
+  findMetrics(): Promise<LoadMetricsResponse> {
+    return this.loadsService.getMetrics();
+  }
+
+  @Get("activity")
+  findActivity(): Promise<LoadActivityResponse> {
+    return this.loadsService.getActivity();
   }
 
   @Get(":id")

@@ -7,6 +7,7 @@ import { toast } from "@repo/ui/components/toaster";
 
 import { ConfirmationAlertDialog } from "@/components/shared";
 import { deleteDriver } from "@/lib/drivers/driver-mutations";
+import { removeDriverCache } from "@/lib/drivers/drivers-query";
 
 import type { DriverRow } from "../types";
 
@@ -34,7 +35,7 @@ export const DeleteDriverDialog = ({
       toast.success("Driver deleted successfully", {
         description: `${deletedDriver.driverName} was removed from the driver list.`,
       });
-      await queryClient.invalidateQueries({ queryKey: ["drivers"] });
+      removeDriverCache(queryClient, deletedDriver.driverId);
     },
   });
 

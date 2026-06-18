@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { replaceDocumentAuditEvents } from "@/lib/documents/document-mutations";
+import { syncDocumentCache } from "@/lib/documents/documents-query";
 import { Button } from "@repo/ui/components/button";
 import { toast } from "@repo/ui/components/toaster";
 
@@ -77,11 +78,7 @@ export const AuditLinksForm = ({
         description: error.message,
       }),
     onSuccess: async (updatedDocument) => {
-      queryClient.setQueryData(
-        ["documents", updatedDocument.id],
-        updatedDocument,
-      );
-      await queryClient.invalidateQueries({ queryKey: ["documents"] });
+      syncDocumentCache(queryClient, updatedDocument);
       onSaved(
         updatedDocument.auditEvents.map((event) => ({
           actor: event.actor,

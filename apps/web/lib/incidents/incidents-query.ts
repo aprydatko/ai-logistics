@@ -1,4 +1,5 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
 export const incidentTypeSchema = z.enum([
@@ -162,3 +163,35 @@ export const incidentTimelineQueryOptions = (incidentId: string) =>
     refetchInterval: 15_000,
     staleTime: 10_000,
   });
+
+export const updateIncidentInLists = (
+  current: z.infer<typeof incidentsResponseSchema> | undefined,
+  nextIncident: IncidentApiItem,
+): z.infer<typeof incidentsResponseSchema> | undefined => {
+  if (!current) return current;
+
+  const hasExisting = current.data.some(
+    (incident) => incident.id === nextIncident.id,
+  );
+
+  return {
+    ...current,
+    data: hasExisting
+      ? current.data.map((incident) =>
+          incident.id === nextIncident.id ? nextIncident : incident,
+        )
+      : [nextIncident, ...current.data],
+  };
+};
+
+export const syncIncidentCache = (
+  queryClient: QueryClient,
+  incident: IncidentApiItem,
+): void => {
+  queryClient.setQueriesData(
+    { queryKey: ["incidents"] },
+    (current: z.infer<typeof incidentsResponseSchema> | undefined) =>
+      updateIncidentInLists(current, incident),
+  );
+  queryClient.setQueryData(["incidents", incident.id], incident);
+};

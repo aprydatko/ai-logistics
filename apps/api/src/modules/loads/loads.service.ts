@@ -5,10 +5,10 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from "@nestjs/common";
-import { and, count, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 
 import { DatabaseService } from "../../db/database.service";
-import { drivers, driverActivity, loads } from "../../db/schema";
+import { drivers, driverActivity, incidents, loads } from "../../db/schema";
 import { CacheService } from "../cache/cache.service";
 import { buildCacheKey } from "../cache/cache.utils";
 import type { AssignLoadDriverDto } from "./dto/assign-load-driver.dto";
@@ -18,6 +18,10 @@ import type { UpdateLoadDto } from "./dto/update-load.dto";
 import type {
   AssignLoadDriverResponse,
   CreateLoadResponse,
+  DashboardActivityItem,
+  LoadActivityResponse,
+  LoadMetricsItem,
+  LoadMetricsResponse,
   LoadResponse,
   LoadsListResponse,
   UpdateLoadResponse,
@@ -45,6 +49,203 @@ export class LoadsService {
     private readonly databaseService: DatabaseService,
     private readonly cacheService: CacheService,
   ) {}
+
+  async getMetrics(): Promise<LoadMetricsResponse> {
+    return this.cacheService.getOrSet(
+      "loads",
+      buildCacheKey("loads", "metrics", {}),
+      this.cacheService.getTtl("metrics"),
+      async () => {
+        const client = this.databaseService.client;
+        const metricStatuses: Array<LoadMetricsItem["title"] extends string ? typeof loads.$inferSelect.status : never> = [
+          "pending",
+          "assigned",
+          "in_transit",
+          "delivered",
+          "cancelled",
+        ];
+        const [recentLoads, pending, assigned, inTransit, delivered, cancelled] =
+          await Promise.all([
+            client
+              .select({ status: loads.status })
+              .from(loads)
+              .orderBy(desc(loads.updatedAt))
+              .limit(12),
+            client
+              .select({ total: count() })
+              .from(loads)
+              .where(eq(loads.status, "pending")),
+            client
+              .select({ total: count() })
+              .from(loads)
+              .where(eq(loads.status, "assigned")),
+            client
+              .select({ total: count() })
+              .from(loads)
+              .where(eq(loads.status, "in_transit")),
+            client
+              .select({ total: count() })
+              .from(loads)
+              .where(eq(loads.status, "delivered")),
+            client
+              .select({ total: count() })
+              .from(loads)
+              .where(eq(loads.status, "cancelled")),
+          ]);
+
+        const counts = new Map<(typeof metricStatuses)[number], number>(
+          metricStatuses.map((status) => [status, 0] as const),
+        );
+        for (const load of recentLoads) {
+          counts.set(load.status, (counts.get(load.status) ?? 0) + 1);
+        }
+
+        const recentStatusCounts = metricStatuses.map(
+          (status) => counts.get(status) ?? 0,
+        );
+        const pendingTotal = pending[0]?.total ?? 0;
+        const assignedTotal = assigned[0]?.total ?? 0;
+        const inTransitTotal = inTransit[0]?.total ?? 0;
+        const deliveredTotal = delivered[0]?.total ?? 0;
+        const cancelledTotal = cancelled[0]?.total ?? 0;
+        const totalLoads = Math.max(
+          pendingTotal +
+            assignedTotal +
+            inTransitTotal +
+            deliveredTotal +
+            cancelledTotal,
+          1,
+        );
+        const activeLoads = assignedTotal + inTransitTotal;
+        const formatPercent = (value: number): string => `${value.toFixed(1)}%`;
+
+        return {
+          success: true,
+          data: {
+            metrics: [
+              {
+                chartData: recentStatusCounts,
+                change: formatPercent((activeLoads / totalLoads) * 100),
+                title: "Active loads",
+                value: activeLoads.toLocaleString(),
+              },
+              {
+                chartData: recentStatusCounts,
+                change: formatPercent((pendingTotal / totalLoads) * 100),
+                title: "Pending loads",
+                value: pendingTotal.toLocaleString(),
+              },
+              {
+                chartData: recentStatusCounts,
+                change: formatPercent((deliveredTotal / totalLoads) * 100),
+                title: "Delivered loads",
+                value: deliveredTotal.toLocaleString(),
+              },
+              {
+                chartData: recentStatusCounts,
+                change: formatPercent((cancelledTotal / totalLoads) * 100),
+                title: "Cancelled loads",
+                trend: "negative",
+                value: cancelledTotal.toLocaleString(),
+              },
+            ],
+          },
+        };
+      },
+    );
+  }
+
+  async getActivity(): Promise<LoadActivityResponse> {
+    return this.cacheService.getOrSet(
+      "loads",
+      buildCacheKey("loads", "activity", {}),
+      this.cacheService.getTtl("metrics"),
+      async () => {
+        const client = this.databaseService.client;
+        const [recentLoads, recentIncidents] = await Promise.all([
+          client
+            .select({
+              id: loads.id,
+              pickupAddress: loads.pickupAddress,
+              deliveryAddress: loads.deliveryAddress,
+              referenceNumber: loads.referenceNumber,
+              status: loads.status,
+              updatedAt: loads.updatedAt,
+            })
+            .from(loads)
+            .orderBy(desc(loads.updatedAt))
+            .limit(6),
+          client
+            .select({
+              incident: {
+                id: sql<string>`${incidents.id}`,
+                title: incidents.title,
+                status: incidents.status,
+                updatedAt: incidents.updatedAt,
+              },
+              load: {
+                referenceNumber: loads.referenceNumber,
+              },
+              driver: {
+                firstName: drivers.firstName,
+                lastName: drivers.lastName,
+                id: drivers.id,
+              },
+            })
+            .from(incidents)
+            .innerJoin(loads, eq(incidents.loadId, loads.id))
+            .leftJoin(drivers, eq(loads.driverId, drivers.id))
+            .orderBy(desc(incidents.updatedAt))
+            .limit(6),
+        ]);
+
+        const formatTime = (value: Date): string =>
+          new Intl.DateTimeFormat("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }).format(value);
+
+        const formatLoadStatus = (status: (typeof loads.$inferSelect.status)): string =>
+          status.replaceAll("_", " ");
+
+        const loadActivities: DashboardActivityItem[] = recentLoads.map((load) => ({
+          description: `${load.pickupAddress} -> ${load.deliveryAddress}`,
+          id: `load-${load.id}`,
+          label: "Load",
+          time: formatTime(load.updatedAt),
+          title: `Load #${load.referenceNumber} status is ${formatLoadStatus(load.status)}`,
+          updatedAt: load.updatedAt.toISOString(),
+        }));
+
+        const incidentActivities: DashboardActivityItem[] = recentIncidents.map(
+          ({ driver, incident, load }) => ({
+            description: driver?.id
+              ? `Driver: ${driver.firstName} ${driver.lastName}`
+              : `Load #${load.referenceNumber}`,
+            id: `incident-${incident.id}`,
+            label: "Incident",
+            time: formatTime(incident.updatedAt),
+            title: `${incident.title} is ${incident.status}`,
+            updatedAt: incident.updatedAt.toISOString(),
+          }),
+        );
+
+        return {
+          success: true,
+          data: {
+            activities: loadActivities
+              .concat(incidentActivities)
+              .sort(
+                (left, right) =>
+                  new Date(right.updatedAt).getTime() -
+                  new Date(left.updatedAt).getTime(),
+              )
+              .slice(0, 5),
+          },
+        };
+      },
+    );
+  }
 
   /**
    * Returns a paginated, filtered list of loads with their assigned driver summaries.

@@ -1,4 +1,5 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
 const loadStatusSchema = z.enum([
@@ -111,3 +112,30 @@ export const loadsQueryOptions = (filters: LoadsFilters) =>
     queryKey: ["loads", filters],
     queryFn: () => fetchLoads(filters),
   });
+
+export const updateLoadInLists = (
+  current: LoadsResult | undefined,
+  nextLoad: LoadApiItem,
+): LoadsResult | undefined => {
+  if (!current) return current;
+
+  const hasExisting = current.data.some((load) => load.id === nextLoad.id);
+
+  return {
+    ...current,
+    data: hasExisting
+      ? current.data.map((load) => (load.id === nextLoad.id ? nextLoad : load))
+      : [nextLoad, ...current.data],
+  };
+};
+
+export const syncLoadCache = (
+  queryClient: QueryClient,
+  load: LoadApiItem,
+): void => {
+  queryClient.setQueriesData(
+    { queryKey: ["loads"] },
+    (current: LoadsResult | undefined) => updateLoadInLists(current, load),
+  );
+  queryClient.setQueryData(["loads", load.id], load);
+};

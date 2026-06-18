@@ -16,6 +16,7 @@ import {
 } from "@/lib/drivers/driver-mutations";
 import {
   driverDetailsQueryOptions,
+  syncDriverListCache,
   type DriversApiItem,
 } from "@/lib/drivers/drivers-query";
 import {
@@ -88,8 +89,11 @@ export const DriverFormDialog = ({
         }
       }
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["drivers"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["drivers", savedDriver.id],
+        }),
       ]);
+      syncDriverListCache(queryClient, savedDriver);
       onOpenChange(false);
       if (documentUploaded) {
         toast.success(

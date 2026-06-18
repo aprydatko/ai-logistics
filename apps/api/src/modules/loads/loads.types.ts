@@ -38,3 +38,34 @@ export type LoadResponse = { success: true; data: LoadItem };
 export type CreateLoadResponse = { success: true; data: LoadItem };
 export type UpdateLoadResponse = { success: true; data: LoadItem };
 export type AssignLoadDriverResponse = { success: true; data: LoadItem };
+
+export type LoadMetricsItem = {
+  chartData: number[];
+  change: string;
+  title: string;
+  trend?: "negative" | "positive";
+  value: string;
+};
+
+export type LoadMetricsResponse = {
+  success: true;
+  data: {
+    metrics: LoadMetricsItem[];
+  };
+};
+
+export type DashboardActivityItem = {
+  description: string;
+  id: string;
+  label: "Incident" | "Load";
+  time: string;
+  title: string;
+  updatedAt: string;
+};
+
+export type LoadActivityResponse = {
+  success: true;
+  data: {
+    activities: DashboardActivityItem[];
+  };
+};

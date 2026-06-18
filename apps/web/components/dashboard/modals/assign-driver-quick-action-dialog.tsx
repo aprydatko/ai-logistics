@@ -8,6 +8,7 @@ import { driversQueryOptions } from "@/lib/drivers/drivers-query";
 import { assignLoadDriver } from "@/lib/loads/load-mutations";
 import {
   loadsQueryOptions,
+  syncLoadCache,
   type LoadApiItem,
   type LoadsFilters,
 } from "@/lib/loads/loads-query";
@@ -70,9 +71,9 @@ export const AssignDriverQuickActionDialog = ({
     mutationFn: assignLoadDriver,
     onError: (error) =>
       toast.error("Unable to assign driver", { description: error.message }),
-    onSuccess: async () => {
+    onSuccess: async (updatedLoad) => {
+      syncLoadCache(queryClient, updatedLoad);
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["loads"] }),
         queryClient.invalidateQueries({ queryKey: ["drivers"] }),
         queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
       ]);

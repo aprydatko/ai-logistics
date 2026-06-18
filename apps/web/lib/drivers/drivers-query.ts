@@ -1,4 +1,5 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
 const driverSchema = z.object({
@@ -224,3 +225,74 @@ export const driverDetailsQueryOptions = (driverId: string) =>
       return parsedResponse.data.data;
     },
   });
+
+export const updateDriverInLists = (
+  current: DriversResult | undefined,
+  nextDriver: DriversApiItem,
+): DriversResult | undefined => {
+  if (!current) return current;
+
+  const hasExisting = current.data.some((driver) => driver.id === nextDriver.id);
+
+  return {
+    ...current,
+    data: hasExisting
+      ? current.data.map((driver) =>
+          driver.id === nextDriver.id ? nextDriver : driver,
+        )
+      : [nextDriver, ...current.data],
+  };
+};
+
+export const removeDriverFromLists = (
+  current: DriversResult | undefined,
+  driverId: string,
+): DriversResult | undefined => {
+  if (!current) return current;
+
+  return {
+    ...current,
+    data: current.data.filter((driver) => driver.id !== driverId),
+  };
+};
+
+export const syncDriverListCache = (
+  queryClient: QueryClient,
+  driver: DriversApiItem,
+): void => {
+  queryClient.setQueriesData(
+    { queryKey: ["drivers"] },
+    (current: DriversResult | undefined) => updateDriverInLists(current, driver),
+  );
+};
+
+export const removeDriverCache = (
+  queryClient: QueryClient,
+  driverId: string,
+): void => {
+  queryClient.setQueriesData(
+    { queryKey: ["drivers"] },
+    (current: DriversResult | undefined) => removeDriverFromLists(current, driverId),
+  );
+  queryClient.removeQueries({ queryKey: ["drivers", driverId] });
+};
+
+export const syncDriverTruckNumberInLists = (
+  queryClient: QueryClient,
+  driverId: string,
+  truckNumber: string | null,
+): void => {
+  queryClient.setQueriesData(
+    { queryKey: ["drivers"] },
+    (current: DriversResult | undefined) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        data: current.data.map((driver) =>
+          driver.id === driverId ? { ...driver, truckNumber } : driver,
+        ),
+      };
+    },
+  );
+};

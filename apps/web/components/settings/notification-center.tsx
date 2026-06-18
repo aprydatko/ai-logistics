@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Notification } from "@repo/shared";
 import { CheckCheck, ChevronDown, ChevronRight, Search } from "lucide-react";
 import * as React from "react";
@@ -8,12 +8,16 @@ import * as React from "react";
 import { Button } from "@repo/ui/components/button";
 
 import {
-  fetchNotifications,
+  flattenNotificationPages,
+  markAllNotificationsReadInCache,
+  markNotificationReadInCache,
   markAllNotificationsRead,
   markNotificationRead,
-  notificationsQueryOptions,
+  notificationsInfiniteQueryOptions,
+  notificationsQueryKeys,
+  type NotificationsInfiniteData,
+  notificationUnreadCountQueryOptions,
 } from "@/lib/notifications/notifications-query";
-import { useNotificationsStore } from "@/stores/notifications-store";
 
 const categoryToneClasses: Record<Notification["category"], string> = {
   ai: "bg-violet-50 text-violet-600",
@@ -26,47 +30,49 @@ const categoryToneClasses: Record<Notification["category"], string> = {
 
 export const NotificationCenter = (): React.JSX.Element => {
   const queryClient = useQueryClient();
-  const { data } = useQuery(notificationsQueryOptions());
-  const items = useNotificationsStore((state) => state.items);
-  const nextCursor = useNotificationsStore((state) => state.nextCursor);
-  const appendOlderNotifications = useNotificationsStore(
-    (state) => state.appendOlderNotifications,
-  );
-  const markAsReadLocal = useNotificationsStore((state) => state.markAsRead);
-  const markAllAsReadLocal = useNotificationsStore(
-    (state) => state.markAllAsRead,
-  );
+  const notificationsQuery = useInfiniteQuery(notificationsInfiniteQueryOptions());
+  const unreadCountQuery = useQuery(notificationUnreadCountQueryOptions());
   const [query, setQuery] = React.useState("");
   const [type, setType] = React.useState<Notification["category"] | "all">(
     "all",
   );
-  const [isLoadingMore, setIsLoadingMore] = React.useState(false);
 
   const markAsReadMutation = useMutation({
     mutationFn: markNotificationRead,
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
-        queryClient.invalidateQueries({
-          queryKey: ["notifications", "unread-count"],
-        }),
-      ]);
+    onSuccess: (_, notificationId) => {
+      const readAt = new Date().toISOString();
+
+      queryClient.setQueryData(
+        notificationsQueryKeys.infinite(),
+        (current: NotificationsInfiniteData | undefined) =>
+          markNotificationReadInCache(current, notificationId, readAt),
+      );
+      queryClient.setQueryData(
+        notificationsQueryKeys.unreadCount(),
+        (current: number | undefined) => Math.max(0, (current ?? 0) - 1),
+      );
     },
   });
   const markAllAsReadMutation = useMutation({
     mutationFn: markAllNotificationsRead,
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["notifications"] }),
-        queryClient.invalidateQueries({
-          queryKey: ["notifications", "unread-count"],
-        }),
-      ]);
+    onSuccess: (nextUnreadCount) => {
+      const readAt = new Date().toISOString();
+
+      queryClient.setQueryData(
+        notificationsQueryKeys.infinite(),
+        (current: NotificationsInfiniteData | undefined) =>
+          markAllNotificationsReadInCache(current, readAt),
+      );
+      queryClient.setQueryData(
+        notificationsQueryKeys.unreadCount(),
+        nextUnreadCount,
+      );
     },
   });
 
-  const sourceItems: Notification[] =
-    items.length > 0 ? items : (data?.data ?? []);
+  const sourceItems: Notification[] = flattenNotificationPages(
+    notificationsQuery.data,
+  );
   const filtered = sourceItems.filter((item: Notification) => {
     const matchesType = type === "all" || item.category === type;
     const matchesQuery = `${item.title} ${item.message}`
@@ -76,15 +82,11 @@ export const NotificationCenter = (): React.JSX.Element => {
   });
 
   const handleLoadMore = async (): Promise<void> => {
-    if (!nextCursor || isLoadingMore) return;
-
-    setIsLoadingMore(true);
-    try {
-      const response = await fetchNotifications({ cursor: nextCursor });
-      appendOlderNotifications(response.data, response.pageInfo.nextCursor);
-    } finally {
-      setIsLoadingMore(false);
+    if (!notificationsQuery.hasNextPage || notificationsQuery.isFetchingNextPage) {
+      return;
     }
+
+    await notificationsQuery.fetchNextPage();
   };
 
   return (
@@ -104,10 +106,10 @@ export const NotificationCenter = (): React.JSX.Element => {
           className="h-10 rounded-none"
           disabled={
             markAllAsReadMutation.isPending ||
+            (unreadCountQuery.data ?? 0) === 0 ||
             sourceItems.every((item) => item.readAt)
           }
           onClick={() => {
-            markAllAsReadLocal();
             markAllAsReadMutation.mutate();
           }}
           variant="outline"
@@ -146,7 +148,6 @@ export const NotificationCenter = (): React.JSX.Element => {
               key={item.id}
               onClick={() => {
                 if (!isUnread) return;
-                markAsReadLocal(item.id);
                 markAsReadMutation.mutate(item.id);
               }}
               type="button"
@@ -188,11 +189,18 @@ export const NotificationCenter = (): React.JSX.Element => {
         {query === "" && type === "all" && filtered.length > 0 ? (
           <div className="flex justify-center pt-4">
             <Button
-              disabled={!nextCursor || isLoadingMore}
+              disabled={
+                !notificationsQuery.hasNextPage ||
+                notificationsQuery.isFetchingNextPage
+              }
               onClick={() => void handleLoadMore()}
               variant="outline"
             >
-              {isLoadingMore ? "Loading..." : nextCursor ? "Load more" : "All caught up"}
+              {notificationsQuery.isFetchingNextPage
+                ? "Loading..."
+                : notificationsQuery.hasNextPage
+                  ? "Load more"
+                  : "All caught up"}
             </Button>
           </div>
         ) : null}

@@ -1,10 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
-
-import {
-  fetchIncidents,
-  type IncidentApiItem,
-} from "@/lib/incidents/incidents-query";
-import { fetchLoads, type LoadApiItem } from "@/lib/loads/loads-query";
+import { z } from "zod";
 
 export type DashboardActivityItem = {
   description: string;
@@ -18,75 +13,30 @@ export type DashboardActivityItem = {
 type DashboardActivityResult = {
   activities: DashboardActivityItem[];
 };
+const dashboardActivityItemSchema = z.object({
+  description: z.string(),
+  id: z.string(),
+  label: z.enum(["Incident", "Load"]),
+  time: z.string(),
+  title: z.string(),
+  updatedAt: z.string(),
+}) satisfies z.ZodType<DashboardActivityItem>;
 
-const loadFilters = {
-  search: "",
-  status: "all" as const,
-  pickupFrom: "",
-  pickupTo: "",
-  page: 1,
-  limit: 6,
-};
-
-const incidentFilters = {
-  search: "",
-  priority: "all" as const,
-  status: "all" as const,
-  occurredFrom: "",
-  occurredTo: "",
-  page: 1,
-  limit: 6,
-};
-
-const formatTime = (value: string): string =>
-  new Intl.DateTimeFormat("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-
-const formatLoadStatus = (status: LoadApiItem["status"]): string =>
-  status.replaceAll("_", " ");
-
-const toLoadActivity = (load: LoadApiItem): DashboardActivityItem => ({
-  description: `${load.pickupAddress} -> ${load.deliveryAddress}`,
-  id: `load-${load.id}`,
-  label: "Load",
-  time: formatTime(load.updatedAt),
-  title: `Load #${load.referenceNumber} status is ${formatLoadStatus(load.status)}`,
-  updatedAt: load.updatedAt,
-});
-
-const toIncidentActivity = (
-  incident: IncidentApiItem,
-): DashboardActivityItem => ({
-  description: incident.load.driver
-    ? `Driver: ${incident.load.driver.firstName} ${incident.load.driver.lastName}`
-    : `Load #${incident.load.referenceNumber}`,
-  id: `incident-${incident.id}`,
-  label: "Incident",
-  time: formatTime(incident.updatedAt),
-  title: `${incident.title} is ${incident.status}`,
-  updatedAt: incident.updatedAt,
+const dashboardActivityResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    activities: z.array(dashboardActivityItemSchema),
+  }),
 });
 
 export const fetchDashboardActivity =
   async (): Promise<DashboardActivityResult> => {
-    const [loads, incidents] = await Promise.all([
-      fetchLoads(loadFilters),
-      fetchIncidents(incidentFilters),
-    ]);
+    const response = await fetch("/api/loads/activity", { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error("Unable to load dashboard activity");
+    }
 
-    const activities = loads.data
-      .map(toLoadActivity)
-      .concat(incidents.data.map(toIncidentActivity))
-      .sort(
-        (left, right) =>
-          new Date(right.updatedAt).getTime() -
-          new Date(left.updatedAt).getTime(),
-      )
-      .slice(0, 5);
-
-    return { activities };
+    return dashboardActivityResponseSchema.parse(await response.json()).data;
   };
 
 export const dashboardActivityQueryOptions = () =>
