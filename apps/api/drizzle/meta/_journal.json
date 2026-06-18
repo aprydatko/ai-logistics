@@ -176,6 +176,13 @@
       "when": 1782165600000,
       "tag": "0024_steady_query_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1782770400000,
+      "tag": "0025_cursor_pagination_indexes",
+      "breakpoints": true
     }
   ]
 }

@@ -1,12 +1,15 @@
+import type { CursorListResponse } from "./api-response.dto.js";
 import type {
   Notification,
   NotificationPreference,
 } from "../types/notification.js";
 
-export type NotificationListResponse = {
-  data: Notification[];
-  success: true;
+export type ListNotificationsQueryDto = {
+  cursor?: string;
+  limit?: number;
 };
+
+export type NotificationListResponse = CursorListResponse<Notification>;
 
 export type NotificationUnreadCountResponse = {
   data: {

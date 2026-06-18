@@ -1,3 +1,4 @@
+import type { CursorPageInfo } from "@repo/shared/src";
 import type { AiLogRecord } from "../../db/schema";
 
 export type AiLogItem = Omit<
@@ -13,12 +14,7 @@ export type AiLogItem = Omit<
 export type AiLogsListResponse = {
   success: true;
   data: AiLogItem[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+  pageInfo: CursorPageInfo;
 };
 
 export type AiLogsMetricsResponse = {

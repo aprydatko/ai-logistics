@@ -65,6 +65,7 @@ export const aiLogs = pgTable(
   },
   (table) => [
     index("ai_logs_created_at_idx").on(table.createdAt),
+    index("ai_logs_created_at_id_idx").on(table.createdAt, table.id),
     index("ai_logs_user_id_idx").on(table.userId),
     index("ai_logs_status_idx").on(table.status),
     index("ai_logs_model_idx").on(table.model),

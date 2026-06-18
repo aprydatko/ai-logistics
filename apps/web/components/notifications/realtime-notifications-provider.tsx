@@ -1,7 +1,12 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Document, DocumentsListResponse } from "@repo/shared";
+import type {
+  Document,
+  DocumentsListResponse,
+  Notification,
+  NotificationListResponse,
+} from "@repo/shared";
 import { toast } from "@repo/ui/components/toaster";
 import { useRouter } from "next/navigation";
 import * as React from "react";
@@ -61,7 +66,11 @@ export const RealtimeNotificationsProvider = ({
 
   React.useEffect(() => {
     if (!notificationsQuery.data || unreadCountQuery.data === undefined) return;
-    hydrate(notificationsQuery.data, unreadCountQuery.data);
+    hydrate(
+      notificationsQuery.data.data,
+      unreadCountQuery.data,
+      notificationsQuery.data.pageInfo.nextCursor,
+    );
   }, [hydrate, notificationsQuery.data, unreadCountQuery.data]);
 
   React.useEffect(() => {
@@ -81,13 +90,28 @@ export const RealtimeNotificationsProvider = ({
         if (cancelled) return;
 
         socket.on("notification.created", (notification) => {
-          queryClient.setQueryData(["notifications"], (current: unknown) =>
-            Array.isArray(current)
-              ? [
-                  notification,
-                  ...current.filter((item) => item?.id !== notification.id),
-                ]
-              : [notification],
+          queryClient.setQueryData<NotificationListResponse>(
+            ["notifications"],
+            (current: NotificationListResponse | undefined) =>
+              current
+                ? {
+                    ...current,
+                    data: [
+                      notification,
+                      ...current.data.filter(
+                        (item: Notification) => item.id !== notification.id,
+                      ),
+                    ],
+                  }
+                : {
+                    success: true,
+                    data: [notification],
+                    pageInfo: {
+                      limit: 20,
+                      nextCursor: null,
+                      hasMore: false,
+                    },
+                  },
           );
           receiveNotification(notification);
 

@@ -1,6 +1,10 @@
 import { Injectable, InternalServerErrorException } from "@nestjs/common";
-import { and, count, desc, eq, gte, lte, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, gte, lt, lte, or, sql, type SQL } from "drizzle-orm";
 
+import {
+  decodeCursor,
+  encodeCursor,
+} from "../../common/pagination/cursor-pagination";
 import { DatabaseService } from "../../db/database.service";
 import { aiLogs } from "../../db/schema";
 import { CacheService } from "../cache/cache.service";
@@ -27,16 +31,15 @@ export class AiLogsService {
   private readonly loggedAtExpression = sql<Date>`coalesce(${aiLogs.completedAt}, ${aiLogs.createdAt})`;
 
   /**
-   * Returns a paginated, filtered list of AI log entries.
+   * Returns a cursor-paginated, filtered list of AI log entries.
    *
-   * Executes data and count queries in parallel using `Promise.all`.
-   * Logs are ordered by creation date descending.
+   * Logs are ordered by creation date descending with `id` as a tiebreaker.
    * Supported filters: `model`, `operation`, `status`, `from` (date range start),
    * `to` (date range end). Date filters use the `completedAt` timestamp
    * when available, otherwise fall back to `createdAt`.
    *
    * @param query - Pagination and filter parameters
-   * @returns Paginated AI log list with page metadata
+   * @returns Paginated AI log list with opaque cursor metadata
    */
   async findAll(query: ListAiLogsQueryDto): Promise<AiLogsListResponse> {
     return this.cacheService.getOrSet(
@@ -45,30 +48,34 @@ export class AiLogsService {
       this.cacheService.getTtl("list"),
       async () => {
         const filters = this.buildFilters(query);
+        const cursorFilter = this.buildCursorFilter(query.cursor);
+        if (cursorFilter) {
+          filters.push(cursorFilter);
+        }
         const where = filters.length > 0 ? and(...filters) : undefined;
-        const [rows, countRows] = await Promise.all([
-          this.databaseService.client
-            .select()
-            .from(aiLogs)
-            .where(where)
-            .orderBy(desc(aiLogs.createdAt))
-            .limit(query.limit)
-            .offset((query.page - 1) * query.limit),
-          this.databaseService.client
-            .select({ total: count() })
-            .from(aiLogs)
-            .where(where),
-        ]);
-        const total = countRows[0]?.total ?? 0;
+        const rows = await this.databaseService.client
+          .select()
+          .from(aiLogs)
+          .where(where)
+          .orderBy(desc(aiLogs.createdAt), desc(aiLogs.id))
+          .limit(query.limit + 1);
+        const hasMore = rows.length > query.limit;
+        const dataRows = rows.slice(0, query.limit);
+        const lastRow = dataRows[dataRows.length - 1];
 
         return {
           success: true,
-          data: rows.map((row) => this.toAiLogItem(row)),
-          pagination: {
-            page: query.page,
+          data: dataRows.map((row) => this.toAiLogItem(row)),
+          pageInfo: {
             limit: query.limit,
-            total,
-            totalPages: Math.ceil(total / query.limit),
+            hasMore,
+            nextCursor:
+              hasMore && lastRow
+                ? encodeCursor({
+                    createdAt: lastRow.createdAt,
+                    id: lastRow.id,
+                  })
+                : null,
           },
         };
       },
@@ -351,6 +358,25 @@ export class AiLogsService {
     }
 
     return filters;
+  }
+
+  private buildCursorFilter(cursor: string | undefined): SQL | undefined {
+    if (!cursor) {
+      return undefined;
+    }
+
+    const parsedCursor = decodeCursor(cursor);
+    if (!parsedCursor) {
+      return undefined;
+    }
+
+    return or(
+      lt(aiLogs.createdAt, parsedCursor.createdAt),
+      and(
+        eq(aiLogs.createdAt, parsedCursor.createdAt),
+        lt(aiLogs.id, parsedCursor.id),
+      ),
+    );
   }
 
   /**

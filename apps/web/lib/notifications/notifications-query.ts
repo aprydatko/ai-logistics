@@ -3,6 +3,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import type {
   Notification,
+  ListNotificationsQueryDto,
   NotificationListResponse,
   NotificationPreference,
   NotificationPreferenceResponse,
@@ -57,6 +58,11 @@ const notificationSchema = z.object({
 const notificationListResponseSchema = z.object({
   success: z.literal(true),
   data: z.array(notificationSchema),
+  pageInfo: z.object({
+    limit: z.number().int().positive(),
+    nextCursor: z.string().nullable(),
+    hasMore: z.boolean(),
+  }),
 }) satisfies z.ZodType<NotificationListResponse>;
 
 const notificationUnreadCountResponseSchema = z.object({
@@ -85,10 +91,19 @@ const notificationPreferenceResponseSchema = z.object({
   data: notificationPreferenceSchema,
 }) satisfies z.ZodType<NotificationPreferenceResponse>;
 
-export const fetchNotifications = async (): Promise<Notification[]> => {
-  const response = await fetch("/api/notifications", { cache: "no-store" });
+export const fetchNotifications = async (
+  query: ListNotificationsQueryDto = {},
+): Promise<NotificationListResponse> => {
+  const searchParams = new URLSearchParams();
+  if (query.cursor) searchParams.set("cursor", query.cursor);
+  if (query.limit) searchParams.set("limit", String(query.limit));
+
+  const response = await fetch(
+    `/api/notifications${searchParams.size > 0 ? `?${searchParams.toString()}` : ""}`,
+    { cache: "no-store" },
+  );
   if (!response.ok) throw new Error("Unable to load notifications");
-  return notificationListResponseSchema.parse(await response.json()).data;
+  return notificationListResponseSchema.parse(await response.json());
 };
 
 export const fetchNotificationUnreadCount = async (): Promise<number> => {
@@ -147,7 +162,7 @@ export const updateNotificationPreferences = async (
 export const notificationsQueryOptions = () =>
   queryOptions({
     queryKey: ["notifications"],
-    queryFn: fetchNotifications,
+    queryFn: () => fetchNotifications(),
   });
 
 export const notificationUnreadCountQueryOptions = () =>

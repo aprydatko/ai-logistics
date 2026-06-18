@@ -8,6 +8,7 @@ import * as React from "react";
 import { Button } from "@repo/ui/components/button";
 
 import {
+  fetchNotifications,
   markAllNotificationsRead,
   markNotificationRead,
   notificationsQueryOptions,
@@ -27,6 +28,10 @@ export const NotificationCenter = (): React.JSX.Element => {
   const queryClient = useQueryClient();
   const { data } = useQuery(notificationsQueryOptions());
   const items = useNotificationsStore((state) => state.items);
+  const nextCursor = useNotificationsStore((state) => state.nextCursor);
+  const appendOlderNotifications = useNotificationsStore(
+    (state) => state.appendOlderNotifications,
+  );
   const markAsReadLocal = useNotificationsStore((state) => state.markAsRead);
   const markAllAsReadLocal = useNotificationsStore(
     (state) => state.markAllAsRead,
@@ -35,6 +40,7 @@ export const NotificationCenter = (): React.JSX.Element => {
   const [type, setType] = React.useState<Notification["category"] | "all">(
     "all",
   );
+  const [isLoadingMore, setIsLoadingMore] = React.useState(false);
 
   const markAsReadMutation = useMutation({
     mutationFn: markNotificationRead,
@@ -59,14 +65,27 @@ export const NotificationCenter = (): React.JSX.Element => {
     },
   });
 
-  const sourceItems = items.length > 0 ? items : (data ?? []);
-  const filtered = sourceItems.filter((item) => {
+  const sourceItems: Notification[] =
+    items.length > 0 ? items : (data?.data ?? []);
+  const filtered = sourceItems.filter((item: Notification) => {
     const matchesType = type === "all" || item.category === type;
     const matchesQuery = `${item.title} ${item.message}`
       .toLowerCase()
       .includes(query.toLowerCase());
     return matchesType && matchesQuery;
   });
+
+  const handleLoadMore = async (): Promise<void> => {
+    if (!nextCursor || isLoadingMore) return;
+
+    setIsLoadingMore(true);
+    try {
+      const response = await fetchNotifications({ cursor: nextCursor });
+      appendOlderNotifications(response.data, response.pageInfo.nextCursor);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   return (
     <section className="min-w-0 p-5">
@@ -118,7 +137,7 @@ export const NotificationCenter = (): React.JSX.Element => {
       </div>
 
       <div className="mt-3">
-        {filtered.map((item) => {
+        {filtered.map((item: Notification) => {
           const isUnread = !item.readAt;
 
           return (
@@ -164,6 +183,17 @@ export const NotificationCenter = (): React.JSX.Element => {
         {filtered.length === 0 ? (
           <div className="py-16 text-center text-sm text-ink-500">
             No notifications match your search.
+          </div>
+        ) : null}
+        {query === "" && type === "all" && filtered.length > 0 ? (
+          <div className="flex justify-center pt-4">
+            <Button
+              disabled={!nextCursor || isLoadingMore}
+              onClick={() => void handleLoadMore()}
+              variant="outline"
+            >
+              {isLoadingMore ? "Loading..." : nextCursor ? "Load more" : "All caught up"}
+            </Button>
           </div>
         ) : null}
       </div>

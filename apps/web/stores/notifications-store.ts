@@ -5,9 +5,18 @@ type NotificationState = {
   hasHydratedInitialList: boolean;
   isPanelOpen: boolean;
   items: Notification[];
+  nextCursor: string | null;
   preferencesSnapshot: NotificationPreference | null;
   unreadCount: number;
-  hydrate: (items: Notification[], unreadCount: number) => void;
+  appendOlderNotifications: (
+    items: Notification[],
+    nextCursor: string | null,
+  ) => void;
+  hydrate: (
+    items: Notification[],
+    unreadCount: number,
+    nextCursor: string | null,
+  ) => void;
   markAllAsRead: () => void;
   markAsRead: (notificationId: string) => void;
   receiveNotification: (notification: Notification) => void;
@@ -27,12 +36,22 @@ export const useNotificationsStore = create<NotificationState>((set) => ({
   hasHydratedInitialList: false,
   isPanelOpen: false,
   items: [],
+  nextCursor: null,
   preferencesSnapshot: null,
   unreadCount: 0,
-  hydrate: (items, unreadCount) =>
+  appendOlderNotifications: (items, nextCursor) =>
+    set((state) => ({
+      items: sortNewestFirst([
+        ...state.items,
+        ...items.filter((item) => !state.items.some((current) => current.id === item.id)),
+      ]),
+      nextCursor,
+    })),
+  hydrate: (items, unreadCount, nextCursor) =>
     set({
       hasHydratedInitialList: true,
       items: sortNewestFirst(items),
+      nextCursor,
       unreadCount,
     }),
   markAllAsRead: () =>

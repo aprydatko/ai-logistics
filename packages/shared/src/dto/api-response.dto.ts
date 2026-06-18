@@ -20,3 +20,15 @@ export type DriversResponse = ApiResponse<Driver[]>;
 export type LoadResponse = ApiResponse<Load>;
 
 export type CreateDriverResponse = ApiResponse<Driver>;
+
+export type CursorPageInfo = {
+  limit: number;
+  nextCursor: string | null;
+  hasMore: boolean;
+};
+
+export type CursorListResponse<T> = {
+  success: true;
+  data: T[];
+  pageInfo: CursorPageInfo;
+};

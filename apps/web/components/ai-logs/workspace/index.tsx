@@ -2,7 +2,6 @@
 
 import { AiLogDetails } from "../ai-log-details";
 
-import { getPages } from "./constants";
 import { AiLogsFilters } from "./ai-logs-filters";
 import { AiLogsHeader } from "./ai-logs-header";
 import { AiLogsMetrics } from "./ai-logs-metrics";
@@ -11,9 +10,12 @@ import { useAiLogsWorkspace } from "./use-ai-logs-workspace";
 
 export const AiLogsWorkspace = (): React.JSX.Element => {
   const {
-    endItem,
     error,
     from,
+    goToNextPage,
+    goToPreviousPage,
+    hasMore,
+    historyDepth,
     isLoading,
     limit,
     logs,
@@ -21,16 +23,12 @@ export const AiLogsWorkspace = (): React.JSX.Element => {
     model,
     operation,
     operationOptions,
-    page,
+    nextCursor,
     selected,
     setLimit,
-    setPage,
     setSelected,
-    startItem,
     status,
     to,
-    totalItems,
-    totalPages,
     updateDateRange,
     updateModel,
     updateOperation,
@@ -56,20 +54,18 @@ export const AiLogsWorkspace = (): React.JSX.Element => {
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden xl:flex-row">
         <AiLogsTable
-          endItem={endItem}
           error={error}
+          goToNextPage={goToNextPage}
+          goToPreviousPage={goToPreviousPage}
+          hasMore={hasMore}
+          historyDepth={historyDepth}
           isLoading={isLoading}
           limit={limit}
           logs={logs}
-          page={page}
-          pages={getPages(page, totalPages)}
+          nextCursor={nextCursor}
           selected={selected}
           setLimit={setLimit}
-          setPage={setPage}
           setSelected={setSelected}
-          startItem={startItem}
-          totalItems={totalItems}
-          totalPages={totalPages}
         />
         {selected ? (
           <AiLogDetails log={selected} onClose={() => setSelected(null)} />
