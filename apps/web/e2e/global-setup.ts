@@ -102,9 +102,7 @@ const globalSetup = async (): Promise<void> => {
         throw new Error(`Real API is unavailable at ${apiHealthUrl}`);
       }
 
-      await new Promise((resolvePromise) =>
-        setTimeout(resolvePromise, 1_000),
-      );
+      await new Promise((resolvePromise) => setTimeout(resolvePromise, 1_000));
     }
 
     const repoRoot = resolve(__dirname, "..", "..");

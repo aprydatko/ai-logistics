@@ -60,7 +60,9 @@ export const documentUploads = pgTable(
   },
   (table) => [
     index("document_uploads_status_idx").on(table.status),
-    index("document_uploads_uploaded_by_user_id_idx").on(table.uploadedByUserId),
+    index("document_uploads_uploaded_by_user_id_idx").on(
+      table.uploadedByUserId,
+    ),
     index("document_uploads_object_key_idx").on(table.objectKey),
     index("document_uploads_expires_at_idx").on(table.expiresAt),
   ],

@@ -3,6 +3,7 @@ import { JwtService } from "@nestjs/jwt";
 import type { Request } from "express";
 import { describe, expect, it, vi } from "vitest";
 
+import type { RequestContextService } from "../../common/logging/request-context.service";
 import type { DatabaseService } from "../../db/database.service";
 import type { AccessTokenPayload, AuthenticatedUser } from "./auth.types";
 import { JwtAuthGuard } from "./jwt-auth.guard";
@@ -55,6 +56,11 @@ const buildContext = (
   } as unknown as ExecutionContext;
 };
 
+const buildRequestContextService = (): RequestContextService =>
+  ({
+    setUserId: vi.fn(),
+  }) as unknown as RequestContextService;
+
 describe("JwtAuthGuard.canActivate", () => {
   it("attaches the authenticated user and returns true on success", async () => {
     const jwtService = buildJwtService(
@@ -74,7 +80,11 @@ describe("JwtAuthGuard.canActivate", () => {
         role: activeUser.role,
       },
     ]);
-    const guard = new JwtAuthGuard(jwtService, databaseService);
+    const guard = new JwtAuthGuard(
+      jwtService,
+      databaseService,
+      buildRequestContextService(),
+    );
     const context = buildContext({ authorization: "Bearer good-token" });
     const request = context.switchToHttp().getRequest<
       Request & {
@@ -89,7 +99,11 @@ describe("JwtAuthGuard.canActivate", () => {
   it("rejects when no token is present", async () => {
     const jwtService = buildJwtService(() => null);
     const databaseService = buildDatabaseService([]);
-    const guard = new JwtAuthGuard(jwtService, databaseService);
+    const guard = new JwtAuthGuard(
+      jwtService,
+      databaseService,
+      buildRequestContextService(),
+    );
 
     await expect(guard.canActivate(buildContext())).rejects.toBeInstanceOf(
       UnauthorizedException,
@@ -101,7 +115,11 @@ describe("JwtAuthGuard.canActivate", () => {
       throw new Error("jwt malformed");
     });
     const databaseService = buildDatabaseService([]);
-    const guard = new JwtAuthGuard(jwtService, databaseService);
+    const guard = new JwtAuthGuard(
+      jwtService,
+      databaseService,
+      buildRequestContextService(),
+    );
 
     await expect(
       guard.canActivate(buildContext({ authorization: "Bearer bad-token" })),
@@ -114,7 +132,11 @@ describe("JwtAuthGuard.canActivate", () => {
       tokenType: "refresh",
     }));
     const databaseService = buildDatabaseService([]);
-    const guard = new JwtAuthGuard(jwtService, databaseService);
+    const guard = new JwtAuthGuard(
+      jwtService,
+      databaseService,
+      buildRequestContextService(),
+    );
 
     await expect(
       guard.canActivate(buildContext({ authorization: "Bearer refresh" })),
@@ -136,7 +158,11 @@ describe("JwtAuthGuard.canActivate", () => {
         role: activeUser.role,
       },
     ]);
-    const guard = new JwtAuthGuard(jwtService, databaseService);
+    const guard = new JwtAuthGuard(
+      jwtService,
+      databaseService,
+      buildRequestContextService(),
+    );
 
     await expect(
       guard.canActivate(buildContext({ authorization: "Bearer good-token" })),

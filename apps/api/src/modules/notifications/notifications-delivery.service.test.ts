@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { WinstonLoggerService } from "../../common/logging/winston-logger.service";
 import { NotificationsDeliveryService } from "./notifications-delivery.service";
 import type { NotificationDeliveryInput } from "./notifications.types";
 
@@ -48,6 +49,12 @@ const buildInput = (
   };
 };
 
+const buildLogger = (): WinstonLoggerService =>
+  ({
+    errorWithMeta: vi.fn(),
+    warnWithMeta: vi.fn(),
+  }) as unknown as WinstonLoggerService;
+
 describe("NotificationsDeliveryService", () => {
   const originalFetch = global.fetch;
 
@@ -63,10 +70,13 @@ describe("NotificationsDeliveryService", () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true });
     global.fetch = fetchMock as never;
 
-    const service = new NotificationsDeliveryService({
-      get: (key: string) =>
-        key === "RESEND_API_KEY" ? "k" : "noreply@example.com",
-    } as never);
+    const service = new NotificationsDeliveryService(
+      {
+        get: (key: string) =>
+          key === "RESEND_API_KEY" ? "k" : "noreply@example.com",
+      } as never,
+      buildLogger(),
+    );
 
     await service.sendNotificationEmail(
       buildInput({
@@ -92,9 +102,12 @@ describe("NotificationsDeliveryService", () => {
     const fetchMock = vi.fn();
     global.fetch = fetchMock as never;
 
-    const service = new NotificationsDeliveryService({
-      get: () => "anything",
-    } as never);
+    const service = new NotificationsDeliveryService(
+      {
+        get: () => "anything",
+      } as never,
+      buildLogger(),
+    );
 
     await service.sendNotificationEmail(buildInput({ channels: ["in_app"] }));
 
@@ -105,9 +118,12 @@ describe("NotificationsDeliveryService", () => {
     const fetchMock = vi.fn();
     global.fetch = fetchMock as never;
 
-    const service = new NotificationsDeliveryService({
-      get: () => "anything",
-    } as never);
+    const service = new NotificationsDeliveryService(
+      {
+        get: () => "anything",
+      } as never,
+      buildLogger(),
+    );
 
     await service.sendNotificationEmail(
       buildInput({
@@ -125,9 +141,12 @@ describe("NotificationsDeliveryService", () => {
     const fetchMock = vi.fn();
     global.fetch = fetchMock as never;
 
-    const service = new NotificationsDeliveryService({
-      get: () => "anything",
-    } as never);
+    const service = new NotificationsDeliveryService(
+      {
+        get: () => "anything",
+      } as never,
+      buildLogger(),
+    );
 
     await service.sendNotificationEmail(
       buildInput({
@@ -156,10 +175,13 @@ describe("NotificationsDeliveryService", () => {
     });
     global.fetch = fetchMock as never;
 
-    const service = new NotificationsDeliveryService({
-      get: (key: string) =>
-        key === "RESEND_API_KEY" ? "k" : "noreply@example.com",
-    } as never);
+    const service = new NotificationsDeliveryService(
+      {
+        get: (key: string) =>
+          key === "RESEND_API_KEY" ? "k" : "noreply@example.com",
+      } as never,
+      buildLogger(),
+    );
 
     await service.sendNotificationEmail(buildInput());
 
@@ -172,17 +194,20 @@ describe("NotificationsDeliveryService", () => {
       .mockResolvedValue({ ok: false, status: 500, text: () => "Error" });
     global.fetch = fetchMock as never;
 
-    const service = new NotificationsDeliveryService({
-      get: (key: string) => {
-        const config: Record<string, unknown> = {
-          RESEND_API_KEY: "k",
-          RESEND_FROM_EMAIL: "noreply@example.com",
-          EMAIL_RETRY_MAX_ATTEMPTS: 2,
-          EMAIL_RETRY_INITIAL_DELAY_MS: 500,
-        };
-        return config[key];
-      },
-    } as never);
+    const service = new NotificationsDeliveryService(
+      {
+        get: (key: string) => {
+          const config: Record<string, unknown> = {
+            RESEND_API_KEY: "k",
+            RESEND_FROM_EMAIL: "noreply@example.com",
+            EMAIL_RETRY_MAX_ATTEMPTS: 2,
+            EMAIL_RETRY_INITIAL_DELAY_MS: 500,
+          };
+          return config[key];
+        },
+      } as never,
+      buildLogger(),
+    );
 
     await expect(service.sendNotificationEmail(buildInput())).rejects.toThrow();
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -192,9 +217,12 @@ describe("NotificationsDeliveryService", () => {
     const fetchMock = vi.fn();
     global.fetch = fetchMock as never;
 
-    const service = new NotificationsDeliveryService({
-      get: () => undefined,
-    } as never);
+    const service = new NotificationsDeliveryService(
+      {
+        get: () => undefined,
+      } as never,
+      buildLogger(),
+    );
 
     await service.sendNotificationEmail(buildInput());
 

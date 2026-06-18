@@ -16,6 +16,138 @@ permissions:
   pull-requests: write
 
 jobs:
+  monitoring:
+    name: Monitoring Config Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate monitoring docker compose
+        run: docker compose -f docker-compose.monitoring.yml config
+
+      - name: Validate Prometheus config with promtool
+        run: |
+          docker run --rm \
+            --entrypoint /bin/promtool \
+            -v "$PWD/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
+            prom/prometheus:v3.5.0 \
+            check config /etc/prometheus/prometheus.yml
+
+      - name: Validate Grafana dashboard JSON
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+
+          const dashboardPath =
+            "monitoring/grafana/dashboards/ai-logistics-observability.json";
+          const raw = fs.readFileSync(dashboardPath, "utf8");
+          const dashboard = JSON.parse(raw);
+
+          if (dashboard.uid !== "ai-logistics-observability") {
+            throw new Error(`Unexpected dashboard uid: ${dashboard.uid}`);
+          }
+
+          if (!Array.isArray(dashboard.panels) || dashboard.panels.length === 0) {
+            throw new Error("Grafana dashboard must contain at least one panel.");
+          }
+
+          const invalidPanels = dashboard.panels.filter((panel) => {
+            return panel.datasource?.uid !== "prometheus";
+          });
+
+          if (invalidPanels.length > 0) {
+            throw new Error(
+              `Panels with unexpected datasource uid: ${invalidPanels
+                .map((panel) => panel.title || panel.id)
+                .join(", ")}`,
+            );
+          }
+          NODE
+
+      - name: Start monitoring stack
+        run: docker compose -f docker-compose.monitoring.yml up -d prometheus grafana
+
+      - name: Wait for Prometheus and Grafana
+        run: |
+          node <<'NODE'
+          const adminAuth = "Basic " + Buffer.from("admin:admin").toString("base64");
+
+          async function waitFor(url, options = {}, isReady = (response) => response.ok) {
+            const startedAt = Date.now();
+
+            while (Date.now() - startedAt < 120000) {
+              try {
+                const response = await fetch(url, options);
+                if (isReady(response)) return;
+              } catch {}
+
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+            }
+
+            throw new Error(`Service did not become ready: ${url}`);
+          }
+
+          await waitFor("http://127.0.0.1:9090/-/healthy");
+          await waitFor("http://127.0.0.1:3002/api/health");
+          await waitFor("http://127.0.0.1:3002/api/datasources", {
+            headers: { Authorization: adminAuth },
+          });
+          await waitFor(
+            "http://127.0.0.1:3002/api/dashboards/uid/ai-logistics-observability",
+            {
+              headers: { Authorization: adminAuth },
+            },
+            (response) => response.ok,
+          );
+          NODE
+
+      - name: Verify Grafana provisioning
+        run: |
+          node <<'NODE'
+          const adminAuth = "Basic " + Buffer.from("admin:admin").toString("base64");
+
+          const datasourceResponse = await fetch(
+            "http://127.0.0.1:3002/api/datasources",
+            {
+              headers: { Authorization: adminAuth },
+            },
+          );
+          const datasources = await datasourceResponse.json();
+          const prometheus = datasources.find((entry) => entry.uid === "prometheus");
+
+          if (!prometheus) {
+            throw new Error("Provisioned Prometheus datasource uid=prometheus not found.");
+          }
+
+          const dashboardResponse = await fetch(
+            "http://127.0.0.1:3002/api/dashboards/uid/ai-logistics-observability",
+            {
+              headers: { Authorization: adminAuth },
+            },
+          );
+
+          if (!dashboardResponse.ok) {
+            throw new Error(
+              `Grafana dashboard fetch failed with status ${dashboardResponse.status}.`,
+            );
+          }
+
+          const payload = await dashboardResponse.json();
+          if (payload.dashboard?.uid !== "ai-logistics-observability") {
+            throw new Error("Provisioned dashboard uid mismatch.");
+          }
+          NODE
+
+      - name: Dump monitoring logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.monitoring.yml logs --tail=200
+
+      - name: Stop monitoring stack
+        if: always()
+        run: docker compose -f docker-compose.monitoring.yml down -v
+
   checks:
     name: Lint, Type Check, and Unit Tests
     runs-on: ubuntu-latest

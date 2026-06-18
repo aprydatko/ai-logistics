@@ -91,17 +91,20 @@ test.describe("documents upload", () => {
           type: "application/pdf",
         });
 
-        const initiateResponse = await fetch("/api/documents/uploads/initiate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            fileName: file.name,
-            fileSize: file.size,
-            mimeType: file.type,
-            type: "bill_of_lading",
-            analyzeWithVision: false,
-          }),
-        });
+        const initiateResponse = await fetch(
+          "/api/documents/uploads/initiate",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              fileName: file.name,
+              fileSize: file.size,
+              mimeType: file.type,
+              type: "bill_of_lading",
+              analyzeWithVision: false,
+            }),
+          },
+        );
 
         if (!initiateResponse.ok) {
           throw new Error(await initiateResponse.text());

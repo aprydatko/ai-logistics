@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
+import { MetricsService } from "../../common/metrics/metrics.service";
 import type { Environment } from "../../config/environment";
 import type { AuthenticatedUser } from "../auth/auth.types";
 import { AssistantAuditService } from "./assistant-audit.service";
@@ -30,6 +31,7 @@ import { AssistantToolsService } from "./assistant-tools.service";
 export class AssistantService {
   constructor(
     private readonly configService: ConfigService<Environment, true>,
+    private readonly metricsService: MetricsService,
     private readonly assistantAuditService: AssistantAuditService,
     private readonly assistantOpenAIClient: AssistantOpenAIClient,
     private readonly assistantToolsService: AssistantToolsService,
@@ -55,18 +57,26 @@ export class AssistantService {
     const userName = await this.assistantAuditService.getUserDisplayName(user);
 
     if (!this.configService.get("OPENAI_API_KEY", { infer: true })) {
+      const operation =
+        dto.operation ??
+        detectOperation({ message: dto.message, reportType, usedTools: [] });
+
       await this.assistantAuditService.logAssistantCall({
         errorMessage: "OpenAI API key is not configured",
         latencyMs: Date.now() - startedAt,
         model,
-        operation:
-          dto.operation ??
-          detectOperation({ message: dto.message, reportType, usedTools: [] }),
+        operation,
         requestInput,
         source: dto.source ?? "web",
         status: "failed",
         userId: user.id,
         userName,
+      });
+      this.metricsService.recordAssistantRequest({
+        durationMs: Date.now() - startedAt,
+        model,
+        operation,
+        status: "placeholder",
       });
 
       return {
@@ -127,6 +137,20 @@ export class AssistantService {
         userId: user.id,
         userName,
       });
+      this.metricsService.recordAssistantRequest({
+        completionTokens: orchestration.usage.completionTokens,
+        durationMs: Date.now() - startedAt,
+        estimatedCostUsd: estimateCostUsd({
+          completionTokens: orchestration.usage.completionTokens,
+          model,
+          promptTokens: orchestration.usage.promptTokens,
+        }),
+        model,
+        operation,
+        promptTokens: orchestration.usage.promptTokens,
+        status: "success",
+        totalTokens: orchestration.usage.totalTokens,
+      });
 
       return {
         conversationId,
@@ -145,18 +169,25 @@ export class AssistantService {
       };
     } catch (error: unknown) {
       const message = this.normalizeErrorMessage(error);
+      const operation =
+        dto.operation ??
+        detectOperation({ message: dto.message, reportType, usedTools: [] });
       await this.assistantAuditService.logAssistantCall({
         errorMessage: message,
         latencyMs: Date.now() - startedAt,
         model,
-        operation:
-          dto.operation ??
-          detectOperation({ message: dto.message, reportType, usedTools: [] }),
+        operation,
         requestInput,
         source: dto.source ?? "web",
         status: "failed",
         userId: user.id,
         userName,
+      });
+      this.metricsService.recordAssistantRequest({
+        durationMs: Date.now() - startedAt,
+        model,
+        operation,
+        status: "failed",
       });
 
       return {

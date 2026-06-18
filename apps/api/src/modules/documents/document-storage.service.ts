@@ -101,7 +101,10 @@ export class DocumentStorageService {
       };
     }
 
-    const absolutePath = join(this.uploadsRoot, objectKey.replaceAll("/", "\\"));
+    const absolutePath = join(
+      this.uploadsRoot,
+      objectKey.replaceAll("/", "\\"),
+    );
     const targetDirectory = dirname(absolutePath);
 
     await mkdir(targetDirectory, { recursive: true });
@@ -149,9 +152,13 @@ export class DocumentStorageService {
         throw new BadRequestException("Missing object storage reference");
       }
 
-      const stat = await client.statObject(locator.storageBucket, locator.objectKey);
+      const stat = await client.statObject(
+        locator.storageBucket,
+        locator.objectKey,
+      );
       return {
-        etag: typeof stat.etag === "string" ? stat.etag.replaceAll('"', "") : null,
+        etag:
+          typeof stat.etag === "string" ? stat.etag.replaceAll('"', "") : null,
         mimeType:
           typeof stat.metaData?.["content-type"] === "string"
             ? stat.metaData["content-type"]
@@ -200,7 +207,9 @@ export class DocumentStorageService {
       params.objectKey,
       this.presignTtlSeconds,
       params.fileName
-        ? { "response-content-disposition": `inline; filename="${params.fileName}"` }
+        ? {
+            "response-content-disposition": `inline; filename="${params.fileName}"`,
+          }
         : undefined,
     );
 
@@ -212,7 +221,8 @@ export class DocumentStorageService {
 
   buildObjectKey(fileName: string, mimeType?: string): string {
     const dateSegment = new Date().toISOString().slice(0, 10);
-    const extension = extname(fileName) || (mimeType ? this.extensionFromMime(mimeType) : "");
+    const extension =
+      extname(fileName) || (mimeType ? this.extensionFromMime(mimeType) : "");
     return `documents/${dateSegment}/${randomUUID()}${extension}`;
   }
 

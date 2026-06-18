@@ -1,6 +1,7 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
+import { WinstonLoggerService } from "../../common/logging/winston-logger.service";
 import type { Environment } from "../../config/environment";
 import type { NotificationDeliveryInput } from "./notifications.types";
 
@@ -16,10 +17,9 @@ function isValidEmail(email: string): boolean {
 
 @Injectable()
 export class NotificationsDeliveryService {
-  private readonly logger = new Logger(NotificationsDeliveryService.name);
-
   constructor(
     private readonly configService: ConfigService<Environment, true>,
+    private readonly logger: WinstonLoggerService,
   ) {}
 
   async sendNotificationEmail(input: NotificationDeliveryInput): Promise<void> {
@@ -27,9 +27,11 @@ export class NotificationsDeliveryService {
     if (input.preference.emailFrequency !== "instant") return;
 
     if (!isValidEmail(input.recipient.email)) {
-      this.logger.warn(
-        `Invalid email address format: ${input.recipient.email}`,
-      );
+      this.logger.warnWithMeta("Invalid email address format", {
+        context: NotificationsDeliveryService.name,
+        event: "notification_email_invalid_recipient",
+        userId: input.recipient.id,
+      });
       return;
     }
 
@@ -37,9 +39,11 @@ export class NotificationsDeliveryService {
     const from = this.configService.get("RESEND_FROM_EMAIL", { infer: true });
 
     if (!apiKey || !from) {
-      this.logger.warn(
-        "Email configuration missing: RESEND_API_KEY or RESEND_FROM_EMAIL not set",
-      );
+      this.logger.warnWithMeta("Email configuration missing", {
+        context: NotificationsDeliveryService.name,
+        event: "notification_email_config_missing",
+        userId: input.recipient.id,
+      });
       return;
     }
 
@@ -77,14 +81,24 @@ export class NotificationsDeliveryService {
           );
 
           if (attempt === maxRetries) {
-            this.logger.error(
-              `Email delivery failed after ${maxRetries} attempts for ${input.recipient.email}`,
+            this.logger.errorWithMeta(
+              "Email delivery failed after retries",
               lastError,
+              {
+                context: NotificationsDeliveryService.name,
+                event: "notification_email_failed",
+                statusCode: response.status,
+                userId: input.recipient.id,
+              },
             );
           } else {
-            this.logger.warn(
-              `Email delivery attempt ${attempt}/${maxRetries} failed for ${input.recipient.email}: ${response.status}`,
-            );
+            this.logger.warnWithMeta("Email delivery attempt failed", {
+              context: NotificationsDeliveryService.name,
+              event: "notification_email_retry",
+              operation: `attempt_${attempt}_of_${maxRetries}`,
+              statusCode: response.status,
+              userId: input.recipient.id,
+            });
             await this.delay(initialDelay * attempt);
           }
         } else {
@@ -93,15 +107,22 @@ export class NotificationsDeliveryService {
       } catch (error) {
         lastError = error as Error;
         if (attempt === maxRetries) {
-          this.logger.error(
-            `Email delivery failed after ${maxRetries} attempts for ${input.recipient.email}`,
+          this.logger.errorWithMeta(
+            "Email delivery failed after retries",
             error,
+            {
+              context: NotificationsDeliveryService.name,
+              event: "notification_email_failed",
+              userId: input.recipient.id,
+            },
           );
         } else {
-          this.logger.warn(
-            `Email delivery attempt ${attempt}/${maxRetries} errored for ${input.recipient.email}`,
-            error,
-          );
+          this.logger.warnWithMeta("Email delivery attempt errored", {
+            context: NotificationsDeliveryService.name,
+            event: "notification_email_retry_error",
+            operation: `attempt_${attempt}_of_${maxRetries}`,
+            userId: input.recipient.id,
+          });
           await this.delay(initialDelay * attempt);
         }
       }
