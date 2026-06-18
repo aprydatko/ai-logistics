@@ -54,6 +54,15 @@ jobs:
             WEB_ORIGIN=${{ secrets.WEB_ORIGIN }}
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
             OPENAI_MODEL=${{ secrets.OPENAI_MODEL }}
+            OPENAI_DOCUMENT_MODEL=${{ secrets.OPENAI_DOCUMENT_MODEL }}
+            STORAGE_PROVIDER=s3
+            MINIO_ROOT_USER=${{ secrets.MINIO_ROOT_USER }}
+            MINIO_ROOT_PASSWORD=${{ secrets.MINIO_ROOT_PASSWORD }}
+            S3_REGION=${{ secrets.S3_REGION }}
+            S3_BUCKET=${{ secrets.S3_BUCKET }}
+            S3_PUBLIC_BASE_URL=${{ secrets.S3_PUBLIC_BASE_URL }}
+            S3_USE_SSL=${{ secrets.S3_USE_SSL }}
+            S3_PRESIGN_TTL_SECONDS=${{ secrets.S3_PRESIGN_TTL_SECONDS }}
             RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
             RESEND_FROM_EMAIL=${{ secrets.RESEND_FROM_EMAIL }}
             EOF
