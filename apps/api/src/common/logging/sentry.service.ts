@@ -21,11 +21,7 @@ type SentryScope = {
   setContext: (name: string, context: Record<string, unknown>) => void;
   setExtra: (key: string, extra: unknown) => void;
   setTag: (key: string, value: string) => void;
-  setUser: (user: {
-    email?: string;
-    id?: string;
-    username?: string;
-  }) => void;
+  setUser: (user: { email?: string; id?: string; username?: string }) => void;
 };
 
 type SentryClient = {

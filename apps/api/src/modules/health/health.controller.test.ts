@@ -4,13 +4,16 @@ import { HealthController } from "./health.controller";
 
 describe("HealthController", () => {
   it("returns API health metadata", () => {
-    const controller = new HealthController({
-      client: {
-        execute: vi.fn(),
-      },
-    } as unknown as ConstructorParameters<typeof HealthController>[0], {
-      ping: vi.fn(),
-    } as unknown as ConstructorParameters<typeof HealthController>[1]);
+    const controller = new HealthController(
+      {
+        client: {
+          execute: vi.fn(),
+        },
+      } as unknown as ConstructorParameters<typeof HealthController>[0],
+      {
+        ping: vi.fn(),
+      } as unknown as ConstructorParameters<typeof HealthController>[1],
+    );
 
     const response = controller.getHealth();
 
@@ -21,13 +24,16 @@ describe("HealthController", () => {
 
   it("checks database reachability", async () => {
     const execute = vi.fn().mockResolvedValue([{ result: 1 }]);
-    const controller = new HealthController({
-      client: {
-        execute,
-      },
-    } as unknown as ConstructorParameters<typeof HealthController>[0], {
-      ping: vi.fn(),
-    } as unknown as ConstructorParameters<typeof HealthController>[1]);
+    const controller = new HealthController(
+      {
+        client: {
+          execute,
+        },
+      } as unknown as ConstructorParameters<typeof HealthController>[0],
+      {
+        ping: vi.fn(),
+      } as unknown as ConstructorParameters<typeof HealthController>[1],
+    );
 
     await expect(controller.getDatabaseHealth()).resolves.toEqual({
       status: "ok",
@@ -38,13 +44,16 @@ describe("HealthController", () => {
 
   it("checks redis reachability", async () => {
     const ping = vi.fn().mockResolvedValue("reachable");
-    const controller = new HealthController({
-      client: {
-        execute: vi.fn(),
-      },
-    } as unknown as ConstructorParameters<typeof HealthController>[0], {
-      ping,
-    } as unknown as ConstructorParameters<typeof HealthController>[1]);
+    const controller = new HealthController(
+      {
+        client: {
+          execute: vi.fn(),
+        },
+      } as unknown as ConstructorParameters<typeof HealthController>[0],
+      {
+        ping,
+      } as unknown as ConstructorParameters<typeof HealthController>[1],
+    );
 
     await expect(controller.getRedisHealth()).resolves.toEqual({
       status: "ok",

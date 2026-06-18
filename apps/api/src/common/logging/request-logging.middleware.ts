@@ -22,7 +22,8 @@ export const createRequestLoggingMiddleware =
     const startedAt = process.hrtime.bigint();
 
     response.on("finish", () => {
-      const durationMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
+      const durationMs =
+        Number(process.hrtime.bigint() - startedAt) / 1_000_000;
       const authenticatedRequest = request as AuthenticatedRequest;
       const userId = authenticatedRequest.user?.id;
 

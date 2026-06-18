@@ -16,7 +16,9 @@ type MetricsMock = {
 const buildService = (
   client: MockRedisClient,
 ): { metrics: MetricsMock; service: RedisHealthService } => {
-  const service = Object.create(RedisHealthService.prototype) as RedisHealthService;
+  const service = Object.create(
+    RedisHealthService.prototype,
+  ) as RedisHealthService;
   const metrics: MetricsMock = {
     setRedisUp: vi.fn(),
   };

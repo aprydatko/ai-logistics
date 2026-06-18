@@ -51,13 +51,8 @@ const loadPromClient = (): PromClientModule => {
   return localRequire("prom-client") as PromClientModule;
 };
 
-const {
-  Counter,
-  Gauge,
-  Histogram,
-  Registry,
-  collectDefaultMetrics,
-} = loadPromClient();
+const { Counter, Gauge, Histogram, Registry, collectDefaultMetrics } =
+  loadPromClient();
 
 @Injectable()
 export class MetricsService {
@@ -196,7 +191,10 @@ export class MetricsService {
     };
 
     this.assistantRequestsTotal.inc(labels);
-    this.assistantRequestDurationSeconds.observe(labels, input.durationMs / 1000);
+    this.assistantRequestDurationSeconds.observe(
+      labels,
+      input.durationMs / 1000,
+    );
 
     if (typeof input.promptTokens === "number" && input.promptTokens > 0) {
       this.assistantTokensTotal.inc(

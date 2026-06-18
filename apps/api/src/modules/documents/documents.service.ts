@@ -334,9 +334,14 @@ export class DocumentsService {
       throw new NotFoundException("Document upload session was not found");
     }
     if (upload.status === "completed") {
-      throw new BadRequestException("Document upload session already completed");
+      throw new BadRequestException(
+        "Document upload session already completed",
+      );
     }
-    if (upload.status === "expired" || upload.expiresAt.getTime() <= Date.now()) {
+    if (
+      upload.status === "expired" ||
+      upload.expiresAt.getTime() <= Date.now()
+    ) {
       throw new BadRequestException("Document upload session has expired");
     }
 
@@ -367,7 +372,8 @@ export class DocumentsService {
         etag: objectMetadata.etag,
       },
       {
-        queueAnalysis: upload.analyzeWithVision && this.documentVisionService.isEnabled,
+        queueAnalysis:
+          upload.analyzeWithVision && this.documentVisionService.isEnabled,
         analysis: null,
         processingTimeMs: null,
       },
@@ -527,7 +533,11 @@ export class DocumentsService {
       .where(eq(documents.id, documentId));
 
     if (analysis?.extractedFields.length) {
-      await persistVisionAnalysis(this.databaseService.client, documentId, analysis);
+      await persistVisionAnalysis(
+        this.databaseService.client,
+        documentId,
+        analysis,
+      );
     }
 
     await this.emitDocumentProcessingUpdated(documentId);

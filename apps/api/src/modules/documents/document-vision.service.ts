@@ -61,7 +61,9 @@ export class DocumentVisionService {
    * }
    * ```
    */
-  async analyze(file: DocumentVisionInput): Promise<DocumentVisionAnalysis | null> {
+  async analyze(
+    file: DocumentVisionInput,
+  ): Promise<DocumentVisionAnalysis | null> {
     if (!this.openai) return null;
 
     const content =
@@ -125,8 +127,7 @@ export class DocumentVisionService {
         event: "document_vision_failed",
         provider: "openai",
         operation: "document_vision_analysis",
-        errorMessage:
-          error instanceof Error ? error.message : "Unknown error",
+        errorMessage: error instanceof Error ? error.message : "Unknown error",
       });
       return null;
     }
