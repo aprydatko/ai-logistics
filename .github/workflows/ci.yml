@@ -288,8 +288,8 @@ jobs:
           API_PORT: 3001
           WEB_ORIGIN: http://127.0.0.1:3000
           DATABASE_URL: postgresql://ai_logistics:ai_logistics@127.0.0.1:5432/ai_logistics
-          JWT_ACCESS_SECRET: 12345678901234567890123456789012
-          JWT_REFRESH_SECRET: 12345678901234567890123456789012
+          JWT_ACCESS_SECRET: test-access-secret-1234567890123456
+          JWT_REFRESH_SECRET: test-refresh-secret-123456789012345
           REDIS_URL: redis://127.0.0.1:6379
           STORAGE_PROVIDER: s3
           S3_ENDPOINT: http://127.0.0.1:9000
