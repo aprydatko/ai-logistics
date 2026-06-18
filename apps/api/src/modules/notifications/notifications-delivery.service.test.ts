@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { WinstonLoggerService } from "../../common/logging/winston-logger.service";
 import { NotificationsDeliveryService } from "./notifications-delivery.service";
 import type { NotificationDeliveryInput } from "./notifications.types";
 
@@ -48,6 +49,12 @@ const buildInput = (
   };
 };
 
+const buildLogger = (): WinstonLoggerService =>
+  ({
+    errorWithMeta: vi.fn(),
+    warnWithMeta: vi.fn(),
+  }) as unknown as WinstonLoggerService;
+
 describe("NotificationsDeliveryService", () => {
   const originalFetch = global.fetch;
 
@@ -66,7 +73,7 @@ describe("NotificationsDeliveryService", () => {
     const service = new NotificationsDeliveryService({
       get: (key: string) =>
         key === "RESEND_API_KEY" ? "k" : "noreply@example.com",
-    } as never);
+    } as never, buildLogger());
 
     await service.sendNotificationEmail(
       buildInput({
@@ -94,7 +101,7 @@ describe("NotificationsDeliveryService", () => {
 
     const service = new NotificationsDeliveryService({
       get: () => "anything",
-    } as never);
+    } as never, buildLogger());
 
     await service.sendNotificationEmail(buildInput({ channels: ["in_app"] }));
 
@@ -107,7 +114,7 @@ describe("NotificationsDeliveryService", () => {
 
     const service = new NotificationsDeliveryService({
       get: () => "anything",
-    } as never);
+    } as never, buildLogger());
 
     await service.sendNotificationEmail(
       buildInput({
@@ -127,7 +134,7 @@ describe("NotificationsDeliveryService", () => {
 
     const service = new NotificationsDeliveryService({
       get: () => "anything",
-    } as never);
+    } as never, buildLogger());
 
     await service.sendNotificationEmail(
       buildInput({
@@ -159,7 +166,7 @@ describe("NotificationsDeliveryService", () => {
     const service = new NotificationsDeliveryService({
       get: (key: string) =>
         key === "RESEND_API_KEY" ? "k" : "noreply@example.com",
-    } as never);
+    } as never, buildLogger());
 
     await service.sendNotificationEmail(buildInput());
 
@@ -182,7 +189,7 @@ describe("NotificationsDeliveryService", () => {
         };
         return config[key];
       },
-    } as never);
+    } as never, buildLogger());
 
     await expect(service.sendNotificationEmail(buildInput())).rejects.toThrow();
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -194,7 +201,7 @@ describe("NotificationsDeliveryService", () => {
 
     const service = new NotificationsDeliveryService({
       get: () => undefined,
-    } as never);
+    } as never, buildLogger());
 
     await service.sendNotificationEmail(buildInput());
 

@@ -46,8 +46,16 @@ export class WinstonLoggerService implements LoggerService {
     this.write("warn", message, { context });
   }
 
+  warnWithMeta(message: unknown, meta?: LogMeta): void {
+    this.write("warn", message, meta);
+  }
+
   debug(message: unknown, context?: string): void {
     this.write("debug", message, { context });
+  }
+
+  debugWithMeta(message: unknown, meta?: LogMeta): void {
+    this.write("debug", message, meta);
   }
 
   verbose(message: unknown, context?: string): void {
@@ -60,6 +68,23 @@ export class WinstonLoggerService implements LoggerService {
 
   info(message: unknown, meta?: LogMeta): void {
     this.write("info", message, meta);
+  }
+
+  errorWithMeta(message: unknown, error: unknown, meta?: LogMeta): void {
+    const normalizedError =
+      error instanceof Error
+        ? {
+            errorName: error.name,
+            stack: error.stack,
+          }
+        : {
+            error: error,
+          };
+
+    this.write("error", message, {
+      ...normalizedError,
+      ...meta,
+    });
   }
 
   logHttpRequest(meta: LogMeta): void {

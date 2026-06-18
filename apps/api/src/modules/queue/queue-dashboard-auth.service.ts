@@ -1,7 +1,8 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import type { NextFunction, Request, Response } from "express";
 
+import { WinstonLoggerService } from "../../common/logging/winston-logger.service";
 import { isUserRole } from "../../common/roles";
 import { DatabaseService } from "../../db/database.service";
 import {
@@ -13,11 +14,10 @@ import { QUEUE_DASHBOARD_ROLES } from "./queue.constants";
 
 @Injectable()
 export class QueueDashboardAuthService {
-  private readonly logger = new Logger(QueueDashboardAuthService.name);
-
   constructor(
     private readonly jwtService: JwtService,
     private readonly databaseService: DatabaseService,
+    private readonly logger: WinstonLoggerService,
   ) {}
 
   createMiddleware() {
@@ -30,9 +30,17 @@ export class QueueDashboardAuthService {
       const deny = (reason: string, level: "warn" | "debug" = "debug") => {
         const message = `Denied queue dashboard access: ${reason}`;
         if (level === "warn") {
-          this.logger.warn(message);
+          this.logger.warnWithMeta(message, {
+            context: QueueDashboardAuthService.name,
+            event: "queue_dashboard_access_denied",
+            path: request.originalUrl || request.url,
+          });
         } else {
-          this.logger.debug(message);
+          this.logger.debugWithMeta(message, {
+            context: QueueDashboardAuthService.name,
+            event: "queue_dashboard_access_denied",
+            path: request.originalUrl || request.url,
+          });
         }
         response.status(401).json({ message: "Unauthorized" });
         denied = true;
@@ -75,6 +83,12 @@ export class QueueDashboardAuthService {
       }
 
       next();
+      this.logger.info("Queue dashboard access granted", {
+        context: QueueDashboardAuthService.name,
+        event: "queue_dashboard_access_granted",
+        path: request.originalUrl || request.url,
+        userId: user.id,
+      });
     };
   }
 }

@@ -1,12 +1,12 @@
 import {
   Inject,
   Injectable,
-  Logger,
   OnModuleDestroy,
   OnModuleInit,
 } from "@nestjs/common";
 import { Worker, type Job } from "bullmq";
 
+import { WinstonLoggerService } from "../../common/logging/winston-logger.service";
 import {
   EMAIL_NOTIFICATIONS_QUEUE,
   REDIS_CONNECTION,
@@ -22,21 +22,25 @@ export class NotificationsEmailWorkerService
   implements OnModuleInit, OnModuleDestroy
 {
   private worker: Worker<EmailNotificationJobData> | null = null;
-  private readonly logger = new Logger(NotificationsEmailWorkerService.name);
 
   constructor(
     @Inject(REDIS_CONNECTION)
     private readonly connection: RedisConnectionOptions,
     private readonly notificationsDeliveryService: NotificationsDeliveryService,
+    private readonly logger: WinstonLoggerService,
   ) {}
 
   onModuleInit(): void {
     this.worker = new Worker(
       EMAIL_NOTIFICATIONS_QUEUE,
       async (job: Job<EmailNotificationJobData>) => {
-        this.logger.debug(
-          `Processing email job ${job.id} for ${job.data.recipient.email}`,
-        );
+        this.logger.debugWithMeta("Processing email notification job", {
+          context: NotificationsEmailWorkerService.name,
+          event: "queue_job_started",
+          operation: EMAIL_NOTIFICATIONS_QUEUE,
+          userId: job.data.recipient.id,
+          jobId: job.id,
+        });
         await this.notificationsDeliveryService.sendNotificationEmail(job.data);
       },
       {
@@ -46,15 +50,31 @@ export class NotificationsEmailWorkerService
     );
 
     this.worker.on("completed", (job) => {
-      this.logger.debug(`Email job ${job.id} completed successfully`);
+      this.logger.info("Email notification job completed", {
+        context: NotificationsEmailWorkerService.name,
+        event: "queue_job_completed",
+        operation: EMAIL_NOTIFICATIONS_QUEUE,
+        userId: job.data.recipient.id,
+        jobId: job.id,
+      });
     });
 
     this.worker.on("failed", (job, error) => {
-      this.logger.error(`Email job ${job?.id} failed`, error);
+      this.logger.errorWithMeta("Email notification job failed", error, {
+        context: NotificationsEmailWorkerService.name,
+        event: "queue_job_failed",
+        operation: EMAIL_NOTIFICATIONS_QUEUE,
+        userId: job?.data.recipient.id,
+        jobId: job?.id,
+      });
     });
 
     this.worker.on("error", (error) => {
-      this.logger.error("Email worker error", error);
+      this.logger.errorWithMeta("Email worker error", error, {
+        context: NotificationsEmailWorkerService.name,
+        event: "queue_worker_error",
+        operation: EMAIL_NOTIFICATIONS_QUEUE,
+      });
     });
   }
 

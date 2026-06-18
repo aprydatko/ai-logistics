@@ -2,6 +2,7 @@ import { JwtService } from "@nestjs/jwt";
 import type { NextFunction, Request, Response } from "express";
 import { describe, expect, it, vi } from "vitest";
 
+import type { WinstonLoggerService } from "../../common/logging/winston-logger.service";
 import type { DatabaseService } from "../../db/database.service";
 import type { AccessTokenPayload, AuthenticatedUser } from "../auth/auth.types";
 import { QueueDashboardAuthService } from "./queue-dashboard-auth.service";
@@ -54,6 +55,13 @@ const buildMiddlewareContext = (headers: Record<string, string> = {}) => {
   return { next, request, response };
 };
 
+const buildLogger = (): WinstonLoggerService =>
+  ({
+    debugWithMeta: vi.fn(),
+    info: vi.fn(),
+    warnWithMeta: vi.fn(),
+  }) as unknown as WinstonLoggerService;
+
 describe("QueueDashboardAuthService.createMiddleware", () => {
   it("calls next() when the request has a valid admin token and an active user", async () => {
     const jwtService = buildJwtService((token) => {
@@ -73,7 +81,11 @@ describe("QueueDashboardAuthService.createMiddleware", () => {
         role: activeUser.role,
       },
     ]);
-    const service = new QueueDashboardAuthService(jwtService, databaseService);
+    const service = new QueueDashboardAuthService(
+      jwtService,
+      databaseService,
+      buildLogger(),
+    );
     const { request, response, next } = buildMiddlewareContext({
       authorization: "Bearer good-token",
     });
@@ -87,7 +99,11 @@ describe("QueueDashboardAuthService.createMiddleware", () => {
   it("responds 401 when no token is present", async () => {
     const jwtService = buildJwtService(() => null);
     const databaseService = buildDatabaseService([]);
-    const service = new QueueDashboardAuthService(jwtService, databaseService);
+    const service = new QueueDashboardAuthService(
+      jwtService,
+      databaseService,
+      buildLogger(),
+    );
     const { request, response, next } = buildMiddlewareContext();
 
     await service.createMiddleware()(request, response, next);
@@ -102,7 +118,11 @@ describe("QueueDashboardAuthService.createMiddleware", () => {
       throw new Error("jwt malformed");
     });
     const databaseService = buildDatabaseService([]);
-    const service = new QueueDashboardAuthService(jwtService, databaseService);
+    const service = new QueueDashboardAuthService(
+      jwtService,
+      databaseService,
+      buildLogger(),
+    );
     const { request, response, next } = buildMiddlewareContext({
       authorization: "Bearer bad-token",
     });
@@ -119,7 +139,11 @@ describe("QueueDashboardAuthService.createMiddleware", () => {
       tokenType: "refresh",
     }));
     const databaseService = buildDatabaseService([]);
-    const service = new QueueDashboardAuthService(jwtService, databaseService);
+    const service = new QueueDashboardAuthService(
+      jwtService,
+      databaseService,
+      buildLogger(),
+    );
     const { request, response, next } = buildMiddlewareContext({
       authorization: "Bearer refresh-token",
     });
@@ -145,7 +169,11 @@ describe("QueueDashboardAuthService.createMiddleware", () => {
         role: activeUser.role,
       },
     ]);
-    const service = new QueueDashboardAuthService(jwtService, databaseService);
+    const service = new QueueDashboardAuthService(
+      jwtService,
+      databaseService,
+      buildLogger(),
+    );
     const { request, response, next } = buildMiddlewareContext({
       authorization: "Bearer good-token",
     });
@@ -171,7 +199,11 @@ describe("QueueDashboardAuthService.createMiddleware", () => {
         role: "driver",
       },
     ]);
-    const service = new QueueDashboardAuthService(jwtService, databaseService);
+    const service = new QueueDashboardAuthService(
+      jwtService,
+      databaseService,
+      buildLogger(),
+    );
     const { request, response, next } = buildMiddlewareContext({
       authorization: "Bearer good-token",
     });

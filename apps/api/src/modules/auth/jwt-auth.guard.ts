@@ -7,6 +7,7 @@ import {
 import { JwtService } from "@nestjs/jwt";
 import type { Request } from "express";
 
+import { RequestContextService } from "../../common/logging/request-context.service";
 import { DatabaseService } from "../../db/database.service";
 import {
   extractAccessToken,
@@ -24,6 +25,7 @@ export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
     private readonly databaseService: DatabaseService,
+    private readonly requestContext: RequestContextService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -48,6 +50,7 @@ export class JwtAuthGuard implements CanActivate {
       }
 
       request.user = user;
+      this.requestContext.setUserId(user.id);
       return true;
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;

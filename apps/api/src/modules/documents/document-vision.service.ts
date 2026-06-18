@@ -1,7 +1,8 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import OpenAI from "openai";
 
+import { WinstonLoggerService } from "../../common/logging/winston-logger.service";
 import type { Environment } from "../../config/environment";
 
 type VisionExtractedField = {
@@ -26,11 +27,13 @@ export type DocumentVisionInput = {
 
 @Injectable()
 export class DocumentVisionService {
-  private readonly logger = new Logger(DocumentVisionService.name);
   private readonly openai: OpenAI | null;
   private readonly model: string;
 
-  constructor(configService: ConfigService<Environment, true>) {
+  constructor(
+    configService: ConfigService<Environment, true>,
+    private readonly logger: WinstonLoggerService,
+  ) {
     const apiKey = configService.get("OPENAI_API_KEY", { infer: true });
     this.model = configService.get("OPENAI_DOCUMENT_MODEL", { infer: true });
     this.openai = apiKey ? new OpenAI({ apiKey }) : null;
@@ -117,9 +120,14 @@ export class DocumentVisionService {
         extractedFields: parsed,
       };
     } catch (error: unknown) {
-      this.logger.warn(
-        `Document vision analysis failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
+      this.logger.warnWithMeta("Document vision analysis failed", {
+        context: DocumentVisionService.name,
+        event: "document_vision_failed",
+        provider: "openai",
+        operation: "document_vision_analysis",
+        errorMessage:
+          error instanceof Error ? error.message : "Unknown error",
+      });
       return null;
     }
   }
