@@ -143,6 +143,7 @@ videos as workflow artifacts.
 
 - [Architecture](docs/architecture.md)
 - [Coding standards](docs/coding-standards.md)
+- [Deployment](docs/deployment.md)
 - [Testing and CI](docs/testing.md)
 - [Driver domain and demo data](docs/drivers.md)
 - [Code review checklist](docs/review-checklist.md)
