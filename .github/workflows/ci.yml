@@ -74,13 +74,13 @@ jobs:
           node <<'NODE'
           const adminAuth = "Basic " + Buffer.from("admin:admin").toString("base64");
 
-          async function waitFor(url, options = {}) {
+          async function waitFor(url, options = {}, isReady = (response) => response.ok) {
             const startedAt = Date.now();
 
             while (Date.now() - startedAt < 120000) {
               try {
                 const response = await fetch(url, options);
-                if (response.ok) return;
+                if (isReady(response)) return;
               } catch {}
 
               await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -94,6 +94,13 @@ jobs:
           await waitFor("http://127.0.0.1:3002/api/datasources", {
             headers: { Authorization: adminAuth },
           });
+          await waitFor(
+            "http://127.0.0.1:3002/api/dashboards/uid/ai-logistics-observability",
+            {
+              headers: { Authorization: adminAuth },
+            },
+            (response) => response.ok,
+          );
           NODE
 
       - name: Verify Grafana provisioning
