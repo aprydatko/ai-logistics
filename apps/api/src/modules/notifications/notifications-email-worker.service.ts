@@ -1,6 +1,7 @@
 import {
   Inject,
   Injectable,
+  Logger,
   OnModuleDestroy,
   OnModuleInit,
 } from "@nestjs/common";
@@ -21,6 +22,7 @@ export class NotificationsEmailWorkerService
   implements OnModuleInit, OnModuleDestroy
 {
   private worker: Worker<EmailNotificationJobData> | null = null;
+  private readonly logger = new Logger(NotificationsEmailWorkerService.name);
 
   constructor(
     @Inject(REDIS_CONNECTION)
@@ -31,13 +33,29 @@ export class NotificationsEmailWorkerService
   onModuleInit(): void {
     this.worker = new Worker(
       EMAIL_NOTIFICATIONS_QUEUE,
-      async (job: Job<EmailNotificationJobData>) =>
-        this.notificationsDeliveryService.sendNotificationEmail(job.data),
+      async (job: Job<EmailNotificationJobData>) => {
+        this.logger.debug(
+          `Processing email job ${job.id} for ${job.data.recipient.email}`,
+        );
+        await this.notificationsDeliveryService.sendNotificationEmail(job.data);
+      },
       {
         connection: this.connection,
         concurrency: 5,
       },
     );
+
+    this.worker.on("completed", (job) => {
+      this.logger.debug(`Email job ${job.id} completed successfully`);
+    });
+
+    this.worker.on("failed", (job, error) => {
+      this.logger.error(`Email job ${job?.id} failed`, error);
+    });
+
+    this.worker.on("error", (error) => {
+      this.logger.error("Email worker error", error);
+    });
   }
 
   async onModuleDestroy(): Promise<void> {
