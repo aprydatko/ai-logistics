@@ -365,6 +365,98 @@ describe("DocumentsService", () => {
     );
   });
 
+  it("returns a presigned S3 file access URL when available", async () => {
+    const s3Document = {
+      ...document,
+      storageProvider: "s3" as const,
+      storageBucket: "documents",
+      objectKey: "documents/2026-06-18/bol-1001.pdf",
+    };
+    const client = {
+      select: vi.fn().mockReturnValue(
+        makeSelectChain([
+          {
+            id: s3Document.id,
+            fileName: s3Document.fileName,
+            fileUrl: s3Document.fileUrl,
+            storageProvider: s3Document.storageProvider,
+            storageBucket: s3Document.storageBucket,
+            objectKey: s3Document.objectKey,
+          },
+        ]),
+      ),
+    };
+    const storage = {
+      createPresignedDownloadUrl: vi.fn().mockResolvedValue({
+        url: "http://127.0.0.1:9000/documents/test-presigned",
+        expiresAt: new Date("2026-06-18T10:15:00.000Z"),
+      }),
+    };
+    const service = new DocumentsService(
+      { client } as never,
+      storage as never,
+      {} as never,
+      {} as never,
+      { createDocumentProcessingNotifications: vi.fn() } as never,
+      {} as never,
+    );
+
+    await expect(service.getFileAccess(s3Document.id)).resolves.toEqual({
+      success: true,
+      data: {
+        url: "http://127.0.0.1:9000/documents/test-presigned",
+        expiresAt: "2026-06-18T10:15:00.000Z",
+      },
+    });
+    expect(storage.createPresignedDownloadUrl).toHaveBeenCalledWith({
+      bucket: "documents",
+      objectKey: "documents/2026-06-18/bol-1001.pdf",
+      fileName: "bol-1001.pdf",
+    });
+  });
+
+  it("falls back to streamed file access when presigning an S3 URL fails", async () => {
+    const s3Document = {
+      ...document,
+      storageProvider: "s3" as const,
+      storageBucket: "documents",
+      objectKey: "documents/2026-06-18/bol-1001.pdf",
+    };
+    const client = {
+      select: vi.fn().mockReturnValue(
+        makeSelectChain([
+          {
+            id: s3Document.id,
+            fileName: s3Document.fileName,
+            fileUrl: s3Document.fileUrl,
+            storageProvider: s3Document.storageProvider,
+            storageBucket: s3Document.storageBucket,
+            objectKey: s3Document.objectKey,
+          },
+        ]),
+      ),
+    };
+    const storage = {
+      createPresignedDownloadUrl: vi
+        .fn()
+        .mockRejectedValue(new Error("presign failed")),
+    };
+    const service = new DocumentsService(
+      { client } as never,
+      storage as never,
+      {} as never,
+      {} as never,
+      { createDocumentProcessingNotifications: vi.fn() } as never,
+      {} as never,
+    );
+
+    const result = await service.getFileAccess(s3Document.id);
+
+    expect(result.success).toBe(true);
+    expect(result.data.url).toBe(`/api/documents/${s3Document.id}/file`);
+    expect(Date.parse(result.data.expiresAt)).not.toBeNaN();
+  });
+
   it("returns not found for an unknown related driver", async () => {
     const client = { select: vi.fn().mockReturnValue(makeSelectChain([])) };
     const service = createService({ client });

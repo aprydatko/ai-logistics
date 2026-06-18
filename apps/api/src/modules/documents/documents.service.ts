@@ -409,19 +409,30 @@ export class DocumentsService {
         throw new BadRequestException("Document storage reference is missing");
       }
 
-      const access = await this.documentStorageService.createPresignedDownloadUrl({
-        bucket: document.storageBucket,
-        objectKey: document.objectKey,
-        fileName: document.fileName,
-      });
+      try {
+        const access =
+          await this.documentStorageService.createPresignedDownloadUrl({
+            bucket: document.storageBucket,
+            objectKey: document.objectKey,
+            fileName: document.fileName,
+          });
 
-      return {
-        success: true,
-        data: {
-          url: access.url,
-          expiresAt: access.expiresAt.toISOString(),
-        },
-      };
+        return {
+          success: true,
+          data: {
+            url: access.url,
+            expiresAt: access.expiresAt.toISOString(),
+          },
+        };
+      } catch {
+        return {
+          success: true,
+          data: {
+            url: `/api/documents/${document.id}/file`,
+            expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+          },
+        };
+      }
     }
 
     if (!document.fileUrl) {
