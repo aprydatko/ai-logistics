@@ -4,6 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "analyze": "cross-env ANALYZE=true next build --webpack",
     "dev": "next dev --webpack --port 3000",
     "build": "next build",
     "start": "next start",
@@ -44,7 +45,9 @@
     "@types/react-dom": "19.2.2",
     "@vitejs/plugin-react": "^6.0.2",
     "@vitest/coverage-v8": "^4.1.8",
+    "@next/bundle-analyzer": "^16.2.0",
     "eslint": "^9.39.1",
+    "cross-env": "^10.1.0",
     "jsdom": "^29.1.1",
     "postcss": "^8.5.15",
     "tailwindcss": "^4.3.0",

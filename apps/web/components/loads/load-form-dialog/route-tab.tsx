@@ -3,9 +3,9 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useFieldArray, type UseFormReturn } from "react-hook-form";
 
+import { LazyRouteMap } from "@/components/maps/lazy-route-map";
 import type { LoadFormValues } from "@/lib/loads/load-form-schema";
 import { Button } from "@repo/ui/components/button";
-import { RouteMap } from "@repo/ui/components/route-map";
 
 import { LoadInputField } from "./form-field";
 
@@ -26,7 +26,7 @@ export const RouteTab = ({
 
   return (
     <div className="space-y-5">
-      <RouteMap
+      <LazyRouteMap
         center={route[0] ?? [-87.2, 42.3]}
         className="h-56 min-h-56 rounded-lg"
         markers={points.map((point, index) => ({

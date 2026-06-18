@@ -3,9 +3,9 @@
 import { ArrowRight, Pencil, UserRoundPlus } from "lucide-react";
 import { useState } from "react";
 
+import { LazyRouteMap } from "@/components/maps/lazy-route-map";
 import type { LoadApiItem } from "@/lib/loads/loads-query";
 import { Button } from "@repo/ui/components/button";
-import { RouteMap } from "@repo/ui/components/route-map";
 import { SidePanel } from "@repo/ui/components/side-panel";
 import { StatusBadge } from "@repo/ui/components/status-badge";
 
@@ -135,7 +135,7 @@ export const LoadDetailPanel = ({
         {tab === "route" ? (
           load.routePoints.length >= 2 ? (
             <div className="space-y-4">
-              <RouteMap
+              <LazyRouteMap
                 center={route[0]!}
                 className="h-72 min-h-72 rounded-lg"
                 markers={load.routePoints.map((point, index) => ({

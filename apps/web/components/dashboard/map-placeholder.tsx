@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { dashboardLoadMapQueryOptions } from "@/lib/dashboard/load-map-query";
-import { RouteMap } from "@repo/ui/components/route-map";
+import { LazyRouteMap } from "@/components/maps/lazy-route-map";
 
 export function MapPlaceholder(): React.JSX.Element {
   const { data, isError, isLoading } = useQuery(dashboardLoadMapQueryOptions());
@@ -51,7 +51,7 @@ export function MapPlaceholder(): React.JSX.Element {
           No active loads with route coordinates available.
         </p>
       ) : (
-        <RouteMap
+        <LazyRouteMap
           center={data.center}
           className="mt-3"
           markers={data.markers}

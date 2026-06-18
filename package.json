@@ -2,6 +2,7 @@
   "name": "logistics-monorepo",
   "private": true,
   "scripts": {
+    "analyze": "pnpm --filter web analyze",
     "build": "turbo run build",
     "db:down": "docker compose down",
     "db:generate": "pnpm --filter api db:generate",

@@ -4,6 +4,7 @@
   "private": true,
   "exports": {
     "./globals.css": "./src/styles/globals.css",
+    "./map.css": "./src/styles/map.css",
     "./components/*": "./src/components/*.tsx",
     "./lib/*": "./src/lib/*.ts"
   },
