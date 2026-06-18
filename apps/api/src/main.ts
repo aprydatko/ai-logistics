@@ -5,17 +5,29 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import helmet from "helmet";
 
 import { AppModule } from "./app.module";
+import { createRequestContextMiddleware } from "./common/logging/request-context.middleware";
+import { createRequestLoggingMiddleware } from "./common/logging/request-logging.middleware";
+import { RequestContextService } from "./common/logging/request-context.service";
+import { WinstonLoggerService } from "./common/logging/winston-logger.service";
 import type { Environment } from "./config/environment";
 import { QueueDashboardAuthService } from "./modules/queue/queue-dashboard-auth.service";
 import { QueueDashboardService } from "./modules/queue/queue-dashboard.service";
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: true,
+  });
   const configService = app.get(ConfigService<Environment, true>);
+  const logger = app.get(WinstonLoggerService);
+  const requestContext = app.get(RequestContextService);
+
+  app.useLogger(logger);
 
   app.setGlobalPrefix("api");
   app.useBodyParser("json", { limit: "7mb" });
   app.use(helmet());
+  app.use(createRequestContextMiddleware(requestContext));
+  app.use(createRequestLoggingMiddleware(logger, requestContext));
   app.enableCors({
     credentials: true,
     origin: configService.get("WEB_ORIGIN", { infer: true }),
