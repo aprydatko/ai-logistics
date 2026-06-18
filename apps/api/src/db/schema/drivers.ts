@@ -73,6 +73,12 @@ export const drivers = pgTable(
     uniqueIndex("drivers_trailer_number_unique").on(table.trailerNumber),
     index("drivers_is_active_idx").on(table.isActive),
     index("drivers_status_idx").on(table.status),
+    index("drivers_is_active_status_name_idx").on(
+      table.isActive,
+      table.status,
+      table.lastName,
+      table.firstName,
+    ),
   ],
 );
 

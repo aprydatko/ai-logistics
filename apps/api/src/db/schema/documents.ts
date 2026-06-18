@@ -77,6 +77,12 @@ export const documents = pgTable(
     index("documents_uploaded_at_idx").on(table.uploadedAt),
     index("documents_storage_provider_idx").on(table.storageProvider),
     index("documents_object_key_idx").on(table.objectKey),
+    index("documents_driver_id_uploaded_at_idx").on(
+      table.driverId,
+      table.uploadedAt,
+    ),
+    index("documents_load_id_uploaded_at_idx").on(table.loadId, table.uploadedAt),
+    index("documents_status_uploaded_at_idx").on(table.status, table.uploadedAt),
   ],
 );
 

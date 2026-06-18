@@ -169,6 +169,13 @@
       "when": 1781787600000,
       "tag": "0023_silent_minio_documents",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1782165600000,
+      "tag": "0024_steady_query_indexes",
+      "breakpoints": true
     }
   ]
 }
