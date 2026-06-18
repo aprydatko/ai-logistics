@@ -265,7 +265,7 @@ jobs:
 
       - name: Create MinIO documents bucket
         run: |
-          docker run --rm --network host minio/mc:latest sh -c '
+          docker run --rm --network host --entrypoint /bin/sh minio/mc:latest -c '
             until mc alias set local http://127.0.0.1:9000 minioadmin minioadmin; do sleep 1; done &&
             mc mb --ignore-existing local/documents &&
             mc anonymous set none local/documents
