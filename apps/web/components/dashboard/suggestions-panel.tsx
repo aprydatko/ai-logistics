@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Bot } from "lucide-react";
+import { AlertTriangle, ChartNoAxesColumn } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { dashboardSuggestionsQueryOptions } from "@/lib/dashboard/suggestions-query";
@@ -11,8 +11,8 @@ import { cn } from "@repo/ui/lib/utils";
 
 const suggestionStyles = {
   info: {
-    icon: Bot,
-    style: "bg-blue-50 text-blue-600",
+    icon: ChartNoAxesColumn,
+    style: "bg-cyan-50 text-cyan-700",
   },
   warning: {
     icon: AlertTriangle,
@@ -30,13 +30,18 @@ export function SuggestionsPanel(): React.JSX.Element {
   return (
     <article className="rounded-xl border border-border bg-card p-4 shadow-xs">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-sm font-bold text-ink-900">AI suggestions</h2>
+        <div>
+          <h2 className="text-sm font-bold text-ink-900">AI suggestions</h2>
+          <p className="mt-1 text-xs text-primary-700">
+            Live signals from recent AI logs, errors, and usage.
+          </p>
+        </div>
         <Button
           className="h-auto p-0 text-xs text-blue-600"
-          onClick={() => router.push("/assistant")}
+          onClick={() => router.push("/ai-logs")}
           variant="link"
         >
-          View all
+          Open logs
         </Button>
       </div>
       <div className="mt-3 flex flex-col gap-2">
@@ -59,7 +64,10 @@ export function SuggestionsPanel(): React.JSX.Element {
           const { icon: Icon, style } = suggestionStyles[tone];
 
           return (
-            <div className="flex items-center gap-3 bg-surface-50 p-3" key={id}>
+            <div
+              className="flex items-center gap-3 rounded-lg bg-surface-50 p-3"
+              key={id}
+            >
               <span
                 className={cn(
                   "grid size-9 place-items-center rounded-lg",
@@ -72,7 +80,7 @@ export function SuggestionsPanel(): React.JSX.Element {
                 <p className="truncate text-xs font-semibold text-ink-900">
                   {title}
                 </p>
-                <p className="mt-1 truncate text-xs text-primary-700">
+                <p className="mt-1 text-xs text-primary-700">
                   {detail}
                 </p>
               </div>
@@ -82,7 +90,7 @@ export function SuggestionsPanel(): React.JSX.Element {
                 type="button"
                 variant="outline"
               >
-                Review
+                Inspect
               </Button>
             </div>
           );

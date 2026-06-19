@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import type { AiLogsListResponse, AiLogsMetricsResponse } from "@repo/shared";
+import { useSearchParams } from "next/navigation";
 
 import {
   mapAiLogListResponse,
@@ -39,6 +40,7 @@ type UseAiLogsWorkspaceResult = {
 };
 
 export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
+  const searchParams = useSearchParams();
   const [logs, setLogs] = React.useState<AiLog[]>([]);
   const [pageInfo, setPageInfo] = React.useState<
     AiLogsListResponse["pageInfo"] | null
@@ -46,15 +48,25 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [metrics, setMetrics] = React.useState<AiLogMetricCard[]>([]);
-  const [model, setModel] = React.useState("all");
-  const [status, setStatus] = React.useState("all");
-  const [operation, setOperation] = React.useState("all");
-  const [from, setFrom] = React.useState("");
-  const [to, setTo] = React.useState("");
+  const [model, setModel] = React.useState(() => searchParams.get("model") ?? "all");
+  const [status, setStatus] = React.useState(() => searchParams.get("status") ?? "all");
+  const [operation, setOperation] = React.useState(() => searchParams.get("operation") ?? "all");
+  const [from, setFrom] = React.useState(() => searchParams.get("from") ?? "");
+  const [to, setTo] = React.useState(() => searchParams.get("to") ?? "");
   const [limit, setLimitState] = React.useState(DEFAULT_PAGE_SIZE);
   const [cursor, setCursor] = React.useState<string | null>(null);
   const [cursorHistory, setCursorHistory] = React.useState<string[]>([]);
   const [selected, setSelected] = React.useState<AiLog | null>(null);
+
+  React.useEffect(() => {
+    setModel(searchParams.get("model") ?? "all");
+    setStatus(searchParams.get("status") ?? "all");
+    setOperation(searchParams.get("operation") ?? "all");
+    setFrom(searchParams.get("from") ?? "");
+    setTo(searchParams.get("to") ?? "");
+    setCursor(null);
+    setCursorHistory([]);
+  }, [searchParams]);
 
   React.useEffect(() => {
     const loadLogs = async (): Promise<void> => {
