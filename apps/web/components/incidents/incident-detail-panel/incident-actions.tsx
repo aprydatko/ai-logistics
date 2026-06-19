@@ -1,6 +1,7 @@
 import { ChevronDown, ClipboardPen, Phone, Radio, Share2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { invalidateDashboardQueries } from "@/lib/dashboard/dashboard-query";
 import { updateIncidentStatus } from "@/lib/incidents/incident-mutations";
 import { syncIncidentCache } from "@/lib/incidents/incidents-query";
 import { ActionMenu } from "@repo/ui/components/action-menu";
@@ -42,6 +43,7 @@ export const IncidentActions = ({
       toast.error("Unable to update status", { description: error.message }),
     onSuccess: async (updatedIncident) => {
       syncIncidentCache(queryClient, updatedIncident);
+      await invalidateDashboardQueries(queryClient, "incidents");
       toast.success("Incident status updated");
     },
   });

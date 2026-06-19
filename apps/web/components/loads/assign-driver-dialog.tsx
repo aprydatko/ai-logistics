@@ -3,7 +3,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
-import { driversQueryOptions } from "@/lib/drivers/drivers-query";
+import { invalidateDashboardQueries } from "@/lib/dashboard/dashboard-query";
+import {
+  driversQueryKeys,
+  driversQueryOptions,
+} from "@/lib/drivers/drivers-query";
 import { assignLoadDriver } from "@/lib/loads/load-mutations";
 import { syncLoadCache, type LoadApiItem } from "@/lib/loads/loads-query";
 import { Button } from "@repo/ui/components/button";
@@ -49,7 +53,10 @@ export const AssignDriverDialog = ({
       toast.error("Unable to assign driver", { description: error.message }),
     onSuccess: async (updatedLoad) => {
       syncLoadCache(queryClient, updatedLoad);
-      await queryClient.invalidateQueries({ queryKey: ["drivers"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: driversQueryKeys.all }),
+        invalidateDashboardQueries(queryClient, "loads"),
+      ]);
       onOpenChange(false);
       toast.success("Driver assigned and ETA recalculated");
     },

@@ -9,6 +9,7 @@ import {
   loadFormSchema,
   type LoadFormValues,
 } from "@/lib/loads/load-form-schema";
+import { invalidateDashboardQueries } from "@/lib/dashboard/dashboard-query";
 import { saveLoad } from "@/lib/loads/load-mutations";
 import { syncLoadCache, type LoadApiItem } from "@/lib/loads/loads-query";
 import { Button } from "@repo/ui/components/button";
@@ -48,6 +49,7 @@ export const LoadFormDialog = ({
       toast.error("Unable to save load", { description: error.message }),
     onSuccess: async (savedLoad) => {
       syncLoadCache(queryClient, savedLoad);
+      await invalidateDashboardQueries(queryClient, "loads");
       onOpenChange(false);
       toast.success(load ? "Load updated" : "Load created");
     },

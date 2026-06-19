@@ -4,7 +4,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
 import * as React from "react";
 
-import { driversQueryOptions } from "@/lib/drivers/drivers-query";
+import { invalidateDashboardQueries } from "@/lib/dashboard/dashboard-query";
+import {
+  driversQueryKeys,
+  driversQueryOptions,
+} from "@/lib/drivers/drivers-query";
 import { assignLoadDriver } from "@/lib/loads/load-mutations";
 import {
   loadsQueryOptions,
@@ -74,8 +78,8 @@ export const AssignDriverQuickActionDialog = ({
     onSuccess: async (updatedLoad) => {
       syncLoadCache(queryClient, updatedLoad);
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["drivers"] }),
-        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: driversQueryKeys.all }),
+        invalidateDashboardQueries(queryClient, "loads"),
       ]);
       onOpenChange(false);
       toast.success("Driver assigned and ETA recalculated");

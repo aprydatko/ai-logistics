@@ -56,6 +56,12 @@ export type DriversFilters = {
   limit: number;
 };
 export type DriversResult = z.infer<typeof driversResponseSchema>;
+export const driversQueryKeys = {
+  all: ["drivers"] as const,
+  detail: (driverId: string) => [...driversQueryKeys.all, driverId] as const,
+  list: (filters: DriversFilters) =>
+    [...driversQueryKeys.all, filters] as const,
+};
 
 const driverDocumentSchema = z.object({
   id: z.string().uuid(),
@@ -200,14 +206,14 @@ export const fetchDrivers = async (
 export const driversQueryOptions = (filters: DriversFilters) =>
   queryOptions({
     placeholderData: keepPreviousData,
-    queryKey: ["drivers", filters],
+    queryKey: driversQueryKeys.list(filters),
     queryFn: () => fetchDrivers(filters),
   });
 
 export const driverDetailsQueryOptions = (driverId: string) =>
   queryOptions({
     enabled: Boolean(driverId),
-    queryKey: ["drivers", driverId],
+    queryKey: driversQueryKeys.detail(driverId),
     queryFn: async (): Promise<DriverDetails> => {
       const response = await fetch(`/api/drivers/${driverId}`);
 
@@ -261,7 +267,7 @@ export const syncDriverListCache = (
   driver: DriversApiItem,
 ): void => {
   queryClient.setQueriesData(
-    { queryKey: ["drivers"] },
+    { queryKey: driversQueryKeys.all },
     (current: DriversResult | undefined) => updateDriverInLists(current, driver),
   );
 };
@@ -271,10 +277,10 @@ export const removeDriverCache = (
   driverId: string,
 ): void => {
   queryClient.setQueriesData(
-    { queryKey: ["drivers"] },
+    { queryKey: driversQueryKeys.all },
     (current: DriversResult | undefined) => removeDriverFromLists(current, driverId),
   );
-  queryClient.removeQueries({ queryKey: ["drivers", driverId] });
+  queryClient.removeQueries({ queryKey: driversQueryKeys.detail(driverId) });
 };
 
 export const syncDriverTruckNumberInLists = (
@@ -283,7 +289,7 @@ export const syncDriverTruckNumberInLists = (
   truckNumber: string | null,
 ): void => {
   queryClient.setQueriesData(
-    { queryKey: ["drivers"] },
+    { queryKey: driversQueryKeys.all },
     (current: DriversResult | undefined) => {
       if (!current) return current;
 

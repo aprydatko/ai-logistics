@@ -6,6 +6,7 @@ import { Trash2 } from "lucide-react";
 import { toast } from "@repo/ui/components/toaster";
 
 import { ConfirmationAlertDialog } from "@/components/shared";
+import { invalidateDashboardQueries } from "@/lib/dashboard/dashboard-query";
 import { deleteDriver } from "@/lib/drivers/driver-mutations";
 import { removeDriverCache } from "@/lib/drivers/drivers-query";
 
@@ -36,6 +37,7 @@ export const DeleteDriverDialog = ({
         description: `${deletedDriver.driverName} was removed from the driver list.`,
       });
       removeDriverCache(queryClient, deletedDriver.driverId);
+      await invalidateDashboardQueries(queryClient, "drivers");
     },
   });
 

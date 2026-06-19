@@ -78,6 +78,12 @@ export type LoadsFilters = {
 };
 export type LoadsResult = z.infer<typeof loadsResponseSchema>;
 
+export const loadsQueryKeys = {
+  all: ["loads"] as const,
+  detail: (loadId: string) => [...loadsQueryKeys.all, loadId] as const,
+  list: (filters: LoadsFilters) => [...loadsQueryKeys.all, filters] as const,
+};
+
 const toSearchParams = (filters: LoadsFilters): URLSearchParams => {
   const params = new URLSearchParams({
     page: String(filters.page),
@@ -109,7 +115,7 @@ export const fetchLoads = async (
 export const loadsQueryOptions = (filters: LoadsFilters) =>
   queryOptions({
     placeholderData: keepPreviousData,
-    queryKey: ["loads", filters],
+    queryKey: loadsQueryKeys.list(filters),
     queryFn: () => fetchLoads(filters),
   });
 
@@ -134,8 +140,8 @@ export const syncLoadCache = (
   load: LoadApiItem,
 ): void => {
   queryClient.setQueriesData(
-    { queryKey: ["loads"] },
+    { queryKey: loadsQueryKeys.all },
     (current: LoadsResult | undefined) => updateLoadInLists(current, load),
   );
-  queryClient.setQueryData(["loads", load.id], load);
+  queryClient.setQueryData(loadsQueryKeys.detail(load.id), load);
 };

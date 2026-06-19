@@ -20,6 +20,7 @@ import {
 } from "@repo/ui/components/dialog";
 import { toast } from "@repo/ui/components/toaster";
 
+import { invalidateDashboardQueries } from "@/lib/dashboard/dashboard-query";
 import { saveIncident } from "@/lib/incidents/incident-mutations";
 import {
   syncIncidentCache,
@@ -83,6 +84,7 @@ export const IncidentsFormDialog = ({
       toast.error("Unable to save incident", { description: error.message }),
     onSuccess: async (savedIncident) => {
       syncIncidentCache(queryClient, savedIncident);
+      await invalidateDashboardQueries(queryClient, "incidents");
       onOpenChange(false);
       toast.success(incident ? "Incident updated" : "Incident created");
     },

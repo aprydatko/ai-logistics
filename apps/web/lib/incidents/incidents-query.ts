@@ -104,6 +104,16 @@ export type IncidentsFilters = {
   limit: number;
 };
 
+export const incidentsQueryKeys = {
+  all: ["incidents"] as const,
+  detail: (incidentId: string) =>
+    [...incidentsQueryKeys.all, incidentId] as const,
+  list: (filters: IncidentsFilters) =>
+    [...incidentsQueryKeys.all, filters] as const,
+  timeline: (incidentId: string) =>
+    [...incidentsQueryKeys.detail(incidentId), "timeline"] as const,
+};
+
 const toSearchParams = (filters: IncidentsFilters): URLSearchParams => {
   const params = new URLSearchParams({
     page: String(filters.page),
@@ -146,19 +156,19 @@ export const fetchIncidentTimeline = async (
 export const incidentsQueryOptions = (filters: IncidentsFilters) =>
   queryOptions({
     placeholderData: keepPreviousData,
-    queryKey: ["incidents", filters],
+    queryKey: incidentsQueryKeys.list(filters),
     queryFn: () => fetchIncidents(filters),
   });
 
 export const incidentQueryOptions = (incidentId: string) =>
   queryOptions({
-    queryKey: ["incidents", incidentId],
+    queryKey: incidentsQueryKeys.detail(incidentId),
     queryFn: () => fetchIncident(incidentId),
   });
 
 export const incidentTimelineQueryOptions = (incidentId: string) =>
   queryOptions({
-    queryKey: ["incidents", incidentId, "timeline"],
+    queryKey: incidentsQueryKeys.timeline(incidentId),
     queryFn: () => fetchIncidentTimeline(incidentId),
     refetchInterval: 15_000,
     staleTime: 10_000,
@@ -189,9 +199,9 @@ export const syncIncidentCache = (
   incident: IncidentApiItem,
 ): void => {
   queryClient.setQueriesData(
-    { queryKey: ["incidents"] },
+    { queryKey: incidentsQueryKeys.all },
     (current: z.infer<typeof incidentsResponseSchema> | undefined) =>
       updateIncidentInLists(current, incident),
   );
-  queryClient.setQueryData(["incidents", incident.id], incident);
+  queryClient.setQueryData(incidentsQueryKeys.detail(incident.id), incident);
 };

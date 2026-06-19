@@ -6,7 +6,9 @@ import { toast } from "@repo/ui/components/toaster";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
+import { invalidateDashboardQueries } from "@/lib/dashboard/dashboard-query";
 import { syncDocumentCache } from "@/lib/documents/documents-query";
+import { incidentsQueryKeys } from "@/lib/incidents/incidents-query";
 import { connectRealtimeNamespace } from "@/lib/realtime/socket-session";
 import {
   appendNotificationPage,
@@ -18,12 +20,6 @@ import {
   notificationUnreadCountQueryOptions,
 } from "@/lib/notifications/notifications-query";
 import { useNotificationsStore } from "@/stores/notifications-store";
-
-const dashboardQueryPrefixes = [
-  ["dashboard", "activity"],
-  ["dashboard", "suggestions"],
-  ["incidents"],
-] as const;
 
 export const RealtimeNotificationsProvider = ({
   children,
@@ -94,9 +90,10 @@ export const RealtimeNotificationsProvider = ({
         });
 
         socket.on("dashboard.incident-stats.updated", () => {
-          for (const queryKey of dashboardQueryPrefixes) {
-            void queryClient.invalidateQueries({ queryKey });
-          }
+          void Promise.all([
+            invalidateDashboardQueries(queryClient, "incidents"),
+            queryClient.invalidateQueries({ queryKey: incidentsQueryKeys.all }),
+          ]);
         });
 
         socket.on("document.processing.updated", ({ document }) => {
