@@ -1,6 +1,12 @@
 import { queryOptions } from "@tanstack/react-query";
 import { z } from "zod";
 
+import {
+  DASHBOARD_QUERY_STALE_TIME,
+  dashboardQueryKeys,
+  fetchDashboardPayload,
+} from "@/lib/dashboard/dashboard-query";
+
 export type DashboardActivityItem = {
   description: string;
   id: string;
@@ -31,17 +37,18 @@ const dashboardActivityResponseSchema = z.object({
 
 export const fetchDashboardActivity =
   async (): Promise<DashboardActivityResult> => {
-    const response = await fetch("/api/loads/activity", { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error("Unable to load dashboard activity");
-    }
-
-    return dashboardActivityResponseSchema.parse(await response.json()).data;
+    return (
+      await fetchDashboardPayload({
+        errorMessage: "Unable to load dashboard activity",
+        path: "/api/loads/activity",
+        schema: dashboardActivityResponseSchema,
+      })
+    ).data;
   };
 
 export const dashboardActivityQueryOptions = () =>
   queryOptions({
-    queryKey: ["dashboard", "activity"],
+    queryKey: dashboardQueryKeys.activity(),
     queryFn: fetchDashboardActivity,
-    staleTime: 30_000,
+    staleTime: DASHBOARD_QUERY_STALE_TIME,
   });

@@ -22,6 +22,7 @@ import type {
   AssignLoadDriverResponse,
   CreateLoadResponse,
   LoadActivityResponse,
+  LoadMapResponse,
   LoadMetricsResponse,
   LoadResponse,
   LoadSuggestionsResponse,
@@ -52,6 +53,11 @@ export class LoadsController {
   @Get("suggestions")
   findSuggestions(): Promise<LoadSuggestionsResponse> {
     return this.loadsService.getSuggestions();
+  }
+
+  @Get("map")
+  findMap(): Promise<LoadMapResponse> {
+    return this.loadsService.getMap();
   }
 
   @Get(":id")

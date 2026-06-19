@@ -84,3 +84,22 @@ export type LoadSuggestionsResponse = {
     suggestions: DashboardSuggestionItem[];
   };
 };
+
+export type DashboardMapCoordinates = [longitude: number, latitude: number];
+
+export type DashboardMapMarker = {
+  coordinates: DashboardMapCoordinates;
+  id: string;
+  label: string;
+  tone?: "danger" | "success" | "warning";
+};
+
+export type LoadMapResponse = {
+  success: true;
+  data: {
+    center: DashboardMapCoordinates;
+    markers: DashboardMapMarker[];
+    primaryLoadReference: string | null;
+    route: DashboardMapCoordinates[];
+  };
+};

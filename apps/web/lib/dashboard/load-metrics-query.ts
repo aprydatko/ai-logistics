@@ -1,6 +1,12 @@
 import { queryOptions } from "@tanstack/react-query";
 import { z } from "zod";
 
+import {
+  DASHBOARD_QUERY_STALE_TIME,
+  dashboardQueryKeys,
+  fetchDashboardPayload,
+} from "@/lib/dashboard/dashboard-query";
+
 export type LoadMetric = {
   chartData: number[];
   change: string;
@@ -28,17 +34,18 @@ const loadMetricsResponseSchema = z.object({
 });
 
 export const fetchLoadMetrics = async (): Promise<LoadMetricsResult> => {
-  const response = await fetch("/api/loads/metrics", { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error("Unable to load load metrics");
-  }
-
-  return loadMetricsResponseSchema.parse(await response.json()).data;
+  return (
+    await fetchDashboardPayload({
+      errorMessage: "Unable to load load metrics",
+      path: "/api/loads/metrics",
+      schema: loadMetricsResponseSchema,
+    })
+  ).data;
 };
 
 export const loadMetricsQueryOptions = () =>
   queryOptions({
-    queryKey: ["dashboard", "load-metrics"],
+    queryKey: dashboardQueryKeys.loadMetrics(),
     queryFn: fetchLoadMetrics,
-    staleTime: 30_000,
+    staleTime: DASHBOARD_QUERY_STALE_TIME,
   });

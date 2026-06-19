@@ -19,8 +19,11 @@ import type {
   AssignLoadDriverResponse,
   CreateLoadResponse,
   DashboardActivityItem,
+  DashboardMapCoordinates,
+  DashboardMapMarker,
   DashboardSuggestionItem,
   LoadActivityResponse,
+  LoadMapResponse,
   LoadMetricsItem,
   LoadMetricsResponse,
   LoadResponse,
@@ -349,6 +352,71 @@ export class LoadsService {
               .concat(pendingLoadSuggestions)
               .concat(delayRiskSuggestions)
               .slice(0, 3),
+          },
+        };
+      },
+    );
+  }
+
+  async getMap(): Promise<LoadMapResponse> {
+    return this.cacheService.getOrSet(
+      "loads",
+      buildCacheKey("loads", "map", {}),
+      this.cacheService.getTtl("metrics"),
+      async () => {
+        const client = this.databaseService.client;
+        const activeLoads = await client
+          .select({
+            id: loads.id,
+            referenceNumber: loads.referenceNumber,
+            routePoints: loads.routePoints,
+            status: loads.status,
+          })
+          .from(loads)
+          .where(inArray(loads.status, ["assigned", "in_transit"]))
+          .orderBy(desc(loads.updatedAt));
+
+        const defaultCenter: DashboardMapCoordinates = [-87.6298, 41.8781];
+        const toCoordinates = (
+          routePoints: typeof loads.$inferSelect.routePoints,
+        ): DashboardMapCoordinates[] =>
+          routePoints.map((point) => [point.longitude, point.latitude]);
+
+        const toMarker = (load: {
+          id: string;
+          referenceNumber: string;
+          routePoints: typeof loads.$inferSelect.routePoints;
+          status: typeof loads.$inferSelect.status;
+        }): DashboardMapMarker | null => {
+          const markerPoint =
+            load.routePoints.at(-1) ?? load.routePoints[0] ?? null;
+
+          if (!markerPoint) {
+            return null;
+          }
+
+          return {
+            coordinates: [markerPoint.longitude, markerPoint.latitude],
+            id: load.id,
+            label: `${load.referenceNumber} - ${markerPoint.label}`,
+            tone: load.status === "in_transit" ? "warning" : "success",
+          };
+        };
+
+        const markers = activeLoads
+          .map(toMarker)
+          .filter((marker): marker is DashboardMapMarker => marker !== null);
+        const primaryLoad =
+          activeLoads.find((load) => load.routePoints.length >= 2) ?? null;
+        const route = primaryLoad ? toCoordinates(primaryLoad.routePoints) : [];
+
+        return {
+          success: true,
+          data: {
+            center: route[0] ?? markers[0]?.coordinates ?? defaultCenter,
+            markers,
+            primaryLoadReference: primaryLoad?.referenceNumber ?? null,
+            route,
           },
         };
       },

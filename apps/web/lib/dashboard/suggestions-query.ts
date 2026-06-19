@@ -1,6 +1,12 @@
 import { queryOptions } from "@tanstack/react-query";
 import { z } from "zod";
 
+import {
+  DASHBOARD_QUERY_STALE_TIME,
+  dashboardQueryKeys,
+  fetchDashboardPayload,
+} from "@/lib/dashboard/dashboard-query";
+
 export type DashboardSuggestionItem = {
   detail: string;
   href: string;
@@ -30,19 +36,18 @@ const dashboardSuggestionsResponseSchema = z.object({
 
 export const fetchDashboardSuggestions =
   async (): Promise<DashboardSuggestionsResult> => {
-    const response = await fetch("/api/loads/suggestions", {
-      cache: "no-store",
-    });
-    if (!response.ok) {
-      throw new Error("Unable to load dashboard suggestions");
-    }
-
-    return dashboardSuggestionsResponseSchema.parse(await response.json()).data;
+    return (
+      await fetchDashboardPayload({
+        errorMessage: "Unable to load dashboard suggestions",
+        path: "/api/loads/suggestions",
+        schema: dashboardSuggestionsResponseSchema,
+      })
+    ).data;
   };
 
 export const dashboardSuggestionsQueryOptions = () =>
   queryOptions({
-    queryKey: ["dashboard", "suggestions"],
+    queryKey: dashboardQueryKeys.suggestions(),
     queryFn: fetchDashboardSuggestions,
-    staleTime: 30_000,
+    staleTime: DASHBOARD_QUERY_STALE_TIME,
   });

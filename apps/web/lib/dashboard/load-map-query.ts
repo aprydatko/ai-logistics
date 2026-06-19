@@ -1,12 +1,13 @@
 import { queryOptions } from "@tanstack/react-query";
+import { z } from "zod";
 
 import type { RouteMapMarker } from "@repo/ui/components/route-map";
 
 import {
-  fetchLoads,
-  type LoadApiItem,
-  type LoadStatus,
-} from "@/lib/loads/loads-query";
+  DASHBOARD_QUERY_STALE_TIME,
+  dashboardQueryKeys,
+  fetchDashboardPayload,
+} from "@/lib/dashboard/dashboard-query";
 
 type Coordinates = [longitude: number, latitude: number];
 
@@ -17,83 +18,39 @@ export type DashboardLoadMapData = {
   route: Coordinates[];
 };
 
-const defaultCenter: Coordinates = [-87.6298, 41.8781];
+const coordinatesSchema = z.tuple([z.number(), z.number()]) satisfies z.ZodType<Coordinates>;
 
-const baseFilters = {
-  search: "",
-  pickupFrom: "",
-  pickupTo: "",
-  page: 1,
-  limit: 100,
-} as const;
+const routeMapMarkerSchema = z.object({
+  coordinates: coordinatesSchema,
+  id: z.string(),
+  label: z.string(),
+  tone: z.enum(["danger", "success", "warning"]).optional(),
+}) satisfies z.ZodType<RouteMapMarker>;
 
-const activeStatuses: LoadStatus[] = ["assigned", "in_transit"];
-
-const toCoordinates = (load: LoadApiItem): Coordinates[] =>
-  load.routePoints.map((point) => [point.longitude, point.latitude]);
-
-const toMarker = (load: LoadApiItem): RouteMapMarker | null => {
-  const markerPoint = load.routePoints.at(-1) ?? load.routePoints[0];
-
-  if (!markerPoint) return null;
-
-  return {
-    coordinates: [markerPoint.longitude, markerPoint.latitude],
-    id: load.id,
-    label: `${load.referenceNumber} · ${markerPoint.label}`,
-    tone: load.status === "in_transit" ? "warning" : "success",
-  };
-};
-
-const fetchAllLoadsByStatus = async (
-  status: LoadStatus,
-): Promise<LoadApiItem[]> => {
-  const firstPage = await fetchLoads({
-    ...baseFilters,
-    status,
-  });
-
-  if (firstPage.pagination.totalPages <= 1) {
-    return firstPage.data;
-  }
-
-  const nextPages = await Promise.all(
-    Array.from({ length: firstPage.pagination.totalPages - 1 }, (_, index) =>
-      fetchLoads({
-        ...baseFilters,
-        page: index + 2,
-        status,
-      }),
-    ),
-  );
-
-  return firstPage.data.concat(nextPages.flatMap((page) => page.data));
-};
+const dashboardLoadMapResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    center: coordinatesSchema,
+    markers: z.array(routeMapMarkerSchema),
+    primaryLoadReference: z.string().nullable(),
+    route: z.array(coordinatesSchema),
+  }),
+});
 
 export const fetchDashboardLoadMapData =
   async (): Promise<DashboardLoadMapData> => {
-    const activeLoads = (
-      await Promise.all(activeStatuses.map(fetchAllLoadsByStatus))
-    ).flat();
-
-    const markers = activeLoads
-      .map(toMarker)
-      .filter((marker): marker is RouteMapMarker => marker !== null);
-    const primaryLoad =
-      activeLoads.find((load) => load.routePoints.length >= 2) ?? null;
-    const route = primaryLoad ? toCoordinates(primaryLoad) : [];
-
-    return {
-      center: route[0] ?? markers[0]?.coordinates ?? defaultCenter,
-      markers,
-      primaryLoadReference: primaryLoad?.referenceNumber ?? null,
-      route,
-    };
+    return (
+      await fetchDashboardPayload({
+        errorMessage: "Unable to load the active loads map",
+        path: "/api/loads/map",
+        schema: dashboardLoadMapResponseSchema,
+      })
+    ).data;
   };
 
 export const dashboardLoadMapQueryOptions = () =>
   queryOptions({
-    queryKey: ["dashboard", "load-map"],
+    queryKey: dashboardQueryKeys.loadMap(),
     queryFn: fetchDashboardLoadMapData,
-    staleTime: 30_000,
+    staleTime: DASHBOARD_QUERY_STALE_TIME,
   });
