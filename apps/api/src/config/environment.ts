@@ -1,5 +1,28 @@
 import { z } from "zod";
 
+export const rateLimitDefaults = {
+  assistantJobsCreateLimit: 10,
+  assistantJobsCreateTtlMinutes: 1,
+  assistantRespondLimit: 10,
+  assistantRespondTtlMinutes: 1,
+  authLoginLimit: 5,
+  authLoginTtlMinutes: 1,
+  authRefreshLimit: 20,
+  authRefreshTtlMinutes: 1,
+  authRegisterLimit: 3,
+  authRegisterTtlMinutes: 15,
+  authSocketTokenLimit: 30,
+  authSocketTokenTtlMinutes: 1,
+  defaultLimit: 60,
+  defaultTtlMinutes: 1,
+  documentsCompleteUploadLimit: 10,
+  documentsCompleteUploadTtlMinutes: 10,
+  documentsInitiateUploadLimit: 10,
+  documentsInitiateUploadTtlMinutes: 10,
+  documentsUploadLimit: 5,
+  documentsUploadTtlMinutes: 10,
+} as const;
+
 const environmentSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
@@ -18,6 +41,106 @@ const environmentSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(32),
   JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
   REDIS_URL: z.string().url().default("redis://127.0.0.1:6379"),
+  THROTTLE_DEFAULT_LIMIT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.defaultLimit),
+  THROTTLE_DEFAULT_TTL_MINUTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.defaultTtlMinutes),
+  THROTTLE_ASSISTANT_RESPOND_LIMIT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.assistantRespondLimit),
+  THROTTLE_ASSISTANT_RESPOND_TTL_MINUTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.assistantRespondTtlMinutes),
+  THROTTLE_ASSISTANT_JOBS_CREATE_LIMIT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.assistantJobsCreateLimit),
+  THROTTLE_ASSISTANT_JOBS_CREATE_TTL_MINUTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.assistantJobsCreateTtlMinutes),
+  THROTTLE_DOCUMENTS_UPLOAD_LIMIT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.documentsUploadLimit),
+  THROTTLE_DOCUMENTS_UPLOAD_TTL_MINUTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.documentsUploadTtlMinutes),
+  THROTTLE_DOCUMENTS_INITIATE_UPLOAD_LIMIT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.documentsInitiateUploadLimit),
+  THROTTLE_DOCUMENTS_INITIATE_UPLOAD_TTL_MINUTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.documentsInitiateUploadTtlMinutes),
+  THROTTLE_DOCUMENTS_COMPLETE_UPLOAD_LIMIT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.documentsCompleteUploadLimit),
+  THROTTLE_DOCUMENTS_COMPLETE_UPLOAD_TTL_MINUTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.documentsCompleteUploadTtlMinutes),
+  THROTTLE_AUTH_REGISTER_LIMIT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.authRegisterLimit),
+  THROTTLE_AUTH_REGISTER_TTL_MINUTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.authRegisterTtlMinutes),
+  THROTTLE_AUTH_LOGIN_LIMIT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.authLoginLimit),
+  THROTTLE_AUTH_LOGIN_TTL_MINUTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.authLoginTtlMinutes),
+  THROTTLE_AUTH_REFRESH_LIMIT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.authRefreshLimit),
+  THROTTLE_AUTH_REFRESH_TTL_MINUTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.authRefreshTtlMinutes),
+  THROTTLE_AUTH_SOCKET_TOKEN_LIMIT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.authSocketTokenLimit),
+  THROTTLE_AUTH_SOCKET_TOKEN_TTL_MINUTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(rateLimitDefaults.authSocketTokenTtlMinutes),
   CACHE_LIST_TTL_SECONDS: z.coerce.number().int().positive().default(30),
   CACHE_DETAIL_TTL_SECONDS: z.coerce.number().int().positive().default(60),
   CACHE_METRICS_TTL_SECONDS: z.coerce.number().int().positive().default(60),

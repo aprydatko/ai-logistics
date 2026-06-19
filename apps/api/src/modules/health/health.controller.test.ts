@@ -1,8 +1,15 @@
+import { THROTTLER_SKIP } from "@nestjs/throttler/dist/throttler.constants";
 import { describe, expect, it, vi } from "vitest";
 
 import { HealthController } from "./health.controller";
 
 describe("HealthController", () => {
+  it("skips global throttling for health probes", () => {
+    expect(
+      Reflect.getMetadata(`${THROTTLER_SKIP}default`, HealthController),
+    ).toBe(true);
+  });
+
   it("returns API health metadata", () => {
     const controller = new HealthController(
       {

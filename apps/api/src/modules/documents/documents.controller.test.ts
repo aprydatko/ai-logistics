@@ -6,7 +6,6 @@ import {
 import { minutes } from "@nestjs/throttler";
 import { describe, expect, it } from "vitest";
 
-import { AuthenticatedThrottlerGuard } from "../auth/authenticated-throttler.guard";
 import { ROLES_KEY } from "../auth/roles.decorator";
 import { RolesGuard } from "../auth/roles.guard";
 import { DocumentsController } from "./documents.controller";
@@ -30,12 +29,6 @@ describe("DocumentsController mutations", () => {
   it("rate limits upload", () => {
     expect(
       Reflect.getMetadata(
-        GUARDS_METADATA,
-        DocumentsController.prototype.upload,
-      ),
-    ).toContain(AuthenticatedThrottlerGuard);
-    expect(
-      Reflect.getMetadata(
         `${THROTTLER_LIMIT}default`,
         DocumentsController.prototype.upload,
       ),
@@ -47,4 +40,22 @@ describe("DocumentsController mutations", () => {
       ),
     ).toBe(minutes(10));
   });
+
+  it.each(["initiateUpload", "completeUpload"] as const)(
+    "rate limits %s",
+    (method) => {
+      expect(
+        Reflect.getMetadata(
+          `${THROTTLER_LIMIT}default`,
+          DocumentsController.prototype[method],
+        ),
+      ).toBe(10);
+      expect(
+        Reflect.getMetadata(
+          `${THROTTLER_TTL}default`,
+          DocumentsController.prototype[method],
+        ),
+      ).toBe(minutes(10));
+    },
+  );
 });

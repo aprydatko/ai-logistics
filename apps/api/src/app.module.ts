@@ -1,14 +1,19 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { ThrottlerModule, minutes } from "@nestjs/throttler";
+import { ConfigService } from "@nestjs/config";
+import { APP_GUARD } from "@nestjs/core";
+import { ThrottlerModule } from "@nestjs/throttler";
 
+import type { Environment } from "./config/environment";
 import { validateEnvironment } from "./config/environment";
+import { getRateLimitConfigFromConfig } from "./config/rate-limit";
 import { LoggingModule } from "./common/logging/logging.module";
 import { MetricsModule } from "./common/metrics/metrics.module";
 import { DatabaseModule } from "./db/database.module";
 import { AiLogsModule } from "./modules/ai-logs/ai-logs.module";
 import { AssistantModule } from "./modules/assistant/assistant.module";
 import { AuthModule } from "./modules/auth/auth.module";
+import { AuthenticatedThrottlerGuard } from "./modules/auth/authenticated-throttler.guard";
 import { DocumentsModule } from "./modules/documents/documents.module";
 import { DriversModule } from "./modules/drivers/drivers.module";
 import { HealthModule } from "./modules/health/health.module";
@@ -26,13 +31,19 @@ import { QueueModule } from "./modules/queue/queue.module";
     }),
     LoggingModule,
     MetricsModule,
-    ThrottlerModule.forRoot([
-      {
-        limit: 60,
-        name: "default",
-        ttl: minutes(1),
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService<Environment, true>) => {
+        const rateLimits = getRateLimitConfigFromConfig(configService);
+
+        return [
+          {
+            ...rateLimits.default,
+            name: "default",
+          },
+        ];
       },
-    ]),
+    }),
     DatabaseModule,
     QueueModule,
     AiLogsModule,
@@ -44,6 +55,12 @@ import { QueueModule } from "./modules/queue/queue.module";
     IncidentsModule,
     NotificationsModule,
     HealthModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: AuthenticatedThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
-import { Throttle, minutes } from "@nestjs/throttler";
+import { Throttle } from "@nestjs/throttler";
 
+import { rateLimitConfig } from "../../config/rate-limit";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
-import { AuthenticatedThrottlerGuard } from "../auth/authenticated-throttler.guard";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { AssistantJobsService } from "./assistant-jobs.service";
 import type {
@@ -18,13 +18,7 @@ export class AssistantJobsController {
   constructor(private readonly assistantJobsService: AssistantJobsService) {}
 
   @Post()
-  @UseGuards(AuthenticatedThrottlerGuard)
-  @Throttle({
-    default: {
-      limit: 10,
-      ttl: minutes(1),
-    },
-  })
+  @Throttle({ default: rateLimitConfig.assistantJobsCreate })
   create(
     @Body() dto: CreateAssistantMessageDto,
     @CurrentUser() user: AuthenticatedUser,
