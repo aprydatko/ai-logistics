@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import {
   Clock3,
   Fuel,
@@ -25,6 +26,11 @@ import {
 import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import { useRouter } from "next/navigation";
+import { DashboardMotionItem } from "./dashboard-motion";
+import {
+  DashboardPanelMessageSkeleton,
+  DashboardTimelineSkeleton,
+} from "./dashboard-skeleton";
 
 const dashboardTimelineFilters = {
   search: "",
@@ -136,46 +142,51 @@ export function AiTimelinePanel(): React.JSX.Element {
 
   if (incidentsQuery.isError) {
     return (
-      <article className="rounded-xl border border-border bg-card p-4 shadow-xs">
+      <DashboardMotionItem transition={{ delay: 0.02 }}>
+        <article className="rounded-xl border border-border bg-card p-4 shadow-xs">
         <h2 className="text-sm font-bold text-ink-900">AI timeline</h2>
         <p className="mt-3 text-sm text-danger">
           Unable to load the featured incident timeline right now.
         </p>
-      </article>
+        </article>
+      </DashboardMotionItem>
     );
   }
 
   if (incidentsQuery.isLoading) {
     return (
-      <article className="rounded-xl border border-border bg-card p-4 shadow-xs">
+      <DashboardMotionItem transition={{ delay: 0.02 }}>
+        <article className="rounded-xl border border-border bg-card p-4 shadow-xs">
         <h2 className="text-sm font-bold text-ink-900">AI timeline</h2>
-        <div className="mt-3 space-y-3">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div
-              className="h-20 rounded-xl border border-border bg-surface-100"
-              key={index}
-            />
-          ))}
+        <div className="mt-3">
+          <DashboardTimelineSkeleton />
         </div>
-      </article>
+        </article>
+      </DashboardMotionItem>
     );
   }
 
   if (!featuredIncident) {
     return (
-      <article className="rounded-xl border border-border bg-card p-4 shadow-xs">
+      <DashboardMotionItem transition={{ delay: 0.02 }}>
+        <article className="rounded-xl border border-border bg-card p-4 shadow-xs">
         <h2 className="text-sm font-bold text-ink-900">AI timeline</h2>
-        <p className="mt-3 text-sm text-primary-700">
-          No incidents are available for live timeline tracking yet.
-        </p>
-      </article>
+        <div className="mt-3 rounded-sm bg-surface-50 p-3">
+          <DashboardPanelMessageSkeleton />
+          <p className="mt-3 text-sm text-primary-700">
+            No incidents are available for live timeline tracking yet.
+          </p>
+        </div>
+        </article>
+      </DashboardMotionItem>
     );
   }
 
   const timelineItems = timelineQuery.data?.items ?? [];
 
   return (
-    <article className="rounded-xl border border-border bg-card p-4 shadow-xs">
+    <DashboardMotionItem transition={{ delay: 0.02 }}>
+      <article className="rounded-xl border border-border bg-card p-4 shadow-xs">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -230,22 +241,20 @@ export function AiTimelinePanel(): React.JSX.Element {
       ) : null}
 
       {!timelineQuery.isError && timelineQuery.isLoading ? (
-        <div className="mt-4 space-y-3">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div
-              className="h-24 rounded-xl border border-border bg-surface-100"
-              key={index}
-            />
-          ))}
+        <div className="mt-4">
+          <DashboardTimelineSkeleton />
         </div>
       ) : null}
 
       {!timelineQuery.isError &&
       !timelineQuery.isLoading &&
       timelineItems.length === 0 ? (
-        <p className="mt-4 text-sm text-primary-700">
-          No timeline events yet for this incident.
-        </p>
+        <div className="mt-4 rounded-sm bg-surface-50 p-3">
+          <DashboardPanelMessageSkeleton />
+          <p className="mt-3 text-sm text-primary-700">
+            No timeline events yet for this incident.
+          </p>
+        </div>
       ) : null}
 
       {!timelineQuery.isError && timelineItems.length > 0 ? (
@@ -255,7 +264,17 @@ export function AiTimelinePanel(): React.JSX.Element {
             const tone = toneStyles[item.tone];
 
             return (
-              <div className="relative flex gap-4" key={item.id}>
+              <motion.div
+                className="relative flex gap-4"
+                key={item.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.24,
+                  ease: "easeOut",
+                  delay: index * 0.04,
+                }}
+              >
                 {index < Math.min(timelineItems.length, 4) - 1 ? (
                   <span
                     className={cn(
@@ -305,11 +324,12 @@ export function AiTimelinePanel(): React.JSX.Element {
                     {item.description}
                   </p>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
       ) : null}
-    </article>
+      </article>
+    </DashboardMotionItem>
   );
 }

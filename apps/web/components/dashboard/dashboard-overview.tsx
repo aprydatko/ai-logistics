@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import {
   CircleAlert,
   Clock3,
@@ -93,8 +94,19 @@ export function DashboardOverview(): React.JSX.Element {
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <MetricCard key={metric.title} {...metric} />
+        {metrics.map((metric, index) => (
+          <motion.div
+            key={metric.title}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: 0.28,
+              ease: "easeOut",
+              delay: index * 0.04,
+            }}
+          >
+            <MetricCard {...metric} />
+          </motion.div>
         ))}
       </div>
 

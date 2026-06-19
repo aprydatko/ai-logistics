@@ -7,6 +7,11 @@ import {
   incidentsQueryOptions,
   type IncidentApiItem,
 } from "@/lib/incidents/incidents-query";
+import { DashboardMotionItem } from "./dashboard-motion";
+import {
+  DashboardListSkeleton,
+  DashboardPanelMessageSkeleton,
+} from "./dashboard-skeleton";
 
 import { Button } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
@@ -73,7 +78,8 @@ export function IncidentsPanel(): React.JSX.Element {
     .slice(0, 3);
 
   return (
-    <article className="rounded-xl border border-border bg-card p-4 shadow-xs">
+    <DashboardMotionItem transition={{ delay: 0.03 }}>
+      <article className="rounded-xl border border-border bg-card p-4 shadow-xs">
       <div className="flex items-center justify-between gap-4 px-2">
         <h2 className="text-sm font-bold text-ink-900">Critical incidents</h2>
         <Button
@@ -85,18 +91,19 @@ export function IncidentsPanel(): React.JSX.Element {
         </Button>
       </div>
       <div className="mt-3 divide-y divide-secondary border border-secondary rounded-sm">
-        {isLoading ? (
-          <p className="p-3 text-sm text-primary-700">Loading incidents...</p>
-        ) : null}
+        {isLoading ? <DashboardListSkeleton /> : null}
         {isError ? (
           <p className="p-3 text-sm text-danger">
             Unable to load incidents right now.
           </p>
         ) : null}
         {!isLoading && !isError && incidents.length === 0 ? (
-          <p className="p-3 text-sm text-primary-700">
-            No critical incidents available.
-          </p>
+          <div className="p-3">
+            <DashboardPanelMessageSkeleton />
+            <p className="mt-3 text-sm text-primary-700">
+              No critical incidents available.
+            </p>
+          </div>
         ) : null}
         {incidents.map((incident) => {
           const {
@@ -143,6 +150,7 @@ export function IncidentsPanel(): React.JSX.Element {
           );
         })}
       </div>
-    </article>
+      </article>
+    </DashboardMotionItem>
   );
 }
