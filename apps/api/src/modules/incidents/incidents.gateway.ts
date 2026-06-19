@@ -9,6 +9,7 @@ import {
 import { JwtService } from "@nestjs/jwt";
 import type { Server, Socket } from "socket.io";
 
+import { websocketCorsOptions } from "../../config/security";
 import type { SocketTokenPayload } from "../auth/auth.types";
 import type { IncidentTimelineResponse } from "./incidents.types";
 
@@ -25,10 +26,7 @@ type IncidentSocket = Socket & {
 type TimelineRoomPayload = { incidentId: string };
 
 @WebSocketGateway({
-  cors: {
-    credentials: true,
-    origin: true,
-  },
+  cors: websocketCorsOptions,
   namespace: "incidents",
 })
 export class IncidentsGateway implements OnGatewayConnection {

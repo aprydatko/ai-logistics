@@ -6,6 +6,7 @@
     "DATABASE_URL",
     "NODE_ENV",
     "API_BASE_URL",
+    "WEB_ORIGIN",
     "CI",
     "OPENAI_API_KEY",
     "OPENAI_MODEL",
