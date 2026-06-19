@@ -19,10 +19,12 @@ import type {
   AssignLoadDriverResponse,
   CreateLoadResponse,
   DashboardActivityItem,
+  DashboardSuggestionItem,
   LoadActivityResponse,
   LoadMetricsItem,
   LoadMetricsResponse,
   LoadResponse,
+  LoadSuggestionsResponse,
   LoadsListResponse,
   UpdateLoadResponse,
 } from "./loads.types";
@@ -241,6 +243,112 @@ export class LoadsService {
                   new Date(left.updatedAt).getTime(),
               )
               .slice(0, 5),
+          },
+        };
+      },
+    );
+  }
+
+  async getSuggestions(): Promise<LoadSuggestionsResponse> {
+    return this.cacheService.getOrSet(
+      "loads",
+      buildCacheKey("loads", "suggestions", {}),
+      this.cacheService.getTtl("metrics"),
+      async () => {
+        const client = this.databaseService.client;
+        const [recentLoads, recentIncidents] = await Promise.all([
+          client
+            .select({
+              id: loads.id,
+              deliveryAddress: loads.deliveryAddress,
+              deliveryDate: loads.deliveryDate,
+              driverId: loads.driverId,
+              pickupAddress: loads.pickupAddress,
+              referenceNumber: loads.referenceNumber,
+              status: loads.status,
+            })
+            .from(loads)
+            .orderBy(desc(loads.updatedAt))
+            .limit(12),
+          client
+            .select({
+              incident: {
+                id: sql<string>`${incidents.id}`,
+                location: incidents.location,
+                priority: incidents.priority,
+                status: incidents.status,
+                title: incidents.title,
+              },
+              load: {
+                referenceNumber: loads.referenceNumber,
+              },
+              driver: {
+                firstName: drivers.firstName,
+                id: drivers.id,
+                lastName: drivers.lastName,
+              },
+            })
+            .from(incidents)
+            .innerJoin(loads, eq(incidents.loadId, loads.id))
+            .leftJoin(drivers, eq(loads.driverId, drivers.id))
+            .orderBy(desc(incidents.updatedAt))
+            .limit(8),
+        ]);
+
+        const now = Date.now();
+        const hoursBetween = (value: Date): number =>
+          Math.max(1, Math.round((now - value.getTime()) / 3_600_000));
+
+        const pendingLoadSuggestions: DashboardSuggestionItem[] = recentLoads
+          .filter((load) => load.status === "pending" && !load.driverId)
+          .map((load) => ({
+            detail: `${load.pickupAddress} -> ${load.deliveryAddress}`,
+            href: "/loads",
+            id: `load-pending-${load.id}`,
+            title: `Assign driver for Load #${load.referenceNumber}`,
+            tone: "info",
+          }));
+
+        const delayRiskSuggestions: DashboardSuggestionItem[] = recentLoads
+          .filter(
+            (load) =>
+              (load.status === "assigned" || load.status === "in_transit") &&
+              load.deliveryDate.getTime() < now,
+          )
+          .map((load) => ({
+            detail: `ETA exceeded by ${hoursBetween(load.deliveryDate)}h for ${load.deliveryAddress}`,
+            href: "/loads",
+            id: `load-delay-${load.id}`,
+            title: `Delay risk for Load #${load.referenceNumber}`,
+            tone: "warning",
+          }));
+
+        const incidentSuggestions: DashboardSuggestionItem[] = recentIncidents
+          .filter(
+            ({ incident }) =>
+              incident.status !== "resolved" &&
+              incident.status !== "closed" &&
+              (incident.priority === "critical" || incident.priority === "high"),
+          )
+          .map(({ driver, incident, load }) => ({
+            detail: incident.location?.trim()
+              ? incident.location
+              : driver?.id
+                ? `Driver: ${driver.firstName} ${driver.lastName}`
+                : `Load #${load.referenceNumber}`,
+            href: "/incidents",
+            id: `incident-${incident.id}`,
+            title: `Escalate ${incident.title}`,
+            tone: "warning",
+          }));
+
+        return {
+          success: true,
+          data: {
+            suggestions: incidentSuggestions
+              .concat(pendingLoadSuggestions)
+              .concat(delayRiskSuggestions)
+              .slice(0, 3),
           },
         };
       },

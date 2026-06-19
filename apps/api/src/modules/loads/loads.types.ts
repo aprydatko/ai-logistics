@@ -69,3 +69,18 @@ export type LoadActivityResponse = {
     activities: DashboardActivityItem[];
   };
 };
+
+export type DashboardSuggestionItem = {
+  detail: string;
+  href: string;
+  id: string;
+  tone: "info" | "warning";
+  title: string;
+};
+
+export type LoadSuggestionsResponse = {
+  success: true;
+  data: {
+    suggestions: DashboardSuggestionItem[];
+  };
+};

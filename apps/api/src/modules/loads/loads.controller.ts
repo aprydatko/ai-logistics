@@ -24,6 +24,7 @@ import type {
   LoadActivityResponse,
   LoadMetricsResponse,
   LoadResponse,
+  LoadSuggestionsResponse,
   LoadsListResponse,
   UpdateLoadResponse,
 } from "./loads.types";
@@ -46,6 +47,11 @@ export class LoadsController {
   @Get("activity")
   findActivity(): Promise<LoadActivityResponse> {
     return this.loadsService.getActivity();
+  }
+
+  @Get("suggestions")
+  findSuggestions(): Promise<LoadSuggestionsResponse> {
+    return this.loadsService.getSuggestions();
   }
 
   @Get(":id")
