@@ -105,7 +105,7 @@ export const DocumentReviewHeader = ({
             {document.driver ? (
               <Link
                 className="font-medium text-primary-700 hover:underline"
-                href={`/drivers/${document.driver.id}`}
+                href="/drivers"
               >
                 {`${document.driver.firstName} ${document.driver.lastName}`}
               </Link>
