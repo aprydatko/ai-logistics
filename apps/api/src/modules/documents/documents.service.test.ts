@@ -11,7 +11,10 @@ import type {
 import { DocumentsService } from "./documents.service";
 
 const cacheService = {
-  getOrSet: vi.fn(async (_key, _ttl, factory) => factory()),
+  getOrSet: vi.fn(async (_namespace, _key, _ttl, factory) => factory()),
+  getTtl: vi.fn((kind: "list" | "detail" | "metrics") =>
+    kind === "detail" ? 60 : 30,
+  ),
   invalidateNamespace: vi.fn().mockResolvedValue(undefined),
 };
 
