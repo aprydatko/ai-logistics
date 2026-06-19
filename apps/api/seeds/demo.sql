@@ -259,7 +259,7 @@ WITH bulk_driver_seed AS (
     (ARRAY['Texas','Illinois','Georgia','Florida','Colorado','Washington','Ohio','Arizona','Tennessee','North Carolina'])[(((n - 1)) % 10) + 1] AS license_state,
     (ARRAY['Dallas, TX','Chicago, IL','Atlanta, GA','Miami, FL','Denver, CO','Seattle, WA','Cleveland, OH','Phoenix, AZ','Nashville, TN','Charlotte, NC'])[(((n - 1)) % 10) + 1] AS address,
     (ARRAY['available','on_trip','off_duty','maintenance'])[(((n - 1)) % 4) + 1]::driver_status AS status
-  FROM generate_series(1, 100) AS gs(n)
+  FROM generate_series(1, 10) AS gs(n)
 )
 INSERT INTO "drivers" (
   "id", "driver_code", "first_name", "last_name", "email", "phone",
@@ -416,12 +416,16 @@ WITH bulk_load_seed AS (
     n,
     (ARRAY['Dallas, TX','Chicago, IL','Atlanta, GA','Denver, CO','Seattle, WA','Phoenix, AZ','Nashville, TN','Cleveland, OH','Kansas City, MO','Indianapolis, IN'])[(((n - 1)) % 10) + 1] AS pickup_address,
     (ARRAY['Houston, TX','Detroit, MI','Miami, FL','Salt Lake City, UT','Portland, OR','Las Vegas, NV','Charlotte, NC','Pittsburgh, PA','St. Louis, MO','Columbus, OH'])[(((n - 1)) % 10) + 1] AS delivery_address,
+    (ARRAY[32.7767,41.8781,33.7490,39.7392,47.6062,33.4484,36.1627,41.4993,39.0997,39.7684])[(((n - 1)) % 10) + 1] AS pickup_latitude,
+    (ARRAY[-96.7970,-87.6298,-84.3880,-104.9903,-122.3321,-112.0740,-86.7816,-81.6944,-94.5786,-86.1581])[(((n - 1)) % 10) + 1] AS pickup_longitude,
+    (ARRAY[29.7604,42.3314,25.7617,40.7608,45.5152,36.1699,35.2271,40.4406,38.6270,39.9612])[(((n - 1)) % 10) + 1] AS delivery_latitude,
+    (ARRAY[-95.3698,-83.0458,-80.1918,-111.8910,-122.6784,-115.1398,-80.8431,-79.9959,-90.1994,-82.9988])[(((n - 1)) % 10) + 1] AS delivery_longitude,
     (ARRAY[239,283,662,518,174,297,409,133,248,176])[(((n - 1)) % 10) + 1] AS miles,
     (ARRAY['pending','assigned','in_transit','delivered','cancelled'])[(((n - 1)) % 5) + 1]::load_status AS status,
     (ARRAY['broker-bulk-1','broker-bulk-2','broker-bulk-3','broker-bulk-4','broker-bulk-5'])[(((n - 1)) % 5) + 1] AS broker_id,
     (ARRAY['Northstar Freight','Lone Star Cargo','Pacific Route Partners','Mountain West Brokerage','Southeast Freight Desk'])[(((n - 1)) % 5) + 1] AS broker_name,
     (ARRAY['+13125550190','+12145550191','+12065550192','+13035550193','+14045550194'])[(((n - 1)) % 5) + 1] AS broker_phone
-  FROM generate_series(1, 120) AS gs(n)
+  FROM generate_series(1, 30) AS gs(n)
 )
 INSERT INTO "loads" (
   "id", "reference_number", "pickup_address", "delivery_address", "pickup_date",
@@ -441,8 +445,51 @@ SELECT
   status,
   jsonb_build_object('id', broker_id, 'companyName', broker_name, 'phone', broker_phone),
   jsonb_build_array(
-    jsonb_build_object('label', pickup_address || ' pickup', 'latitude', 0, 'longitude', 0),
-    jsonb_build_object('label', delivery_address || ' delivery', 'latitude', 0, 'longitude', 0)
+    jsonb_build_object('label', pickup_address || ' pickup', 'latitude', pickup_latitude, 'longitude', pickup_longitude)
+  )
+  ||
+  CASE
+    WHEN n % 5 = 1 THEN jsonb_build_array(
+      jsonb_build_object(
+        'label', 'Fuel stop',
+        'latitude', round(((pickup_latitude * 0.7 + delivery_latitude * 0.3))::numeric, 4),
+        'longitude', round(((pickup_longitude * 0.7 + delivery_longitude * 0.3))::numeric, 4)
+      ),
+      jsonb_build_object(
+        'label', 'Driver check-in',
+        'latitude', round(((pickup_latitude * 0.4 + delivery_latitude * 0.6))::numeric, 4),
+        'longitude', round(((pickup_longitude * 0.4 + delivery_longitude * 0.6))::numeric, 4)
+      )
+    )
+    WHEN n % 5 = 2 THEN jsonb_build_array(
+      jsonb_build_object(
+        'label', 'Weigh station',
+        'latitude', round(((pickup_latitude + delivery_latitude) / 2)::numeric, 4),
+        'longitude', round(((pickup_longitude + delivery_longitude) / 2)::numeric, 4)
+      )
+    )
+    WHEN n % 5 = 3 THEN jsonb_build_array(
+      jsonb_build_object(
+        'label', 'Rest area',
+        'latitude', round(((pickup_latitude * 0.8 + delivery_latitude * 0.2))::numeric, 4),
+        'longitude', round(((pickup_longitude * 0.8 + delivery_longitude * 0.2))::numeric, 4)
+      ),
+      jsonb_build_object(
+        'label', 'Distribution hub',
+        'latitude', round(((pickup_latitude * 0.55 + delivery_latitude * 0.45))::numeric, 4),
+        'longitude', round(((pickup_longitude * 0.55 + delivery_longitude * 0.45))::numeric, 4)
+      ),
+      jsonb_build_object(
+        'label', 'Final approach',
+        'latitude', round(((pickup_latitude * 0.2 + delivery_latitude * 0.8))::numeric, 4),
+        'longitude', round(((pickup_longitude * 0.2 + delivery_longitude * 0.8))::numeric, 4)
+      )
+    )
+    ELSE '[]'::jsonb
+  END
+  ||
+  jsonb_build_array(
+    jsonb_build_object('label', delivery_address || ' delivery', 'latitude', delivery_latitude, 'longitude', delivery_longitude)
   ),
   jsonb_build_array(
     jsonb_build_object(
@@ -452,8 +499,12 @@ SELECT
     )
   ),
   CASE
-    WHEN status IN ('assigned', 'in_transit', 'delivered')
-      THEN ('11000000-0000-4000-8000-' || lpad((1000 + (((n - 1) % 100) + 1))::text, 12, '0'))::uuid
+    WHEN status = 'assigned'
+      THEN ('11000000-0000-4000-8000-' || lpad((1000 + (((n - 1) % 10) + 1))::text, 12, '0'))::uuid
+    WHEN status = 'in_transit'
+      THEN ('11000000-0000-4000-8000-' || lpad((1000 + (((n + 2) % 10) + 1))::text, 12, '0'))::uuid
+    WHEN status = 'delivered'
+      THEN ('11000000-0000-4000-8000-' || lpad((1000 + (((n + 5) % 10) + 1))::text, 12, '0'))::uuid
     ELSE NULL
   END
 FROM bulk_load_seed
@@ -479,7 +530,7 @@ INSERT INTO "incidents" (
 )
 SELECT
   ('77000000-0000-4000-8000-' || lpad((7000 + n)::text, 12, '0'))::uuid,
-  ('55000000-0000-4000-8000-' || lpad((5000 + (((n - 1) % 120) + 1))::text, 12, '0'))::uuid,
+  ('55000000-0000-4000-8000-' || lpad((5000 + (((n - 1) % 30) + 1))::text, 12, '0'))::uuid,
   (ARRAY['Flat tire alert','Route delay risk','Minor yard accident','Low fuel warning','Preventive maintenance alert','Driver check-in needed'])[(((n - 1)) % 6) + 1],
   (ARRAY[
     'Telematics flagged abnormal tire pressure during transit.',
@@ -554,5 +605,5 @@ SELECT
     ELSE 'Driver availability updated in bulk seed'
   END,
   ('2026-05-01T08:00:00Z'::timestamptz + ((n - 1) * INTERVAL '1 day'))
-FROM generate_series(1, 100) AS gs(n)
+FROM generate_series(1, 10) AS gs(n)
 ON CONFLICT DO NOTHING;

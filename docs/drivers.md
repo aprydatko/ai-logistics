@@ -64,8 +64,8 @@ activity. Deleting a vehicle cascades to its assignments.
 
 ## Demo Data
 
-After applying migrations, run `pnpm db:seed` to add three demo drivers plus
-sample vehicles, assignments, documents, loads, incidents, and activity. The
+After applying migrations, run `pnpm db:seed` to add 10 demo drivers with
+sample vehicles, assignments, documents, trips, incidents, and activity. The
 seed is idempotent, so it can be applied again without duplicating the fixed
 demo records.
 
