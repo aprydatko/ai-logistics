@@ -11,6 +11,56 @@ import {
   MAX_UPLOAD_FILE_SIZE_BYTES,
 } from "./document.constants";
 
+type AllowedUploadMimeType = (typeof ALLOWED_UPLOAD_MIME_TYPES)[number];
+
+const WEBP_RIFF_SIGNATURE = "RIFF";
+const WEBP_FORMAT_SIGNATURE = "WEBP";
+const PNG_SIGNATURE = Buffer.from([
+  0x89,
+  0x50,
+  0x4e,
+  0x47,
+  0x0d,
+  0x0a,
+  0x1a,
+  0x0a,
+]);
+const JPEG_START_MARKER = Buffer.from([0xff, 0xd8, 0xff]);
+const PDF_SIGNATURE = Buffer.from("%PDF-");
+
+const hasPdfSignature = (buffer: Buffer): boolean =>
+  buffer.length >= PDF_SIGNATURE.length &&
+  buffer.subarray(0, PDF_SIGNATURE.length).equals(PDF_SIGNATURE);
+
+const hasJpegSignature = (buffer: Buffer): boolean =>
+  buffer.length >= JPEG_START_MARKER.length &&
+  buffer.subarray(0, JPEG_START_MARKER.length).equals(JPEG_START_MARKER);
+
+const hasPngSignature = (buffer: Buffer): boolean =>
+  buffer.length >= PNG_SIGNATURE.length &&
+  buffer.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE);
+
+const hasWebpSignature = (buffer: Buffer): boolean =>
+  buffer.length >= 12 &&
+  buffer.subarray(0, 4).toString("ascii") === WEBP_RIFF_SIGNATURE &&
+  buffer.subarray(8, 12).toString("ascii") === WEBP_FORMAT_SIGNATURE;
+
+export function matchesUploadMimeTypeSignature(
+  mimeType: AllowedUploadMimeType,
+  buffer: Buffer,
+): boolean {
+  switch (mimeType) {
+    case "application/pdf":
+      return hasPdfSignature(buffer);
+    case "image/jpeg":
+      return hasJpegSignature(buffer);
+    case "image/png":
+      return hasPngSignature(buffer);
+    case "image/webp":
+      return hasWebpSignature(buffer);
+  }
+}
+
 /**
  * Type guard that asserts a file is present and throws if not.
  *
@@ -50,6 +100,13 @@ export function validateUploadFile(file: Express.Multer.File): void {
     mimeType: file.mimetype,
     fileSize: file.size,
   });
+
+  const mimeType = file.mimetype as AllowedUploadMimeType;
+  if (!matchesUploadMimeTypeSignature(mimeType, file.buffer)) {
+    throw new BadRequestException(
+      "Uploaded file content does not match the declared MIME type",
+    );
+  }
 }
 
 export function validateUploadDescriptor(input: {

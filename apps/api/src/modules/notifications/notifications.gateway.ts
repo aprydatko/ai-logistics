@@ -13,6 +13,7 @@ import type { Server, Socket } from "socket.io";
 import type { DocumentItem } from "../documents/documents.types";
 
 import type { SocketTokenPayload } from "../auth/auth.types";
+import { websocketCorsOptions } from "../../config/security";
 
 type RealtimeSocket = Socket & {
   data: {
@@ -25,10 +26,7 @@ type RealtimeSocket = Socket & {
 };
 
 @WebSocketGateway({
-  cors: {
-    credentials: true,
-    origin: true,
-  },
+  cors: websocketCorsOptions,
   namespace: "realtime",
 })
 export class NotificationsGateway implements OnGatewayConnection {

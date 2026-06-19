@@ -95,7 +95,7 @@ describe("DocumentsService upload", () => {
       originalname: "bol.pdf",
       mimetype: "application/pdf",
       size: 1024,
-      buffer: Buffer.from("pdf"),
+      buffer: Buffer.from("%PDF-1.7 test"),
     } as Express.Multer.File;
 
     await expect(

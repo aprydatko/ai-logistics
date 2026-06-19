@@ -13,6 +13,7 @@ import { SentryService } from "./common/logging/sentry.service";
 import { WinstonLoggerService } from "./common/logging/winston-logger.service";
 import { MetricsService } from "./common/metrics/metrics.service";
 import type { Environment } from "./config/environment";
+import { createCorsOptions, createHelmetOptions } from "./config/security";
 import { QueueDashboardAuthService } from "./modules/queue/queue-dashboard-auth.service";
 import { QueueDashboardService } from "./modules/queue/queue-dashboard.service";
 
@@ -31,13 +32,16 @@ async function bootstrap(): Promise<void> {
   app.setGlobalPrefix("api");
   app.useBodyParser("json", { limit: "7mb" });
   app.use(compression({ threshold: 1024 }));
-  app.use(helmet());
+  app.use(
+    helmet(
+      createHelmetOptions(
+        configService.get("NODE_ENV", { infer: true }) === "production",
+      ),
+    ),
+  );
   app.use(createRequestContextMiddleware(requestContext));
   app.use(createRequestLoggingMiddleware(logger, requestContext, metrics));
-  app.enableCors({
-    credentials: true,
-    origin: configService.get("WEB_ORIGIN", { infer: true }),
-  });
+  app.enableCors(createCorsOptions());
   app.useGlobalPipes(
     new ValidationPipe({
       forbidNonWhitelisted: true,
