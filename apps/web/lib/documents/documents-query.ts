@@ -8,6 +8,7 @@ import type {
   ListDocumentsQueryDto,
 } from "@repo/shared";
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
 export const documentTypeSchema = z.enum([
@@ -194,3 +195,55 @@ export const documentFileAccessQueryOptions = (documentId: string) =>
     queryFn: () => fetchDocumentFileAccess(documentId),
     staleTime: 60_000,
   });
+
+export const updateDocumentInLists = (
+  current: DocumentsListResponse | undefined,
+  nextDocument: Document,
+): DocumentsListResponse | undefined => {
+  if (!current) return current;
+  if (!Array.isArray(current.data)) return current;
+
+  return {
+    ...current,
+    data: current.data.map((document) =>
+      document.id === nextDocument.id ? nextDocument : document,
+    ),
+  };
+};
+
+export const removeDocumentFromLists = (
+  current: DocumentsListResponse | undefined,
+  documentId: string,
+): DocumentsListResponse | undefined => {
+  if (!current) return current;
+  if (!Array.isArray(current.data)) return current;
+
+  return {
+    ...current,
+    data: current.data.filter((document) => document.id !== documentId),
+  };
+};
+
+export const syncDocumentCache = (
+  queryClient: QueryClient,
+  document: Document,
+): void => {
+  queryClient.setQueriesData(
+    { queryKey: ["documents"] },
+    (current: DocumentsListResponse | undefined) =>
+      updateDocumentInLists(current, document),
+  );
+  queryClient.setQueryData(["documents", document.id], document);
+};
+
+export const removeDocumentCache = (
+  queryClient: QueryClient,
+  documentId: string,
+): void => {
+  queryClient.setQueriesData(
+    { queryKey: ["documents"] },
+    (current: DocumentsListResponse | undefined) =>
+      removeDocumentFromLists(current, documentId),
+  );
+  queryClient.removeQueries({ queryKey: ["documents", documentId] });
+};

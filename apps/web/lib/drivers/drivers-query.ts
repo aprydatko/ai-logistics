@@ -1,4 +1,5 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
 const driverSchema = z.object({
@@ -55,6 +56,12 @@ export type DriversFilters = {
   limit: number;
 };
 export type DriversResult = z.infer<typeof driversResponseSchema>;
+export const driversQueryKeys = {
+  all: ["drivers"] as const,
+  detail: (driverId: string) => [...driversQueryKeys.all, driverId] as const,
+  list: (filters: DriversFilters) =>
+    [...driversQueryKeys.all, filters] as const,
+};
 
 const driverDocumentSchema = z.object({
   id: z.string().uuid(),
@@ -199,14 +206,14 @@ export const fetchDrivers = async (
 export const driversQueryOptions = (filters: DriversFilters) =>
   queryOptions({
     placeholderData: keepPreviousData,
-    queryKey: ["drivers", filters],
+    queryKey: driversQueryKeys.list(filters),
     queryFn: () => fetchDrivers(filters),
   });
 
 export const driverDetailsQueryOptions = (driverId: string) =>
   queryOptions({
     enabled: Boolean(driverId),
-    queryKey: ["drivers", driverId],
+    queryKey: driversQueryKeys.detail(driverId),
     queryFn: async (): Promise<DriverDetails> => {
       const response = await fetch(`/api/drivers/${driverId}`);
 
@@ -224,3 +231,74 @@ export const driverDetailsQueryOptions = (driverId: string) =>
       return parsedResponse.data.data;
     },
   });
+
+export const updateDriverInLists = (
+  current: DriversResult | undefined,
+  nextDriver: DriversApiItem,
+): DriversResult | undefined => {
+  if (!current) return current;
+
+  const hasExisting = current.data.some((driver) => driver.id === nextDriver.id);
+
+  return {
+    ...current,
+    data: hasExisting
+      ? current.data.map((driver) =>
+          driver.id === nextDriver.id ? nextDriver : driver,
+        )
+      : [nextDriver, ...current.data],
+  };
+};
+
+export const removeDriverFromLists = (
+  current: DriversResult | undefined,
+  driverId: string,
+): DriversResult | undefined => {
+  if (!current) return current;
+
+  return {
+    ...current,
+    data: current.data.filter((driver) => driver.id !== driverId),
+  };
+};
+
+export const syncDriverListCache = (
+  queryClient: QueryClient,
+  driver: DriversApiItem,
+): void => {
+  queryClient.setQueriesData(
+    { queryKey: driversQueryKeys.all },
+    (current: DriversResult | undefined) => updateDriverInLists(current, driver),
+  );
+};
+
+export const removeDriverCache = (
+  queryClient: QueryClient,
+  driverId: string,
+): void => {
+  queryClient.setQueriesData(
+    { queryKey: driversQueryKeys.all },
+    (current: DriversResult | undefined) => removeDriverFromLists(current, driverId),
+  );
+  queryClient.removeQueries({ queryKey: driversQueryKeys.detail(driverId) });
+};
+
+export const syncDriverTruckNumberInLists = (
+  queryClient: QueryClient,
+  driverId: string,
+  truckNumber: string | null,
+): void => {
+  queryClient.setQueriesData(
+    { queryKey: driversQueryKeys.all },
+    (current: DriversResult | undefined) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        data: current.data.map((driver) =>
+          driver.id === driverId ? { ...driver, truckNumber } : driver,
+        ),
+      };
+    },
+  );
+};

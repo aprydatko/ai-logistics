@@ -54,10 +54,15 @@ import {
   assertTruckImageSize,
   buildVehicleValues,
 } from "./internal/driver-vehicle";
+import { CacheService } from "../cache/cache.service";
+import { buildCacheKey } from "../cache/cache.utils";
 
 @Injectable()
 export class DriversService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   /**
    * Creates a new driver profile with an initial activity log entry.
@@ -102,6 +107,7 @@ export class DriversService {
         throw new InternalServerErrorException("Failed to create driver");
       }
 
+      await this.invalidateDriverReadCaches();
       return { success: true, data: toDriverListItem(driver) };
     } catch (error: unknown) {
       if (isPostgresUniqueViolation(error)) {
@@ -156,31 +162,38 @@ export class DriversService {
    * @returns Paginated driver list with total count and page metadata
    */
   async findAll(query: ListDriversQueryDto): Promise<DriversListResponse> {
-    const filters = buildDriverFilters(query);
-    const where = filters.length > 0 ? and(...filters) : undefined;
-    const client = this.databaseService.client;
-    const [rows, countRows] = await Promise.all([
-      client
-        .select()
-        .from(drivers)
-        .where(where)
-        .orderBy(asc(drivers.lastName), asc(drivers.firstName))
-        .limit(query.limit)
-        .offset((query.page - 1) * query.limit),
-      client.select({ total: count() }).from(drivers).where(where),
-    ]);
-    const total = countRows[0]?.total ?? 0;
+    return this.cacheService.getOrSet(
+      "drivers",
+      buildCacheKey("drivers", "find-all", query),
+      this.cacheService.getTtl("list"),
+      async () => {
+        const filters = buildDriverFilters(query);
+        const where = filters.length > 0 ? and(...filters) : undefined;
+        const client = this.databaseService.client;
+        const [rows, countRows] = await Promise.all([
+          client
+            .select()
+            .from(drivers)
+            .where(where)
+            .orderBy(asc(drivers.lastName), asc(drivers.firstName))
+            .limit(query.limit)
+            .offset((query.page - 1) * query.limit),
+          client.select({ total: count() }).from(drivers).where(where),
+        ]);
+        const total = countRows[0]?.total ?? 0;
 
-    return {
-      success: true,
-      data: rows.map(toDriverListItem),
-      pagination: {
-        page: query.page,
-        limit: query.limit,
-        total,
-        totalPages: Math.ceil(total / query.limit),
+        return {
+          success: true,
+          data: rows.map(toDriverListItem),
+          pagination: {
+            page: query.page,
+            limit: query.limit,
+            total,
+            totalPages: Math.ceil(total / query.limit),
+          },
+        };
       },
-    };
+    );
   }
 
   /**
@@ -195,75 +208,82 @@ export class DriversService {
    * @throws NotFoundException if the driver does not exist
    */
   async findById(id: string): Promise<DriverDetailsResponse> {
-    const client = this.databaseService.client;
-    const [driver] = await client
-      .select()
-      .from(drivers)
-      .where(eq(drivers.id, id))
-      .limit(1);
-
-    if (!driver) {
-      throw new NotFoundException("Driver was not found");
-    }
-
-    const [tripsHistory, driverDocumentRows, activity, vehicleRows] =
-      await Promise.all([
-        client
+    return this.cacheService.getOrSet(
+      "drivers",
+      buildCacheKey("drivers", "find-by-id", { id }),
+      this.cacheService.getTtl("detail"),
+      async () => {
+        const client = this.databaseService.client;
+        const [driver] = await client
           .select()
-          .from(loads)
-          .where(eq(loads.driverId, id))
-          .orderBy(desc(loads.pickupDate), desc(loads.createdAt)),
-        client
-          .select()
-          .from(driverDocuments)
-          .where(eq(driverDocuments.driverId, id))
-          .orderBy(
-            desc(driverDocuments.expiresAt),
-            desc(driverDocuments.createdAt),
-          ),
-        client
-          .select()
-          .from(driverActivity)
-          .where(eq(driverActivity.driverId, id))
-          .orderBy(desc(driverActivity.createdAt))
-          .limit(20),
-        client
-          .select({
-            vehicle: vehicles,
-            assignedAt: driverVehicleAssignments.assignedAt,
-          })
-          .from(driverVehicleAssignments)
-          .innerJoin(
-            vehicles,
-            eq(driverVehicleAssignments.vehicleId, vehicles.id),
-          )
-          .where(
-            and(
-              eq(driverVehicleAssignments.driverId, id),
-              isNull(driverVehicleAssignments.unassignedAt),
-              eq(driverVehicleAssignments.isPrimary, true),
-            ),
-          )
-          .orderBy(desc(driverVehicleAssignments.assignedAt))
-          .limit(1),
-      ]);
-    const currentVehicle = vehicleRows[0];
+          .from(drivers)
+          .where(eq(drivers.id, id))
+          .limit(1);
 
-    return {
-      success: true,
-      data: {
-        ...toDriverListItem(driver),
-        currentVehicle: currentVehicle
-          ? toDriverVehicleItem(
-              currentVehicle.vehicle,
-              currentVehicle.assignedAt,
-            )
-          : null,
-        documents: driverDocumentRows.map(toDriverDocumentItem),
-        tripsHistory: tripsHistory.map(toDriverTrip),
-        activity: activity.map(toDriverActivityItem),
+        if (!driver) {
+          throw new NotFoundException("Driver was not found");
+        }
+
+        const [tripsHistory, driverDocumentRows, activity, vehicleRows] =
+          await Promise.all([
+            client
+              .select()
+              .from(loads)
+              .where(eq(loads.driverId, id))
+              .orderBy(desc(loads.pickupDate), desc(loads.createdAt)),
+            client
+              .select()
+              .from(driverDocuments)
+              .where(eq(driverDocuments.driverId, id))
+              .orderBy(
+                desc(driverDocuments.expiresAt),
+                desc(driverDocuments.createdAt),
+              ),
+            client
+              .select()
+              .from(driverActivity)
+              .where(eq(driverActivity.driverId, id))
+              .orderBy(desc(driverActivity.createdAt))
+              .limit(20),
+            client
+              .select({
+                vehicle: vehicles,
+                assignedAt: driverVehicleAssignments.assignedAt,
+              })
+              .from(driverVehicleAssignments)
+              .innerJoin(
+                vehicles,
+                eq(driverVehicleAssignments.vehicleId, vehicles.id),
+              )
+              .where(
+                and(
+                  eq(driverVehicleAssignments.driverId, id),
+                  isNull(driverVehicleAssignments.unassignedAt),
+                  eq(driverVehicleAssignments.isPrimary, true),
+                ),
+              )
+              .orderBy(desc(driverVehicleAssignments.assignedAt))
+              .limit(1),
+          ]);
+        const currentVehicle = vehicleRows[0];
+
+        return {
+          success: true,
+          data: {
+            ...toDriverListItem(driver),
+            currentVehicle: currentVehicle
+              ? toDriverVehicleItem(
+                  currentVehicle.vehicle,
+                  currentVehicle.assignedAt,
+                )
+              : null,
+            documents: driverDocumentRows.map(toDriverDocumentItem),
+            tripsHistory: tripsHistory.map(toDriverTrip),
+            activity: activity.map(toDriverActivityItem),
+          },
+        };
       },
-    };
+    );
   }
 
   /**
@@ -353,6 +373,7 @@ export class DriversService {
         throw new NotFoundException("Driver was not found");
       }
 
+      await this.invalidateDriverReadCaches();
       return { success: true, data: toDriverListItem(driver) };
     } catch (error: unknown) {
       if (isPostgresUniqueViolation(error)) {
@@ -434,6 +455,7 @@ export class DriversService {
       return savedDocument;
     });
 
+    await this.invalidateDriverReadCaches();
     return {
       success: true,
       data: toDriverDocumentItem(document),
@@ -505,6 +527,7 @@ export class DriversService {
       throw new NotFoundException("Document was not found");
     }
 
+    await this.invalidateDriverReadCaches();
     return { success: true, message: "Document deleted" };
   }
 
@@ -535,8 +558,9 @@ export class DriversService {
     assertTruckImageSize(dto);
 
     try {
-      return await client.transaction(async (tx) => {
-        const [assignment] = await tx
+      const result: UpsertDriverVehicleResponse = await client.transaction(
+        async (tx) => {
+          const [assignment] = await tx
           .select({
             vehicleId: driverVehicleAssignments.vehicleId,
             assignedAt: driverVehicleAssignments.assignedAt,
@@ -597,7 +621,10 @@ export class DriversService {
           success: true,
           data: toDriverVehicleItem(vehicle, assignedAt),
         };
-      });
+        },
+      );
+      await this.invalidateDriverReadCaches();
+      return result;
     } catch (error: unknown) {
       if (isPostgresUniqueViolation(error)) {
         throw new ConflictException(
@@ -633,5 +660,14 @@ export class DriversService {
       success: true,
       message: "Driver deleted",
     };
+  }
+
+  private async invalidateDriverReadCaches(): Promise<void> {
+    await Promise.all([
+      this.cacheService.invalidateNamespace("drivers"),
+      this.cacheService.invalidateNamespace("loads"),
+      this.cacheService.invalidateNamespace("documents"),
+      this.cacheService.invalidateNamespace("incidents"),
+    ]);
   }
 }

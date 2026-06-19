@@ -1,4 +1,5 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
 const loadStatusSchema = z.enum([
@@ -77,6 +78,12 @@ export type LoadsFilters = {
 };
 export type LoadsResult = z.infer<typeof loadsResponseSchema>;
 
+export const loadsQueryKeys = {
+  all: ["loads"] as const,
+  detail: (loadId: string) => [...loadsQueryKeys.all, loadId] as const,
+  list: (filters: LoadsFilters) => [...loadsQueryKeys.all, filters] as const,
+};
+
 const toSearchParams = (filters: LoadsFilters): URLSearchParams => {
   const params = new URLSearchParams({
     page: String(filters.page),
@@ -108,6 +115,33 @@ export const fetchLoads = async (
 export const loadsQueryOptions = (filters: LoadsFilters) =>
   queryOptions({
     placeholderData: keepPreviousData,
-    queryKey: ["loads", filters],
+    queryKey: loadsQueryKeys.list(filters),
     queryFn: () => fetchLoads(filters),
   });
+
+export const updateLoadInLists = (
+  current: LoadsResult | undefined,
+  nextLoad: LoadApiItem,
+): LoadsResult | undefined => {
+  if (!current) return current;
+
+  const hasExisting = current.data.some((load) => load.id === nextLoad.id);
+
+  return {
+    ...current,
+    data: hasExisting
+      ? current.data.map((load) => (load.id === nextLoad.id ? nextLoad : load))
+      : [nextLoad, ...current.data],
+  };
+};
+
+export const syncLoadCache = (
+  queryClient: QueryClient,
+  load: LoadApiItem,
+): void => {
+  queryClient.setQueriesData(
+    { queryKey: loadsQueryKeys.all },
+    (current: LoadsResult | undefined) => updateLoadInLists(current, load),
+  );
+  queryClient.setQueryData(loadsQueryKeys.detail(load.id), load);
+};

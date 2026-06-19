@@ -5,11 +5,16 @@ import { Camera, LoaderCircle, Truck } from "lucide-react";
 import Image from "next/image";
 import * as React from "react";
 
+import { invalidateDashboardQueries } from "@/lib/dashboard/dashboard-query";
 import {
   saveDriverVehicle,
   type DriverVehicleInput,
 } from "@/lib/drivers/driver-mutations";
-import type { DriverDetails } from "@/lib/drivers/drivers-query";
+import {
+  driversQueryKeys,
+  syncDriverTruckNumberInLists,
+  type DriverDetails,
+} from "@/lib/drivers/drivers-query";
 import { Button } from "@repo/ui/components/button";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
@@ -110,10 +115,24 @@ export const TruckTab = ({
     onError: (error) =>
       toast.error("Unable to save truck", { description: error.message }),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["drivers", driverId] }),
-        queryClient.invalidateQueries({ queryKey: ["drivers"] }),
-      ]);
+      if (!driverId) return;
+
+      queryClient.setQueryData(
+        driversQueryKeys.detail(driverId),
+        (current: DriverDetails | undefined) =>
+          current
+            ? {
+                ...current,
+                truckNumber: values.unitNumber || null,
+              }
+            : current,
+      );
+      syncDriverTruckNumberInLists(queryClient, driverId, values.unitNumber || null);
+
+      await queryClient.invalidateQueries({
+        queryKey: driversQueryKeys.detail(driverId),
+      });
+      await invalidateDashboardQueries(queryClient, "drivers");
       toast.success("Truck information saved");
     },
   });

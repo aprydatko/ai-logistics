@@ -13,9 +13,10 @@ import { DEFAULT_PAGE_SIZE } from "./constants";
 import type { AiLogFilterOption } from "./types";
 
 type UseAiLogsWorkspaceResult = {
-  endItem: number;
   error: string | null;
   from: string;
+  hasMore: boolean;
+  historyDepth: number;
   isLoading: boolean;
   limit: number;
   logs: AiLog[];
@@ -23,16 +24,14 @@ type UseAiLogsWorkspaceResult = {
   model: string;
   operation: string;
   operationOptions: AiLogFilterOption[];
-  page: number;
+  nextCursor: string | null;
   selected: AiLog | null;
   setLimit: (nextLimit: number) => void;
-  setPage: (nextPage: number) => void;
+  goToNextPage: () => void;
+  goToPreviousPage: () => void;
   setSelected: (log: AiLog | null) => void;
-  startItem: number;
   status: string;
   to: string;
-  totalItems: number;
-  totalPages: number;
   updateDateRange: (value: { from: string; to: string }) => void;
   updateModel: (value: string) => void;
   updateOperation: (value: string) => void;
@@ -41,8 +40,8 @@ type UseAiLogsWorkspaceResult = {
 
 export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
   const [logs, setLogs] = React.useState<AiLog[]>([]);
-  const [pagination, setPagination] = React.useState<
-    AiLogsListResponse["pagination"] | null
+  const [pageInfo, setPageInfo] = React.useState<
+    AiLogsListResponse["pageInfo"] | null
   >(null);
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -52,8 +51,9 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
   const [operation, setOperation] = React.useState("all");
   const [from, setFrom] = React.useState("");
   const [to, setTo] = React.useState("");
-  const [page, setPage] = React.useState(1);
   const [limit, setLimitState] = React.useState(DEFAULT_PAGE_SIZE);
+  const [cursor, setCursor] = React.useState<string | null>(null);
+  const [cursorHistory, setCursorHistory] = React.useState<string[]>([]);
   const [selected, setSelected] = React.useState<AiLog | null>(null);
 
   React.useEffect(() => {
@@ -63,7 +63,6 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
 
       try {
         const searchParams = new URLSearchParams({
-          page: String(page),
           limit: String(limit),
         });
 
@@ -72,6 +71,7 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
         if (operation !== "all") searchParams.set("operation", operation);
         if (from) searchParams.set("from", from);
         if (to) searchParams.set("to", to);
+        if (cursor) searchParams.set("cursor", cursor);
 
         const [listResponse, metricsResponse] = await Promise.all([
           fetch(`/api/ai-logs?${searchParams.toString()}`, {
@@ -90,7 +90,7 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
           setError("Failed to load AI logs.");
           setLogs([]);
           setMetrics([]);
-          setPagination(null);
+          setPageInfo(null);
           setSelected(null);
           return;
         }
@@ -98,13 +98,13 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
         const mappedLogs = mapAiLogListResponse(listData);
         setLogs(mappedLogs);
         setMetrics(mapAiLogMetricsResponse(metricsData));
-        setPagination(listData.pagination);
+        setPageInfo(listData.pageInfo);
         setSelected(mappedLogs[0] ?? null);
       } catch {
         setError("Failed to load AI logs.");
         setLogs([]);
         setMetrics([]);
-        setPagination(null);
+        setPageInfo(null);
         setSelected(null);
       } finally {
         setIsLoading(false);
@@ -112,7 +112,7 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
     };
 
     void loadLogs();
-  }, [from, limit, model, operation, page, status, to]);
+  }, [cursor, from, limit, model, operation, status, to]);
 
   const operationOptions = React.useMemo(
     () => [
@@ -125,41 +125,62 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
     [logs],
   );
 
-  const totalPages = Math.max(1, pagination?.totalPages ?? 1);
-  const totalItems = pagination?.total ?? 0;
-  const startItem = totalItems === 0 ? 0 : (page - 1) * limit + 1;
-  const endItem = Math.min(page * limit, totalItems);
-
   const updateModel = (value: string): void => {
     setModel(value);
-    setPage(1);
+    setCursor(null);
+    setCursorHistory([]);
   };
 
   const updateStatus = (value: string): void => {
     setStatus(value);
-    setPage(1);
+    setCursor(null);
+    setCursorHistory([]);
   };
 
   const updateOperation = (value: string): void => {
     setOperation(value);
-    setPage(1);
+    setCursor(null);
+    setCursorHistory([]);
   };
 
   const setLimit = (nextLimit: number): void => {
     setLimitState(nextLimit);
-    setPage(1);
+    setCursor(null);
+    setCursorHistory([]);
   };
 
   const updateDateRange = (value: { from: string; to: string }): void => {
     setFrom(value.from);
     setTo(value.to);
-    setPage(1);
+    setCursor(null);
+    setCursorHistory([]);
+  };
+
+  const goToNextPage = (): void => {
+    if (!pageInfo?.nextCursor) return;
+    setCursorHistory((current) => [...current, cursor ?? ""]);
+    setCursor(pageInfo.nextCursor);
+  };
+
+  const goToPreviousPage = (): void => {
+    setCursorHistory((current) => {
+      if (current.length === 0) {
+        setCursor(null);
+        return current;
+      }
+
+      const nextHistory = current.slice(0, -1);
+      const previousCursor = current.at(-1) || null;
+      setCursor(previousCursor || null);
+      return nextHistory;
+    });
   };
 
   return {
-    endItem,
     error,
     from,
+    hasMore: pageInfo?.hasMore ?? false,
+    historyDepth: cursorHistory.length,
     isLoading,
     limit,
     logs,
@@ -167,16 +188,14 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
     model,
     operation,
     operationOptions,
-    page,
+    nextCursor: pageInfo?.nextCursor ?? null,
     selected,
+    goToNextPage,
+    goToPreviousPage,
     setLimit,
-    setPage,
     setSelected,
-    startItem,
     status,
     to,
-    totalItems,
-    totalPages,
     updateDateRange,
     updateModel,
     updateOperation,

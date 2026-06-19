@@ -1,7 +1,6 @@
-import { Bot, Monitor, MoreHorizontal, Smartphone } from "lucide-react";
+import { Bot, ChevronLeft, ChevronRight, Monitor, MoreHorizontal, Smartphone } from "lucide-react";
 
 import { Button } from "@repo/ui/components/button";
-import { DataPagination } from "@repo/ui/components/pagination";
 import { StatusBadge } from "@repo/ui/components/status-badge";
 import {
   DataTable,
@@ -17,37 +16,33 @@ import {
 import type { AiLog } from "../ai-logs-data";
 
 type Props = {
-  endItem: number;
   error: string | null;
+  goToNextPage: () => void;
+  goToPreviousPage: () => void;
+  hasMore: boolean;
+  historyDepth: number;
   isLoading: boolean;
   limit: number;
   logs: AiLog[];
-  page: number;
-  pages: Array<number | "ellipsis">;
+  nextCursor: string | null;
   selected: AiLog | null;
   setLimit: (nextLimit: number) => void;
-  setPage: (nextPage: number) => void;
   setSelected: (log: AiLog | null) => void;
-  startItem: number;
-  totalItems: number;
-  totalPages: number;
 };
 
 export const AiLogsTable = ({
-  endItem,
   error,
+  goToNextPage,
+  goToPreviousPage,
+  hasMore,
+  historyDepth,
   isLoading,
   limit,
   logs,
-  page,
-  pages,
+  nextCursor,
   selected,
   setLimit,
-  setPage,
   setSelected,
-  startItem,
-  totalItems,
-  totalPages,
 }: Props): React.JSX.Element => (
   <DataTable className="flex min-h-0 min-w-0 flex-1 flex-col">
     <TableScrollArea className="min-h-0 flex-1 overflow-auto">
@@ -145,20 +140,43 @@ export const AiLogsTable = ({
         </TableBody>
       </Table>
     </TableScrollArea>
-    <DataPagination
-      ariaLabel="AI logs pagination"
-      className="shrink-0"
-      currentPage={page}
-      endItem={endItem}
-      itemName="logs"
-      onPageChange={setPage}
-      onPageSizeChange={setLimit}
-      pages={pages}
-      pageSize={limit}
-      pageSizeOptions={[10, 15, 20]}
-      startItem={startItem}
-      totalItems={totalItems}
-      totalPages={totalPages}
-    />
+    <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="text-sm text-primary-700">
+        Page {historyDepth + 1}
+        {logs.length > 0 ? ` · ${logs.length} logs loaded` : ""}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="flex items-center gap-2 text-sm text-primary-700">
+          <span>Rows</span>
+          <select
+            className="h-9 rounded-md border border-border bg-white px-2 text-sm"
+            onChange={(event) => setLimit(Number(event.target.value))}
+            value={limit}
+          >
+            {[10, 15, 20].map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </label>
+        <Button
+          disabled={historyDepth === 0 || isLoading}
+          onClick={goToPreviousPage}
+          variant="outline"
+        >
+          <ChevronLeft className="mr-2 size-4" />
+          Previous
+        </Button>
+        <Button
+          disabled={!hasMore || !nextCursor || isLoading}
+          onClick={goToNextPage}
+          variant="outline"
+        >
+          Next
+          <ChevronRight className="ml-2 size-4" />
+        </Button>
+      </div>
+    </div>
   </DataTable>
 );

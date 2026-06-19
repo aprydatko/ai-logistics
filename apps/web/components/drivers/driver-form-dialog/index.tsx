@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 
+import { invalidateDashboardQueries } from "@/lib/dashboard/dashboard-query";
 import {
   driverFormSchema,
   type DriverFormValues,
@@ -16,6 +17,8 @@ import {
 } from "@/lib/drivers/driver-mutations";
 import {
   driverDetailsQueryOptions,
+  driversQueryKeys,
+  syncDriverListCache,
   type DriversApiItem,
 } from "@/lib/drivers/drivers-query";
 import {
@@ -88,8 +91,12 @@ export const DriverFormDialog = ({
         }
       }
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["drivers"] }),
+        queryClient.invalidateQueries({
+          queryKey: driversQueryKeys.detail(savedDriver.id),
+        }),
+        invalidateDashboardQueries(queryClient, "drivers"),
       ]);
+      syncDriverListCache(queryClient, savedDriver);
       onOpenChange(false);
       if (documentUploaded) {
         toast.success(

@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
+import { invalidateDashboardQueries } from "@/lib/dashboard/dashboard-query";
 import { connectRealtimeNamespace } from "@/lib/realtime/socket-session";
 import {
+  incidentsQueryKeys,
   incidentTimelineQueryOptions,
   type IncidentTimelineFeed,
 } from "./incidents-query";
@@ -57,7 +59,10 @@ export const useIncidentTimelineLive = (
             (current: IncidentTimelineFeed | undefined) =>
               applyTimelineFeed(current, feed),
           );
-          void queryClient.invalidateQueries({ queryKey: ["incidents"] });
+          void Promise.all([
+            queryClient.invalidateQueries({ queryKey: incidentsQueryKeys.all }),
+            invalidateDashboardQueries(queryClient, "incidents"),
+          ]);
         };
 
         socket.on("incident.timeline.updated", handleFeed);

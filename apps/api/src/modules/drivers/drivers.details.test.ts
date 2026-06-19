@@ -4,6 +4,14 @@ import { describe, expect, it, vi } from "vitest";
 import type { DriverRecord, LoadRecord } from "../../db/schema";
 import { DriversService } from "./drivers.service";
 
+const cacheService = {
+  getOrSet: vi.fn(async (_namespace, _key, _ttl, factory) => factory()),
+  getTtl: vi.fn((kind: "list" | "detail" | "metrics") =>
+    kind === "detail" ? 60 : 30,
+  ),
+  invalidateNamespace: vi.fn().mockResolvedValue(undefined),
+};
+
 const driver: DriverRecord = {
   id: "22222222-2222-2222-2222-222222222222",
   driverCode: "DR-1001",
@@ -95,7 +103,7 @@ describe("DriversService.findById", () => {
     };
     const service = new DriversService({
       client,
-    } as unknown as ConstructorParameters<typeof DriversService>[0]);
+    } as unknown as ConstructorParameters<typeof DriversService>[0], cacheService as never);
 
     await expect(service.findById(driver.id)).resolves.toEqual({
       success: true,
@@ -128,7 +136,7 @@ describe("DriversService.findById", () => {
     };
     const service = new DriversService({
       client,
-    } as unknown as ConstructorParameters<typeof DriversService>[0]);
+    } as unknown as ConstructorParameters<typeof DriversService>[0], cacheService as never);
 
     await expect(service.findById(driver.id)).rejects.toThrow(
       NotFoundException,

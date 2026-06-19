@@ -1,11 +1,11 @@
 import { queryOptions } from "@tanstack/react-query";
+import { z } from "zod";
 
 import {
-  fetchLoads,
-  type LoadApiItem,
-  type LoadStatus,
-  type LoadsFilters,
-} from "@/lib/loads/loads-query";
+  DASHBOARD_QUERY_STALE_TIME,
+  dashboardQueryKeys,
+  fetchDashboardPayload,
+} from "@/lib/dashboard/dashboard-query";
 
 export type LoadMetric = {
   chartData: number[];
@@ -18,95 +18,34 @@ export type LoadMetric = {
 type LoadMetricsResult = {
   metrics: LoadMetric[];
 };
+const loadMetricSchema = z.object({
+  chartData: z.array(z.number()),
+  change: z.string(),
+  title: z.string(),
+  trend: z.enum(["negative", "positive"]).optional(),
+  value: z.string(),
+}) satisfies z.ZodType<LoadMetric>;
 
-const baseFilters: LoadsFilters = {
-  search: "",
-  status: "all",
-  pickupFrom: "",
-  pickupTo: "",
-  page: 1,
-  limit: 1,
-};
-
-const loadStatuses: LoadStatus[] = [
-  "pending",
-  "assigned",
-  "in_transit",
-  "delivered",
-  "cancelled",
-];
-
-const formatPercent = (value: number): string => `${value.toFixed(1)}%`;
-
-const countRecentStatuses = (loads: LoadApiItem[]): number[] => {
-  const counts = new Map<LoadStatus, number>(
-    loadStatuses.map((status) => [status, 0]),
-  );
-
-  for (const load of loads) {
-    counts.set(load.status, (counts.get(load.status) ?? 0) + 1);
-  }
-
-  return loadStatuses.map((status) => counts.get(status) ?? 0);
-};
-
-const getStatusTotal = async (status: LoadStatus): Promise<number> => {
-  const response = await fetchLoads({ ...baseFilters, status });
-  return response.pagination.total;
-};
+const loadMetricsResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    metrics: z.array(loadMetricSchema),
+  }),
+});
 
 export const fetchLoadMetrics = async (): Promise<LoadMetricsResult> => {
-  const [allLoads, pending, assigned, inTransit, delivered, cancelled] =
-    await Promise.all([
-      fetchLoads({ ...baseFilters, limit: 12 }),
-      getStatusTotal("pending"),
-      getStatusTotal("assigned"),
-      getStatusTotal("in_transit"),
-      getStatusTotal("delivered"),
-      getStatusTotal("cancelled"),
-    ]);
-
-  const totalLoads = Math.max(
-    pending + assigned + inTransit + delivered + cancelled,
-    1,
-  );
-  const activeLoads = assigned + inTransit;
-  const recentStatusCounts = countRecentStatuses(allLoads.data);
-
-  return {
-    metrics: [
-      {
-        chartData: recentStatusCounts,
-        change: formatPercent((activeLoads / totalLoads) * 100),
-        title: "Active loads",
-        value: activeLoads.toLocaleString(),
-      },
-      {
-        chartData: recentStatusCounts,
-        change: formatPercent((pending / totalLoads) * 100),
-        title: "Pending loads",
-        value: pending.toLocaleString(),
-      },
-      {
-        chartData: recentStatusCounts,
-        change: formatPercent((delivered / totalLoads) * 100),
-        title: "Delivered loads",
-        value: delivered.toLocaleString(),
-      },
-      {
-        chartData: recentStatusCounts,
-        change: formatPercent((cancelled / totalLoads) * 100),
-        title: "Cancelled loads",
-        trend: "negative",
-        value: cancelled.toLocaleString(),
-      },
-    ],
-  };
+  return (
+    await fetchDashboardPayload({
+      errorMessage: "Unable to load load metrics",
+      path: "/api/loads/metrics",
+      schema: loadMetricsResponseSchema,
+    })
+  ).data;
 };
 
 export const loadMetricsQueryOptions = () =>
   queryOptions({
-    queryKey: ["dashboard", "load-metrics"],
+    queryKey: dashboardQueryKeys.loadMetrics(),
     queryFn: fetchLoadMetrics,
-    staleTime: 30_000,
+    staleTime: DASHBOARD_QUERY_STALE_TIME,
   });

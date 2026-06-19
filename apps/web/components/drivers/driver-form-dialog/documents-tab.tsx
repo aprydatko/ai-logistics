@@ -10,7 +10,10 @@ import {
   type DriverDocumentInput,
 } from "@/lib/drivers/driver-mutations";
 import { resolveDocumentFileUrl } from "@/lib/documents/document-file-url";
-import type { DriverDetails } from "@/lib/drivers/drivers-query";
+import {
+  driversQueryKeys,
+  type DriverDetails,
+} from "@/lib/drivers/drivers-query";
 import { Button } from "@repo/ui/components/button";
 import { DatePicker } from "@repo/ui/components/date-picker";
 import { Input } from "@repo/ui/components/input";
@@ -77,7 +80,10 @@ export const DocumentsTab = ({
   const [expiresAt, setExpiresAt] = React.useState("");
   const [fileError, setFileError] = React.useState<string | null>(null);
   const refreshDetails = async (): Promise<void> => {
-    await queryClient.invalidateQueries({ queryKey: ["drivers", driverId] });
+    if (!driverId) return;
+    await queryClient.invalidateQueries({
+      queryKey: driversQueryKeys.detail(driverId),
+    });
   };
   const uploadMutation = useMutation({
     mutationFn: async () => {

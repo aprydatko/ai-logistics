@@ -5,11 +5,11 @@ import {
   Param,
   ParseUUIDPipe,
   Patch,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import type {
   Notification,
-  NotificationListResponse,
   NotificationPreferenceResponse,
   NotificationUnreadCountResponse,
 } from "@repo/shared/src";
@@ -17,8 +17,10 @@ import type {
 import type { AuthenticatedUser } from "../auth/auth.types";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { ListNotificationsQueryDto } from "./dto/list-notifications-query.dto";
 import { UpdateNotificationPreferencesDto } from "./dto/update-notification-preferences.dto";
 import { NotificationsService } from "./notifications.service";
+import type { NotificationListResult } from "./notifications.types";
 
 @Controller("notifications")
 @UseGuards(JwtAuthGuard)
@@ -28,8 +30,9 @@ export class NotificationsController {
   @Get()
   list(
     @CurrentUser() user: AuthenticatedUser,
-  ): Promise<NotificationListResponse> {
-    return this.notificationsService.listForUser(user.id);
+    @Query() query: ListNotificationsQueryDto,
+  ): Promise<NotificationListResult> {
+    return this.notificationsService.listForUser(user.id, query);
   }
 
   @Get("unread-count")

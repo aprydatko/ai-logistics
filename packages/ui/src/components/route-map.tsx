@@ -23,7 +23,7 @@ export type RouteMapMarker = {
   tone?: RouteMarkerTone;
 };
 
-type RouteMapProps = {
+export type RouteMapProps = {
   center: Coordinates;
   className?: string;
   markers: RouteMapMarker[];

@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { LoaderCircle, Save } from "lucide-react";
 
 import { updateDocument } from "@/lib/documents/document-mutations";
+import { syncDocumentCache } from "@/lib/documents/documents-query";
 import { Button } from "@repo/ui/components/button";
 import { toast } from "@repo/ui/components/toaster";
 
@@ -42,11 +43,7 @@ export const MetadataForm = ({
         description: error.message,
       }),
     onSuccess: async (updatedDocument) => {
-      queryClient.setQueryData(
-        ["documents", updatedDocument.id],
-        updatedDocument,
-      );
-      await queryClient.invalidateQueries({ queryKey: ["documents"] });
+      syncDocumentCache(queryClient, updatedDocument);
       onSaved(updatedDocument);
       toast.success("Metadata saved");
     },

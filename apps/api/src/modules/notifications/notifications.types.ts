@@ -1,3 +1,4 @@
+import type { CursorPageInfo } from "@repo/shared/src";
 import type {
   Notification,
   NotificationCategory,
@@ -29,4 +30,10 @@ export type NotificationDeliveryInput = {
   notification: Notification;
   preference: NotificationPreference;
   recipient: NotificationRecipient;
+};
+
+export type NotificationListResult = {
+  success: true;
+  data: Notification[];
+  pageInfo: CursorPageInfo;
 };

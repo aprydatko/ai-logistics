@@ -122,15 +122,17 @@ export function AiTimelinePanel(): React.JSX.Element {
     incidentsQueryOptions(dashboardTimelineFilters),
   );
   const featuredIncident = getFeaturedIncident(incidentsQuery.data?.data ?? []);
-
-  const timelineQuery = useQuery({
-    ...incidentTimelineQueryOptions(featuredIncident?.id ?? ""),
-    enabled: Boolean(featuredIncident?.id),
-  });
   const liveState = useIncidentTimelineLive(
     featuredIncident?.id ?? null,
     Boolean(featuredIncident),
   );
+
+  const timelineQuery = useQuery({
+    ...incidentTimelineQueryOptions(featuredIncident?.id ?? ""),
+    enabled: Boolean(featuredIncident?.id),
+    refetchInterval: liveState === "polling" ? 15_000 : false,
+    staleTime: liveState === "polling" ? 10_000 : Infinity,
+  });
 
   if (incidentsQuery.isError) {
     return (

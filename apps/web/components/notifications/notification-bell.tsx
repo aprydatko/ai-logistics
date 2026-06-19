@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, CheckCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -14,8 +14,15 @@ import {
 } from "@repo/ui/components/popover";
 
 import {
+  flattenNotificationPages,
+  markAllNotificationsReadInCache,
+  markNotificationReadInCache,
   markAllNotificationsRead,
   markNotificationRead,
+  notificationsInfiniteQueryOptions,
+  notificationsQueryKeys,
+  type NotificationsInfiniteData,
+  notificationUnreadCountQueryOptions,
 } from "@/lib/notifications/notifications-query";
 import { useNotificationsStore } from "@/stores/notifications-store";
 
@@ -28,32 +35,44 @@ const formatRelativeTime = (value: string): string =>
 export const NotificationBell = (): React.JSX.Element => {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const items = useNotificationsStore((state) => state.items);
-  const unreadCount = useNotificationsStore((state) => state.unreadCount);
   const isPanelOpen = useNotificationsStore((state) => state.isPanelOpen);
   const setPanelOpen = useNotificationsStore((state) => state.setPanelOpen);
-  const markAsReadLocal = useNotificationsStore((state) => state.markAsRead);
-  const markAllAsReadLocal = useNotificationsStore(
-    (state) => state.markAllAsRead,
-  );
+  const notificationsQuery = useInfiniteQuery(notificationsInfiniteQueryOptions());
+  const unreadCountQuery = useQuery(notificationUnreadCountQueryOptions());
+  const items = flattenNotificationPages(notificationsQuery.data);
+  const unreadCount = unreadCountQuery.data ?? 0;
 
   const markAsReadMutation = useMutation({
     mutationFn: markNotificationRead,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      void queryClient.invalidateQueries({
-        queryKey: ["notifications", "unread-count"],
-      });
+    onSuccess: (_, notificationId) => {
+      const readAt = new Date().toISOString();
+
+      queryClient.setQueryData(
+        notificationsQueryKeys.infinite(),
+        (current: NotificationsInfiniteData | undefined) =>
+          markNotificationReadInCache(current, notificationId, readAt),
+      );
+      queryClient.setQueryData(
+        notificationsQueryKeys.unreadCount(),
+        (current: number | undefined) => Math.max(0, (current ?? 0) - 1),
+      );
     },
   });
 
   const markAllAsReadMutation = useMutation({
     mutationFn: markAllNotificationsRead,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      void queryClient.invalidateQueries({
-        queryKey: ["notifications", "unread-count"],
-      });
+    onSuccess: (nextUnreadCount) => {
+      const readAt = new Date().toISOString();
+
+      queryClient.setQueryData(
+        notificationsQueryKeys.infinite(),
+        (current: NotificationsInfiniteData | undefined) =>
+          markAllNotificationsReadInCache(current, readAt),
+      );
+      queryClient.setQueryData(
+        notificationsQueryKeys.unreadCount(),
+        nextUnreadCount,
+      );
     },
   });
 
@@ -87,7 +106,6 @@ export const NotificationBell = (): React.JSX.Element => {
               className="h-auto p-0 text-xs text-blue-600"
               disabled={unreadCount === 0 || markAllAsReadMutation.isPending}
               onClick={() => {
-                markAllAsReadLocal();
                 markAllAsReadMutation.mutate();
               }}
               variant="link"
@@ -110,7 +128,6 @@ export const NotificationBell = (): React.JSX.Element => {
                 key={item.id}
                 onClick={() => {
                   if (!item.readAt) {
-                    markAsReadLocal(item.id);
                     markAsReadMutation.mutate(item.id);
                   }
 

@@ -1,5 +1,6 @@
 import { Transform, Type } from "class-transformer";
 import {
+  IsBase64,
   IsDateString,
   IsIn,
   IsInt,
@@ -42,7 +43,10 @@ export class ListAiLogsQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  page = 1;
+  @IsBase64()
+  @MaxLength(512)
+  @Transform(trimOptionalString)
+  cursor?: string;
 
   @IsOptional()
   @Type(() => Number)

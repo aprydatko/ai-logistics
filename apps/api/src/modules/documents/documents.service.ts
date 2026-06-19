@@ -20,6 +20,8 @@ import {
 } from "../../db/schema";
 import { NotificationsGateway } from "../notifications/notifications.gateway";
 import { NotificationsService } from "../notifications/notifications.service";
+import { CacheService } from "../cache/cache.service";
+import { buildCacheKey } from "../cache/cache.utils";
 import {
   type StoredDocumentFile,
   DocumentStorageService,
@@ -66,6 +68,7 @@ import type { DocumentProcessingJobData } from "../queue/queue.types";
 export class DocumentsService {
   constructor(
     private readonly databaseService: DatabaseService,
+    private readonly cacheService: CacheService,
     private readonly documentStorageService: DocumentStorageService,
     private readonly documentVisionService: DocumentVisionService,
     private readonly notificationsGateway: NotificationsGateway,
@@ -75,78 +78,92 @@ export class DocumentsService {
   ) {}
 
   async findAll(query: ListDocumentsQueryDto): Promise<DocumentsListResult> {
-    const filters = buildDocumentFilters(query);
-    const where = filters.length > 0 ? and(...filters) : undefined;
-    const sortColumn = resolveDocumentSortColumn(query.sortBy);
-    const direction = query.sortOrder === "asc" ? asc : desc;
-    const client = this.databaseService.client;
-    const [rows, totalRows] = await Promise.all([
-      documentBaseSelect(client)
-        .where(where)
-        .orderBy(direction(sortColumn), desc(documents.id))
-        .limit(query.limit)
-        .offset((query.page - 1) * query.limit),
-      client
-        .select({ total: count() })
-        .from(documents)
-        .leftJoin(drivers, eq(documents.driverId, drivers.id))
-        .leftJoin(loads, eq(documents.loadId, loads.id))
-        .where(where),
-    ]);
-    const total = totalRows[0]?.total ?? 0;
+    return this.cacheService.getOrSet(
+      "documents",
+      buildCacheKey("documents", "find-all", query),
+      this.cacheService.getTtl("list"),
+      async () => {
+        const filters = buildDocumentFilters(query);
+        const where = filters.length > 0 ? and(...filters) : undefined;
+        const sortColumn = resolveDocumentSortColumn(query.sortBy);
+        const direction = query.sortOrder === "asc" ? asc : desc;
+        const client = this.databaseService.client;
+        const [rows, totalRows] = await Promise.all([
+          documentBaseSelect(client)
+            .where(where)
+            .orderBy(direction(sortColumn), desc(documents.id))
+            .limit(query.limit)
+            .offset((query.page - 1) * query.limit),
+          client
+            .select({ total: count() })
+            .from(documents)
+            .leftJoin(drivers, eq(documents.driverId, drivers.id))
+            .leftJoin(loads, eq(documents.loadId, loads.id))
+            .where(where),
+        ]);
+        const total = totalRows[0]?.total ?? 0;
 
-    return {
-      success: true,
-      data: rows.map((row) =>
-        toDocumentItem(
-          row.document,
-          row.driver,
-          row.load,
-          row.document.fileUrl ?? row.driverDocumentFileUrl,
-          row.document.mimeType ?? row.driverDocumentMimeType,
-          row.uploadedBy,
-        ),
-      ),
-      pagination: {
-        page: query.page,
-        limit: query.limit,
-        total,
-        totalPages: Math.ceil(total / query.limit),
+        return {
+          success: true,
+          data: rows.map((row) =>
+            toDocumentItem(
+              row.document,
+              row.driver,
+              row.load,
+              row.document.fileUrl ?? row.driverDocumentFileUrl,
+              row.document.mimeType ?? row.driverDocumentMimeType,
+              row.uploadedBy,
+            ),
+          ),
+          pagination: {
+            page: query.page,
+            limit: query.limit,
+            total,
+            totalPages: Math.ceil(total / query.limit),
+          },
+        };
       },
-    };
+    );
   }
 
   async findOne(id: string): Promise<DocumentResult> {
-    const client = this.databaseService.client;
-    const [[row], extractedFields, auditEvents] = await Promise.all([
-      documentBaseSelect(client).where(eq(documents.id, id)).limit(1),
-      client
-        .select()
-        .from(documentExtractedFields)
-        .where(eq(documentExtractedFields.documentId, id))
-        .orderBy(asc(documentExtractedFields.createdAt)),
-      client
-        .select()
-        .from(documentAuditEvents)
-        .where(eq(documentAuditEvents.documentId, id))
-        .orderBy(asc(documentAuditEvents.createdAt)),
-    ]);
+    return this.cacheService.getOrSet(
+      "documents",
+      buildCacheKey("documents", "find-one", { id }),
+      this.cacheService.getTtl("detail"),
+      async () => {
+        const client = this.databaseService.client;
+        const [[row], extractedFields, auditEvents] = await Promise.all([
+          documentBaseSelect(client).where(eq(documents.id, id)).limit(1),
+          client
+            .select()
+            .from(documentExtractedFields)
+            .where(eq(documentExtractedFields.documentId, id))
+            .orderBy(asc(documentExtractedFields.createdAt)),
+          client
+            .select()
+            .from(documentAuditEvents)
+            .where(eq(documentAuditEvents.documentId, id))
+            .orderBy(asc(documentAuditEvents.createdAt)),
+        ]);
 
-    if (!row) throw new NotFoundException("Document was not found");
+        if (!row) throw new NotFoundException("Document was not found");
 
-    return {
-      success: true,
-      data: toDocumentItem(
-        row.document,
-        row.driver,
-        row.load,
-        row.document.fileUrl ?? row.driverDocumentFileUrl,
-        row.document.mimeType ?? row.driverDocumentMimeType,
-        row.uploadedBy,
-        extractedFields.map(toDocumentExtractedFieldItem),
-        auditEvents.map(toDocumentAuditEventItem),
-      ),
-    };
+        return {
+          success: true,
+          data: toDocumentItem(
+            row.document,
+            row.driver,
+            row.load,
+            row.document.fileUrl ?? row.driverDocumentFileUrl,
+            row.document.mimeType ?? row.driverDocumentMimeType,
+            row.uploadedBy,
+            extractedFields.map(toDocumentExtractedFieldItem),
+            auditEvents.map(toDocumentAuditEventItem),
+          ),
+        };
+      },
+    );
   }
 
   async create(
@@ -178,6 +195,7 @@ export class DocumentsService {
       .returning({ id: documents.id });
 
     if (!created) throw new BadRequestException("Unable to create document");
+    await this.invalidateDocumentReadCaches();
     return this.findOne(created.id);
   }
 
@@ -211,6 +229,7 @@ export class DocumentsService {
       .returning({ id: documents.id });
 
     if (!updated) throw new NotFoundException("Document was not found");
+    await this.invalidateDocumentReadCaches();
     return this.findOne(id);
   }
 
@@ -540,6 +559,7 @@ export class DocumentsService {
       );
     }
 
+    await this.invalidateDocumentReadCaches();
     await this.emitDocumentProcessingUpdated(documentId);
   }
 
@@ -586,6 +606,7 @@ export class DocumentsService {
       }
     });
 
+    await this.invalidateDocumentReadCaches();
     return this.findOne(id);
   }
 
@@ -628,6 +649,7 @@ export class DocumentsService {
       }
     });
 
+    await this.invalidateDocumentReadCaches();
     return this.findOne(id);
   }
 
@@ -638,6 +660,7 @@ export class DocumentsService {
       .returning({ id: documents.id });
 
     if (!deleted) throw new NotFoundException("Document was not found");
+    await this.invalidateDocumentReadCaches();
     return { success: true, data: deleted };
   }
 
@@ -707,6 +730,7 @@ export class DocumentsService {
       );
     }
 
+    await this.invalidateDocumentReadCaches();
     return this.findOne(created.id);
   }
 
@@ -769,5 +793,12 @@ export class DocumentsService {
           or(eq(users.role, "admin"), eq(users.role, "dispatcher")),
         ),
       );
+  }
+
+  private async invalidateDocumentReadCaches(): Promise<void> {
+    await Promise.all([
+      this.cacheService.invalidateNamespace("documents"),
+      this.cacheService.invalidateNamespace("drivers"),
+    ]);
   }
 }

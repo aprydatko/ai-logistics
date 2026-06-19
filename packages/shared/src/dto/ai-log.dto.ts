@@ -1,3 +1,4 @@
+import type { CursorListResponse } from "./api-response.dto.js";
 import type { AiLog, AiLogLinkedEntity } from "../types/ai-log.js";
 import type { BaseEntity } from "../types/common.js";
 
@@ -28,7 +29,7 @@ export interface ListAiLogsQueryDto {
   status?: AiLog["status"];
   from?: string;
   to?: string;
-  page?: number;
+  cursor?: string;
   limit?: number;
 }
 
@@ -43,16 +44,7 @@ export interface AiLogMetricsPoint {
   costUsd: number;
 }
 
-export interface AiLogsListResponse {
-  success: true;
-  data: AiLogListItem[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
+export type AiLogsListResponse = CursorListResponse<AiLogListItem>;
 
 export interface AiLogsMetricsResponse {
   success: true;

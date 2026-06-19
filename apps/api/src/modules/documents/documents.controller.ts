@@ -15,11 +15,11 @@ import {
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { Throttle, minutes } from "@nestjs/throttler";
+import { Throttle } from "@nestjs/throttler";
 import { memoryStorage } from "multer";
 import type { Response } from "express";
 
-import { AuthenticatedThrottlerGuard } from "../auth/authenticated-throttler.guard";
+import { rateLimitConfig } from "../../config/rate-limit";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
@@ -65,13 +65,8 @@ export class DocumentsController {
   @Post("upload")
   @HttpCode(201)
   @Roles("admin", "dispatcher")
-  @UseGuards(RolesGuard, AuthenticatedThrottlerGuard)
-  @Throttle({
-    default: {
-      limit: 5,
-      ttl: minutes(10),
-    },
-  })
+  @UseGuards(RolesGuard)
+  @Throttle({ default: rateLimitConfig.documentsUpload })
   @UseInterceptors(
     FileInterceptor("file", {
       storage: memoryStorage(),
@@ -89,13 +84,8 @@ export class DocumentsController {
   @Post("uploads/initiate")
   @HttpCode(201)
   @Roles("admin", "dispatcher")
-  @UseGuards(RolesGuard, AuthenticatedThrottlerGuard)
-  @Throttle({
-    default: {
-      limit: 10,
-      ttl: minutes(10),
-    },
-  })
+  @UseGuards(RolesGuard)
+  @Throttle({ default: rateLimitConfig.documentsInitiateUpload })
   initiateUpload(
     @Body() dto: InitiateDocumentUploadDto,
     @CurrentUser() user: AuthenticatedUser,
@@ -106,13 +96,8 @@ export class DocumentsController {
   @Post("uploads/:uploadId/complete")
   @HttpCode(201)
   @Roles("admin", "dispatcher")
-  @UseGuards(RolesGuard, AuthenticatedThrottlerGuard)
-  @Throttle({
-    default: {
-      limit: 10,
-      ttl: minutes(10),
-    },
-  })
+  @UseGuards(RolesGuard)
+  @Throttle({ default: rateLimitConfig.documentsCompleteUpload })
   completeUpload(
     @Param("uploadId", new ParseUUIDPipe()) uploadId: string,
     @Body() dto: CompleteDocumentUploadDto,

@@ -11,6 +11,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 import { drivers } from "./drivers";
 
@@ -77,6 +78,19 @@ export const loads = pgTable(
     uniqueIndex("loads_reference_number_unique").on(table.referenceNumber),
     index("loads_driver_id_idx").on(table.driverId),
     index("loads_pickup_date_idx").on(table.pickupDate),
+    index("loads_status_pickup_date_created_at_idx").on(
+      table.status,
+      table.pickupDate,
+      table.createdAt,
+    ),
+    index("loads_driver_id_pickup_date_created_at_idx").on(
+      table.driverId,
+      table.pickupDate,
+      table.createdAt,
+    ),
+    index("loads_active_driver_id_idx")
+      .on(table.driverId)
+      .where(sql`${table.status} in ('assigned', 'in_transit')`),
   ],
 );
 

@@ -3,6 +3,14 @@ import { describe, expect, it, vi } from "vitest";
 
 import { DriversService } from "./drivers.service";
 
+const cacheService = {
+  getOrSet: vi.fn(async (_namespace, _key, _ttl, factory) => factory()),
+  getTtl: vi.fn((kind: "list" | "detail" | "metrics") =>
+    kind === "detail" ? 60 : 30,
+  ),
+  invalidateNamespace: vi.fn().mockResolvedValue(undefined),
+};
+
 const driverId = "22222222-2222-2222-2222-222222222222";
 
 const createService = (deleteResult: unknown[]) => {
@@ -17,7 +25,7 @@ const createService = (deleteResult: unknown[]) => {
   };
   const service = new DriversService({
     client,
-  } as unknown as ConstructorParameters<typeof DriversService>[0]);
+  } as unknown as ConstructorParameters<typeof DriversService>[0], cacheService as never);
 
   return { client, service };
 };

@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { LoaderCircle, Plus, Save, Trash2 } from "lucide-react";
 
 import { replaceDocumentExtractedFields } from "@/lib/documents/document-mutations";
+import { syncDocumentCache } from "@/lib/documents/documents-query";
 import { Button } from "@repo/ui/components/button";
 import { toast } from "@repo/ui/components/toaster";
 
@@ -64,11 +65,7 @@ export const ExtractedFieldsForm = ({
         description: error.message,
       }),
     onSuccess: async (updatedDocument) => {
-      queryClient.setQueryData(
-        ["documents", updatedDocument.id],
-        updatedDocument,
-      );
-      await queryClient.invalidateQueries({ queryKey: ["documents"] });
+      syncDocumentCache(queryClient, updatedDocument);
       onSaved(updatedDocument);
       toast.success("Extracted fields saved");
     },

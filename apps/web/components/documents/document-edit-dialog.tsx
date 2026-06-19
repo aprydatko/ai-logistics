@@ -11,6 +11,7 @@ import { Save } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { updateDocument } from "@/lib/documents/document-mutations";
+import { syncDocumentCache } from "@/lib/documents/documents-query";
 import { driversQueryOptions } from "@/lib/drivers/drivers-query";
 import { loadsQueryOptions } from "@/lib/loads/loads-query";
 import { Button } from "@repo/ui/components/button";
@@ -67,11 +68,7 @@ export const DocumentEditDialog = ({
       toast.error("Unable to update document", { description: error.message }),
     onSuccess: async (updatedDocument) => {
       onOpenChange(false);
-      queryClient.setQueryData(
-        ["documents", updatedDocument.id],
-        updatedDocument,
-      );
-      await queryClient.invalidateQueries({ queryKey: ["documents"] });
+      syncDocumentCache(queryClient, updatedDocument);
       toast.success("Document updated");
     },
   });

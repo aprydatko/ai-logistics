@@ -3,6 +3,14 @@ import { describe, expect, it, vi } from "vitest";
 
 import { DocumentsService } from "./documents.service";
 
+const cacheService = {
+  getOrSet: vi.fn(async (_namespace, _key, _ttl, factory) => factory()),
+  getTtl: vi.fn((kind: "list" | "detail" | "metrics") =>
+    kind === "detail" ? 60 : 30,
+  ),
+  invalidateNamespace: vi.fn().mockResolvedValue(undefined),
+};
+
 const withTransaction = <T extends Record<string, unknown>>(client: T): T => ({
   ...client,
   transaction: vi.fn(async (callback: (tx: T) => Promise<unknown>) =>
@@ -14,6 +22,7 @@ describe("DocumentsService upload", () => {
   it("rejects missing file uploads", async () => {
     const service = new DocumentsService(
       { client: {} } as never,
+      cacheService as never,
       {} as never,
       {} as never,
       {} as never,
@@ -70,6 +79,7 @@ describe("DocumentsService upload", () => {
     };
     const service = new DocumentsService(
       { client } as never,
+      cacheService as never,
       storage as never,
       vision as never,
       { emitDocumentProcessingUpdated: vi.fn() } as never,

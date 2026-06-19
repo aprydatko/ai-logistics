@@ -7,7 +7,9 @@ import {
   Post,
   UseGuards,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 
+import { rateLimitConfig } from "../../config/rate-limit";
 import { AuthService } from "./auth.service";
 import type {
   AuthenticatedUser,
@@ -30,8 +32,9 @@ export class AuthController {
    *
    * @param dto - User registration payload
    * @returns Created user without sensitive data
-   */
+  */
   @Post("register")
+  @Throttle({ default: rateLimitConfig.authRegister })
   register(@Body() dto: RegisterDto): Promise<PublicUser> {
     return this.authService.register(dto);
   }
@@ -44,6 +47,7 @@ export class AuthController {
    */
   @Post("login")
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: rateLimitConfig.authLogin })
   login(@Body() dto: LoginDto): Promise<LoginResponse> {
     return this.authService.login(dto);
   }
@@ -56,6 +60,7 @@ export class AuthController {
    */
   @Post("refresh")
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: rateLimitConfig.authRefresh })
   refresh(@Body() dto: RefreshTokenDto): Promise<LoginResponse> {
     return this.authService.refresh(dto);
   }
@@ -84,6 +89,7 @@ export class AuthController {
    */
   @Post("socket-token")
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: rateLimitConfig.authSocketToken })
   createSocketToken(
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<SocketTokenResponse> {

@@ -21,7 +21,11 @@ import { LoadsService } from "./loads.service";
 import type {
   AssignLoadDriverResponse,
   CreateLoadResponse,
+  LoadActivityResponse,
+  LoadMapResponse,
+  LoadMetricsResponse,
   LoadResponse,
+  LoadSuggestionsResponse,
   LoadsListResponse,
   UpdateLoadResponse,
 } from "./loads.types";
@@ -34,6 +38,26 @@ export class LoadsController {
   @Get()
   findAll(@Query() query: ListLoadsQueryDto): Promise<LoadsListResponse> {
     return this.loadsService.findAll(query);
+  }
+
+  @Get("metrics")
+  findMetrics(): Promise<LoadMetricsResponse> {
+    return this.loadsService.getMetrics();
+  }
+
+  @Get("activity")
+  findActivity(): Promise<LoadActivityResponse> {
+    return this.loadsService.getActivity();
+  }
+
+  @Get("suggestions")
+  findSuggestions(): Promise<LoadSuggestionsResponse> {
+    return this.loadsService.getSuggestions();
+  }
+
+  @Get("map")
+  findMap(): Promise<LoadMapResponse> {
+    return this.loadsService.getMap();
   }
 
   @Get(":id")

@@ -14,8 +14,8 @@ export type AiLogsWorkspaceState = {
   logs: AiLog[];
   model: string;
   operation: string;
-  page: number;
-  pagination: AiLogsListResponse["pagination"] | null;
+  nextCursor: string | null;
+  pageInfo: AiLogsListResponse["pageInfo"] | null;
   selected: AiLog | null;
   status: string;
 };

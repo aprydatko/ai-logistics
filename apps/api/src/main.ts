@@ -2,6 +2,7 @@ import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
+import compression from "compression";
 import helmet from "helmet";
 
 import { AppModule } from "./app.module";
@@ -29,6 +30,7 @@ async function bootstrap(): Promise<void> {
 
   app.setGlobalPrefix("api");
   app.useBodyParser("json", { limit: "7mb" });
+  app.use(compression({ threshold: 1024 }));
   app.use(helmet());
   app.use(createRequestContextMiddleware(requestContext));
   app.use(createRequestLoggingMiddleware(logger, requestContext, metrics));

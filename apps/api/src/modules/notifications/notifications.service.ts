@@ -1,18 +1,21 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 import type {
   Notification,
-  NotificationListResponse,
   NotificationPreferenceResponse,
   NotificationUnreadCountResponse,
   UpdateNotificationPreferenceDto,
 } from "@repo/shared/src";
 import type { Queue } from "bullmq";
-import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, lt, or, sql } from "drizzle-orm";
 
 import {
   ADMIN_DISPATCHER_ROLES,
   DOCUMENT_RECIPIENT_ROLES,
 } from "../../common/roles";
+import {
+  decodeCursor,
+  encodeCursor,
+} from "../../common/pagination/cursor-pagination";
 import { DatabaseService } from "../../db/database.service";
 import {
   notificationPreferences,
@@ -34,8 +37,10 @@ import {
 } from "./internal/notification.preferences";
 import { NotificationsDeliveryService } from "./notifications-delivery.service";
 import { NotificationsGateway } from "./notifications.gateway";
+import type { ListNotificationsQueryDto } from "./dto/list-notifications-query.dto";
 import type {
   CreateNotificationInput,
+  NotificationListResult,
   NotificationRecipient,
 } from "./notifications.types";
 
@@ -50,23 +55,54 @@ export class NotificationsService {
   ) {}
 
   /**
-   * Returns the most recent 100 notifications for a user, newest first.
+   * Returns a cursor-paginated notification feed for a user, newest first.
    *
    * @param userId - Authenticated user ID.
    * @returns Envelope with a list of notifications mapped to the public
    *   `Notification` DTO shape (ISO date strings, optional fields normalized).
    */
-  async listForUser(userId: string): Promise<NotificationListResponse> {
+  async listForUser(
+    userId: string,
+    query: ListNotificationsQueryDto,
+  ): Promise<NotificationListResult> {
+    const cursorFilter = query.cursor ? decodeCursor(query.cursor) : null;
     const rows = await this.databaseService.client
       .select()
       .from(notifications)
-      .where(eq(notifications.userId, userId))
-      .orderBy(desc(notifications.createdAt))
-      .limit(100);
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          cursorFilter
+            ? or(
+                lt(notifications.createdAt, cursorFilter.createdAt),
+                and(
+                  eq(notifications.createdAt, cursorFilter.createdAt),
+                  lt(notifications.id, cursorFilter.id),
+                ),
+              )
+            : undefined,
+        ),
+      )
+      .orderBy(desc(notifications.createdAt), desc(notifications.id))
+      .limit(query.limit + 1);
+    const hasMore = rows.length > query.limit;
+    const dataRows = rows.slice(0, query.limit);
+    const lastRow = dataRows[dataRows.length - 1];
 
     return {
       success: true,
-      data: rows.map((row) => toNotification(row)),
+      data: dataRows.map((row) => toNotification(row)),
+      pageInfo: {
+        limit: query.limit,
+        hasMore,
+        nextCursor:
+          hasMore && lastRow
+            ? encodeCursor({
+                createdAt: lastRow.createdAt,
+                id: lastRow.id,
+              })
+            : null,
+      },
     };
   }
 

@@ -6,6 +6,7 @@ import { Trash2 } from "lucide-react";
 
 import { ConfirmationAlertDialog } from "@/components/shared";
 import { deleteDocument } from "@/lib/documents/document-mutations";
+import { removeDocumentCache } from "@/lib/documents/documents-query";
 import { toast } from "@repo/ui/components/toaster";
 
 export const DeleteDocumentDialog = ({
@@ -20,9 +21,9 @@ export const DeleteDocumentDialog = ({
     mutationFn: deleteDocument,
     onError: (error) =>
       toast.error("Unable to delete document", { description: error.message }),
-    onSuccess: async () => {
+    onSuccess: async (_, documentId) => {
       onOpenChange(false);
-      await queryClient.invalidateQueries({ queryKey: ["documents"] });
+      removeDocumentCache(queryClient, documentId);
       toast.success("Document deleted");
     },
   });

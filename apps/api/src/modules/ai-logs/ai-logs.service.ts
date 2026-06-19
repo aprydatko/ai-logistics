@@ -1,8 +1,14 @@
 import { Injectable, InternalServerErrorException } from "@nestjs/common";
-import { and, count, desc, eq, gte, lte, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, gte, lt, lte, or, sql, type SQL } from "drizzle-orm";
 
+import {
+  decodeCursor,
+  encodeCursor,
+} from "../../common/pagination/cursor-pagination";
 import { DatabaseService } from "../../db/database.service";
 import { aiLogs } from "../../db/schema";
+import { CacheService } from "../cache/cache.service";
+import { buildCacheKey } from "../cache/cache.utils";
 import type { CreateAiLogDto } from "./dto/create-ai-log.dto";
 import type { ListAiLogsQueryDto } from "./dto/list-ai-logs-query.dto";
 import type {
@@ -17,50 +23,63 @@ export class AiLogsService {
   private readonly MILLISECONDS_PER_DAY = 86_400_000;
   private readonly DEFAULT_TREND_DAYS = 7;
 
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   private readonly loggedAtExpression = sql<Date>`coalesce(${aiLogs.completedAt}, ${aiLogs.createdAt})`;
 
   /**
-   * Returns a paginated, filtered list of AI log entries.
+   * Returns a cursor-paginated, filtered list of AI log entries.
    *
-   * Executes data and count queries in parallel using `Promise.all`.
-   * Logs are ordered by creation date descending.
+   * Logs are ordered by creation date descending with `id` as a tiebreaker.
    * Supported filters: `model`, `operation`, `status`, `from` (date range start),
    * `to` (date range end). Date filters use the `completedAt` timestamp
    * when available, otherwise fall back to `createdAt`.
    *
    * @param query - Pagination and filter parameters
-   * @returns Paginated AI log list with page metadata
+   * @returns Paginated AI log list with opaque cursor metadata
    */
   async findAll(query: ListAiLogsQueryDto): Promise<AiLogsListResponse> {
-    const filters = this.buildFilters(query);
-    const where = filters.length > 0 ? and(...filters) : undefined;
-    const [rows, countRows] = await Promise.all([
-      this.databaseService.client
-        .select()
-        .from(aiLogs)
-        .where(where)
-        .orderBy(desc(aiLogs.createdAt))
-        .limit(query.limit)
-        .offset((query.page - 1) * query.limit),
-      this.databaseService.client
-        .select({ total: count() })
-        .from(aiLogs)
-        .where(where),
-    ]);
-    const total = countRows[0]?.total ?? 0;
+    return this.cacheService.getOrSet(
+      "ai-logs",
+      buildCacheKey("ai-logs", "find-all", query),
+      this.cacheService.getTtl("list"),
+      async () => {
+        const filters = this.buildFilters(query);
+        const cursorFilter = this.buildCursorFilter(query.cursor);
+        if (cursorFilter) {
+          filters.push(cursorFilter);
+        }
+        const where = filters.length > 0 ? and(...filters) : undefined;
+        const rows = await this.databaseService.client
+          .select()
+          .from(aiLogs)
+          .where(where)
+          .orderBy(desc(aiLogs.createdAt), desc(aiLogs.id))
+          .limit(query.limit + 1);
+        const hasMore = rows.length > query.limit;
+        const dataRows = rows.slice(0, query.limit);
+        const lastRow = dataRows[dataRows.length - 1];
 
-    return {
-      success: true,
-      data: rows.map((row) => this.toAiLogItem(row)),
-      pagination: {
-        page: query.page,
-        limit: query.limit,
-        total,
-        totalPages: Math.ceil(total / query.limit),
+        return {
+          success: true,
+          data: dataRows.map((row) => this.toAiLogItem(row)),
+          pageInfo: {
+            limit: query.limit,
+            hasMore,
+            nextCursor:
+              hasMore && lastRow
+                ? encodeCursor({
+                    createdAt: lastRow.createdAt,
+                    id: lastRow.id,
+                  })
+                : null,
+          },
+        };
       },
-    };
+    );
   }
 
   /**
@@ -80,167 +99,174 @@ export class AiLogsService {
    * @returns Metrics with totals, day-over-day changes, and trend
    */
   async findMetrics(query: ListAiLogsQueryDto): Promise<AiLogsMetricsResponse> {
-    const filters = this.buildFilters(query);
-    const where = filters.length > 0 ? and(...filters) : undefined;
-    const rows = await this.databaseService.client
-      .select({
-        completedAt: aiLogs.completedAt,
-        createdAt: aiLogs.createdAt,
-        estimatedCostUsd: aiLogs.estimatedCostUsd,
-        latencyMs: aiLogs.latencyMs,
-        status: aiLogs.status,
-        totalTokens: aiLogs.totalTokens,
-      })
-      .from(aiLogs)
-      .where(where);
+    return this.cacheService.getOrSet(
+      "ai-logs",
+      buildCacheKey("ai-logs", "find-metrics", query),
+      this.cacheService.getTtl("metrics"),
+      async () => {
+        const filters = this.buildFilters(query);
+        const where = filters.length > 0 ? and(...filters) : undefined;
+        const rows = await this.databaseService.client
+          .select({
+            completedAt: aiLogs.completedAt,
+            createdAt: aiLogs.createdAt,
+            estimatedCostUsd: aiLogs.estimatedCostUsd,
+            latencyMs: aiLogs.latencyMs,
+            status: aiLogs.status,
+            totalTokens: aiLogs.totalTokens,
+          })
+          .from(aiLogs)
+          .where(where);
 
-    const now = new Date();
-    const todayStart = this.toStartOfUtcDay(now);
-    const yesterdayStart = new Date(
-      todayStart.getTime() - this.MILLISECONDS_PER_DAY,
-    );
-    const tomorrowStart = new Date(
-      todayStart.getTime() + this.MILLISECONDS_PER_DAY,
-    );
-    const trendDaysAgoStart = new Date(
-      todayStart.getTime() -
-        (this.DEFAULT_TREND_DAYS - 1) * this.MILLISECONDS_PER_DAY,
-    );
+        const now = new Date();
+        const todayStart = this.toStartOfUtcDay(now);
+        const yesterdayStart = new Date(
+          todayStart.getTime() - this.MILLISECONDS_PER_DAY,
+        );
+        const tomorrowStart = new Date(
+          todayStart.getTime() + this.MILLISECONDS_PER_DAY,
+        );
+        const trendDaysAgoStart = new Date(
+          todayStart.getTime() -
+            (this.DEFAULT_TREND_DAYS - 1) * this.MILLISECONDS_PER_DAY,
+        );
 
-    const trendMap = new Map<
-      string,
-      {
-        costUsd: number;
-        errors: number;
-        latencyTotalMs: number;
-        requests: number;
-        tokens: number;
-      }
-    >();
+        const trendMap = new Map<
+          string,
+          {
+            costUsd: number;
+            errors: number;
+            latencyTotalMs: number;
+            requests: number;
+            tokens: number;
+          }
+        >();
 
-    for (let offset = 0; offset < this.DEFAULT_TREND_DAYS; offset += 1) {
-      const day = new Date(
-        trendDaysAgoStart.getTime() + offset * this.MILLISECONDS_PER_DAY,
-      );
-      trendMap.set(this.toUtcDayKey(day), {
-        costUsd: 0,
-        errors: 0,
-        latencyTotalMs: 0,
-        requests: 0,
-        tokens: 0,
-      });
-    }
-
-    const totals = {
-      costUsd: 0,
-      errors: 0,
-      latencyTotalMs: 0,
-      requests: 0,
-      tokens: 0,
-    };
-    const todayTotals = { ...totals };
-    const yesterdayTotals = { ...totals };
-
-    for (const row of rows) {
-      const loggedAt = row.completedAt ?? row.createdAt;
-      const loggedAtTime = loggedAt.getTime();
-      const costUsd = Number(row.estimatedCostUsd);
-      const errorCount = row.status === "failed" ? 1 : 0;
-
-      totals.requests += 1;
-      totals.latencyTotalMs += row.latencyMs;
-      totals.errors += errorCount;
-      totals.tokens += row.totalTokens;
-      totals.costUsd += costUsd;
-
-      if (
-        loggedAtTime >= todayStart.getTime() &&
-        loggedAtTime < tomorrowStart.getTime()
-      ) {
-        todayTotals.requests += 1;
-        todayTotals.latencyTotalMs += row.latencyMs;
-        todayTotals.errors += errorCount;
-        todayTotals.tokens += row.totalTokens;
-        todayTotals.costUsd += costUsd;
-      } else if (
-        loggedAtTime >= yesterdayStart.getTime() &&
-        loggedAtTime < todayStart.getTime()
-      ) {
-        yesterdayTotals.requests += 1;
-        yesterdayTotals.latencyTotalMs += row.latencyMs;
-        yesterdayTotals.errors += errorCount;
-        yesterdayTotals.tokens += row.totalTokens;
-        yesterdayTotals.costUsd += costUsd;
-      }
-
-      if (
-        loggedAtTime >= trendDaysAgoStart.getTime() &&
-        loggedAtTime < tomorrowStart.getTime()
-      ) {
-        const dayKey = this.toUtcDayKey(loggedAt);
-        const bucket = trendMap.get(dayKey);
-        if (bucket) {
-          bucket.requests += 1;
-          bucket.latencyTotalMs += row.latencyMs;
-          bucket.errors += errorCount;
-          bucket.tokens += row.totalTokens;
-          bucket.costUsd += costUsd;
+        for (let offset = 0; offset < this.DEFAULT_TREND_DAYS; offset += 1) {
+          const day = new Date(
+            trendDaysAgoStart.getTime() + offset * this.MILLISECONDS_PER_DAY,
+          );
+          trendMap.set(this.toUtcDayKey(day), {
+            costUsd: 0,
+            errors: 0,
+            latencyTotalMs: 0,
+            requests: 0,
+            tokens: 0,
+          });
         }
-      }
-    }
 
-    const trend = Array.from(trendMap.entries()).map(([date, bucket]) => ({
-      date,
-      requests: bucket.requests,
-      avgLatencyMs: bucket.requests
-        ? bucket.latencyTotalMs / bucket.requests
-        : 0,
-      errors: bucket.errors,
-      tokens: bucket.tokens,
-      costUsd: Number(bucket.costUsd.toFixed(6)),
-    }));
+        const totals = {
+          costUsd: 0,
+          errors: 0,
+          latencyTotalMs: 0,
+          requests: 0,
+          tokens: 0,
+        };
+        const todayTotals = { ...totals };
+        const yesterdayTotals = { ...totals };
 
-    return {
-      success: true,
-      data: {
-        totals: {
-          requests: totals.requests,
-          avgLatencyMs: totals.requests
-            ? totals.latencyTotalMs / totals.requests
+        for (const row of rows) {
+          const loggedAt = row.completedAt ?? row.createdAt;
+          const loggedAtTime = loggedAt.getTime();
+          const costUsd = Number(row.estimatedCostUsd);
+          const errorCount = row.status === "failed" ? 1 : 0;
+
+          totals.requests += 1;
+          totals.latencyTotalMs += row.latencyMs;
+          totals.errors += errorCount;
+          totals.tokens += row.totalTokens;
+          totals.costUsd += costUsd;
+
+          if (
+            loggedAtTime >= todayStart.getTime() &&
+            loggedAtTime < tomorrowStart.getTime()
+          ) {
+            todayTotals.requests += 1;
+            todayTotals.latencyTotalMs += row.latencyMs;
+            todayTotals.errors += errorCount;
+            todayTotals.tokens += row.totalTokens;
+            todayTotals.costUsd += costUsd;
+          } else if (
+            loggedAtTime >= yesterdayStart.getTime() &&
+            loggedAtTime < todayStart.getTime()
+          ) {
+            yesterdayTotals.requests += 1;
+            yesterdayTotals.latencyTotalMs += row.latencyMs;
+            yesterdayTotals.errors += errorCount;
+            yesterdayTotals.tokens += row.totalTokens;
+            yesterdayTotals.costUsd += costUsd;
+          }
+
+          if (
+            loggedAtTime >= trendDaysAgoStart.getTime() &&
+            loggedAtTime < tomorrowStart.getTime()
+          ) {
+            const dayKey = this.toUtcDayKey(loggedAt);
+            const bucket = trendMap.get(dayKey);
+            if (bucket) {
+              bucket.requests += 1;
+              bucket.latencyTotalMs += row.latencyMs;
+              bucket.errors += errorCount;
+              bucket.tokens += row.totalTokens;
+              bucket.costUsd += costUsd;
+            }
+          }
+        }
+
+        const trend = Array.from(trendMap.entries()).map(([date, bucket]) => ({
+          date,
+          requests: bucket.requests,
+          avgLatencyMs: bucket.requests
+            ? bucket.latencyTotalMs / bucket.requests
             : 0,
-          errors: totals.errors,
-          tokens: totals.tokens,
-          costUsd: Number(totals.costUsd.toFixed(6)),
-        },
-        changesVsYesterday: {
-          requests: this.getPercentChange(
-            todayTotals.requests,
-            yesterdayTotals.requests,
-          ),
-          avgLatencyMs: this.getPercentChange(
-            todayTotals.requests
-              ? todayTotals.latencyTotalMs / todayTotals.requests
-              : 0,
-            yesterdayTotals.requests
-              ? yesterdayTotals.latencyTotalMs / yesterdayTotals.requests
-              : 0,
-          ),
-          errors: this.getPercentChange(
-            todayTotals.errors,
-            yesterdayTotals.errors,
-          ),
-          tokens: this.getPercentChange(
-            todayTotals.tokens,
-            yesterdayTotals.tokens,
-          ),
-          costUsd: this.getPercentChange(
-            todayTotals.costUsd,
-            yesterdayTotals.costUsd,
-          ),
-        },
-        trend,
+          errors: bucket.errors,
+          tokens: bucket.tokens,
+          costUsd: Number(bucket.costUsd.toFixed(6)),
+        }));
+
+        return {
+          success: true,
+          data: {
+            totals: {
+              requests: totals.requests,
+              avgLatencyMs: totals.requests
+                ? totals.latencyTotalMs / totals.requests
+                : 0,
+              errors: totals.errors,
+              tokens: totals.tokens,
+              costUsd: Number(totals.costUsd.toFixed(6)),
+            },
+            changesVsYesterday: {
+              requests: this.getPercentChange(
+                todayTotals.requests,
+                yesterdayTotals.requests,
+              ),
+              avgLatencyMs: this.getPercentChange(
+                todayTotals.requests
+                  ? todayTotals.latencyTotalMs / todayTotals.requests
+                  : 0,
+                yesterdayTotals.requests
+                  ? yesterdayTotals.latencyTotalMs / yesterdayTotals.requests
+                  : 0,
+              ),
+              errors: this.getPercentChange(
+                todayTotals.errors,
+                yesterdayTotals.errors,
+              ),
+              tokens: this.getPercentChange(
+                todayTotals.tokens,
+                yesterdayTotals.tokens,
+              ),
+              costUsd: this.getPercentChange(
+                todayTotals.costUsd,
+                yesterdayTotals.costUsd,
+              ),
+            },
+            trend,
+          },
+        };
       },
-    };
+    );
   }
 
   /**
@@ -287,6 +313,8 @@ export class AiLogsService {
       throw new InternalServerErrorException("Failed to create AI log");
     }
 
+    await this.cacheService.invalidateNamespace("ai-logs");
+
     return {
       success: true,
       data: this.toAiLogItem(row),
@@ -330,6 +358,25 @@ export class AiLogsService {
     }
 
     return filters;
+  }
+
+  private buildCursorFilter(cursor: string | undefined): SQL | undefined {
+    if (!cursor) {
+      return undefined;
+    }
+
+    const parsedCursor = decodeCursor(cursor);
+    if (!parsedCursor) {
+      return undefined;
+    }
+
+    return or(
+      lt(aiLogs.createdAt, parsedCursor.createdAt),
+      and(
+        eq(aiLogs.createdAt, parsedCursor.createdAt),
+        lt(aiLogs.id, parsedCursor.id),
+      ),
+    );
   }
 
   /**

@@ -14,7 +14,7 @@ const allowedQueryParameters = new Set([
   "status",
   "from",
   "to",
-  "page",
+  "cursor",
   "limit",
 ]);
 
@@ -23,7 +23,8 @@ const allowedQueryParameters = new Set([
  *
  * Proxies the request to the backend AI logs endpoint with JWT authentication.
  * Supports automatic token refresh and session cookie management.
- * Filters query parameters to only allow whitelisted values (model, operation, status, from, to, page, limit).
+ * Filters query parameters to only allow whitelisted values
+ * (model, operation, status, from, to, cursor, limit).
  *
  * @param request - The incoming Next.js request object
  * @returns A NextResponse with the AI logs data or error

@@ -1,4 +1,5 @@
 import { Controller, Get } from "@nestjs/common";
+import { SkipThrottle } from "@nestjs/throttler";
 import { sql } from "drizzle-orm";
 
 import { DatabaseService } from "../../db/database.service";
@@ -21,6 +22,7 @@ interface RedisHealthResponse {
 }
 
 @Controller("health")
+@SkipThrottle()
 export class HealthController {
   constructor(
     private readonly databaseService: DatabaseService,

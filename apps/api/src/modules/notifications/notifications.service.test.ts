@@ -120,7 +120,9 @@ describe("NotificationsService", () => {
     );
 
     await expect(
-      service.listForUser("22222222-2222-4222-8222-222222222222"),
+      service.listForUser("22222222-2222-4222-8222-222222222222", {
+        limit: 20,
+      }),
     ).resolves.toEqual({
       success: true,
       data: [
@@ -143,6 +145,11 @@ describe("NotificationsService", () => {
           updatedAt: now.toISOString(),
         },
       ],
+      pageInfo: {
+        limit: 20,
+        hasMore: false,
+        nextCursor: null,
+      },
     });
   });
 
