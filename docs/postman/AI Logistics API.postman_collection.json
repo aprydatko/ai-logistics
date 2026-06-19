@@ -11,21 +11,7 @@
       "name": "Auth",
       "item": [
         {
-          "name": "Login",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const body = pm.response.json();",
-                  "pm.collectionVariables.set('accessToken', body.accessToken);"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
+          "name": "Register",
           "request": {
             "method": "POST",
             "header": [
@@ -34,10 +20,42 @@
                 "value": "application/json"
               }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+              "raw": "{\n  \"firstName\": \"Ivan\",\n  \"lastName\": \"Petrenko\",\n  \"email\": \"ivan.petrenko@example.com\",\n  \"password\": \"StrongPass123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
+            "description": "Register a new user account.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/auth/login",
               "host": [
@@ -47,9 +65,86 @@
                 "auth",
                 "login"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
             }
           },
-          "response": []
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.accessToken) pm.collectionVariables.set('accessToken', body.accessToken);",
+                  "if (body.refreshToken) pm.collectionVariables.set('refreshToken', body.refreshToken);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.accessToken) pm.collectionVariables.set('accessToken', body.accessToken);",
+                  "if (body.refreshToken) pm.collectionVariables.set('refreshToken', body.refreshToken);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ]
         },
         {
           "name": "Current User",
@@ -70,33 +165,39 @@
           "response": []
         },
         {
-          "name": "Register",
+          "name": "Create Socket Token",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "POST",
             "header": [],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n  \"firstName\": \"Ivan\",\r\n  \"lastName\": \"Petrenko\",\r\n  \"email\": \"ivan.petrenko@example.com\",\r\n  \"password\": \"StrongPass123\"\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
-              "raw": "{{baseUrl}}/auth/register",
+              "raw": "{{baseUrl}}/auth/socket-token",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "auth",
-                "register"
+                "socket-token"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Operations Access Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/operations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "operations"
               ]
             },
-            "description": "Register a new user account."
+            "description": "Requires admin or dispatcher role."
           },
           "response": []
         },
@@ -107,8 +208,12 @@
             "header": [],
             "url": {
               "raw": "{{apiOrigin}}{{bullBoardPath}}",
-              "host": ["{{apiOrigin}}"],
-              "path": ["{{bullBoardPath}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "{{bullBoardPath}}"
+              ]
             },
             "description": "Opens Bull Board HTML UI. Use Send to verify auth or Open in browser from Postman if you want the full dashboard."
           },
@@ -140,9 +245,43 @@
                 {
                   "key": "limit",
                   "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "available",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "disabled": true
                 }
               ]
             }
+          },
+          "response": []
+        },
+        {
+          "name": "Driver Candidates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/drivers/candidates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drivers",
+                "candidates"
+              ]
+            },
+            "description": "Lists active driver-role users who are not yet linked to a driver profile."
           },
           "response": []
         },
@@ -160,32 +299,41 @@
                 "drivers",
                 "{{driverId}}"
               ]
-            }
+            },
+            "description": "Returns the full driver profile payload used by the dashboard side panel, including current vehicle, documents, trips history, and activity."
           },
-          "description": "Returns the full driver profile payload used by the dashboard side panel, including current vehicle, documents, trips history, and activity.",
-          "response": []
-        },
-        {
-          "name": "Driver Candidates",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/drivers/candidates",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "drivers",
-                "candidates"
-              ]
-            }
-          },
-          "description": "Lists active driver-role users who are not yet linked to a driver profile.",
           "response": []
         },
         {
           "name": "Create Driver",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/drivers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drivers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"driverCode\": \"DR-2001\",\n  \"firstName\": \"Alex\",\n  \"lastName\": \"Morgan\",\n  \"email\": \"alex.morgan@example.com\",\n  \"phone\": \"+12025550155\",\n  \"licenseType\": \"CDL-A\",\n  \"licenseNumber\": \"WA-A-200155\",\n  \"licenseExpirationDate\": \"2029-06-30\",\n  \"licenseState\": \"Washington\",\n  \"status\": \"available\",\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
           "event": [
             {
               "listen": "test",
@@ -199,30 +347,7 @@
                 "requests": {}
               }
             }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"driverCode\": \"DR-2001\",\n  \"firstName\": \"Alex\",\n  \"lastName\": \"Morgan\",\n  \"email\": \"alex.morgan@example.com\",\n  \"phone\": \"+12025550155\",\n  \"licenseType\": \"CDL-A\",\n  \"licenseNumber\": \"WA-A-200155\",\n  \"licenseExpirationDate\": \"2029-06-30\",\n  \"licenseState\": \"Washington\",\n  \"status\": \"available\",\n  \"isActive\": true\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/drivers",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "drivers"
-              ]
-            }
-          },
-          "response": []
+          ]
         },
         {
           "name": "Update Driver",
@@ -234,10 +359,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"on_trip\",\n  \"notes\": \"Updated from Postman\"\n}"
-            },
             "url": {
               "raw": "{{baseUrl}}/drivers/{{driverId}}",
               "host": [
@@ -247,6 +368,15 @@
                 "drivers",
                 "{{driverId}}"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"on_trip\",\n  \"notes\": \"Updated from Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -261,10 +391,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"unitNumber\": \"TR-1042\",\n  \"type\": \"truck\",\n  \"make\": \"Volvo\",\n  \"model\": \"VNL 860\",\n  \"year\": 2024,\n  \"licensePlate\": \"IL 8282 AB\",\n  \"odometerMiles\": 243420,\n  \"status\": \"active\",\n  \"lastServiceAt\": \"2026-05-20\"\n}"
-            },
             "url": {
               "raw": "{{baseUrl}}/drivers/{{driverId}}/vehicle",
               "host": [
@@ -275,6 +401,15 @@
                 "{{driverId}}",
                 "vehicle"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"unitNumber\": \"TRK-404\",\n  \"type\": \"truck\",\n  \"make\": \"Freightliner\",\n  \"model\": \"Cascadia\",\n  \"year\": 2023,\n  \"licensePlate\": \"ABC-404\",\n  \"odometerMiles\": 145000,\n  \"status\": \"active\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -289,10 +424,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"type\": \"license\",\n  \"name\": \"license.png\",\n  \"documentNumber\": \"CDL-1042\",\n  \"mimeType\": \"image/png\",\n  \"content\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=\",\n  \"expiresAt\": \"2029-06-30\"\n}"
-            },
             "url": {
               "raw": "{{baseUrl}}/drivers/{{driverId}}/documents",
               "host": [
@@ -303,9 +434,32 @@
                 "{{driverId}}",
                 "documents"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"license\",\n  \"name\": \"Driver License.pdf\",\n  \"documentNumber\": \"D-1234567\",\n  \"mimeType\": \"application/pdf\",\n  \"content\": \"{{sampleBase64Pdf}}\",\n  \"issuedAt\": \"2024-01-01\",\n  \"expiresAt\": \"2029-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
-          "response": []
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data?.id) pm.collectionVariables.set('documentId', body.data.id);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ]
         },
         {
           "name": "Delete Document",
@@ -341,7 +495,8 @@
                 "drivers",
                 "{{driverId}}"
               ]
-            }
+            },
+            "description": "Requires admin role."
           },
           "response": []
         }
@@ -356,24 +511,162 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/loads?page=1&limit=10&status=pending",
-              "host": ["{{baseUrl}}"],
-              "path": ["loads"],
+              "raw": "{{baseUrl}}/loads?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "loads"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" },
-                { "key": "status", "value": "pending", "disabled": true },
-                { "key": "search", "value": "Denver", "disabled": true },
-                { "key": "pickupFrom", "value": "2026-06-01", "disabled": true },
-                { "key": "pickupTo", "value": "2026-06-30", "disabled": true }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "driverId",
+                  "value": "{{driverId}}",
+                  "disabled": true
+                }
               ]
-            },
-            "description": "List loads with optional search, status, driver, pickup period, and pagination filters."
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Load Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/loads/metrics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "loads",
+                "metrics"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Load Activity",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/loads/activity",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "loads",
+                "activity"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Load Suggestions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/loads/suggestions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "loads",
+                "suggestions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Load Map",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/loads/map",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "loads",
+                "map"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Load Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/loads/{{loadId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "loads",
+                "{{loadId}}"
+              ]
+            }
           },
           "response": []
         },
         {
           "name": "Create Load",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/loads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "loads"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"referenceNumber\": \"LD-3001\",\n  \"pickupAddress\": \"Seattle, WA\",\n  \"deliveryAddress\": \"Portland, OR\",\n  \"pickupDate\": \"2026-06-20T09:00:00.000Z\",\n  \"deliveryDate\": \"2026-06-21T18:00:00.000Z\",\n  \"weight\": 18000,\n  \"price\": 2450.75,\n  \"miles\": 174,\n  \"notes\": \"Handle with care\",\n  \"status\": \"pending\",\n  \"broker\": {\n    \"id\": \"broker-sea-01\",\n    \"companyName\": \"Northwest Freight Brokers\",\n    \"phone\": \"+12065550100\"\n  },\n  \"routePoints\": [\n    {\n      \"label\": \"Seattle pickup\",\n      \"latitude\": 47.6062,\n      \"longitude\": -122.3321\n    },\n    {\n      \"label\": \"Portland delivery\",\n      \"latitude\": 45.5152,\n      \"longitude\": -122.6784\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
           "event": [
             {
               "listen": "test",
@@ -387,23 +680,37 @@
                 "requests": {}
               }
             }
-          ],
+          ]
+        },
+        {
+          "name": "Assign Driver",
           "request": {
-            "method": "POST",
+            "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/loads/{{loadId}}/assign-driver",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "loads",
+                "{{loadId}}",
+                "assign-driver"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"referenceNumber\": \"PM-LD-1001\",\n  \"pickupAddress\": \"Phoenix, AZ\",\n  \"deliveryAddress\": \"Las Vegas, NV\",\n  \"pickupDate\": \"2026-06-16T14:00:00.000Z\",\n  \"deliveryDate\": \"2026-06-16T21:30:00.000Z\",\n  \"weight\": 18000,\n  \"price\": 1450.00,\n  \"miles\": 297,\n  \"status\": \"pending\",\n  \"notes\": \"Created from Postman\",\n  \"broker\": {\n    \"id\": \"broker-postman-1\",\n    \"companyName\": \"Postman Freight Partners\",\n    \"phone\": \"+16025550199\"\n  },\n  \"routePoints\": [\n    {\n      \"label\": \"Phoenix pickup\",\n      \"latitude\": 33.4484,\n      \"longitude\": -112.0740\n    },\n    {\n      \"label\": \"Las Vegas delivery\",\n      \"latitude\": 36.1699,\n      \"longitude\": -115.1398\n    }\n  ],\n  \"timeline\": [\n    {\n      \"title\": \"Load created\",\n      \"description\": \"Load entered through Postman.\",\n      \"dateTime\": \"2026-06-09T15:00:00.000Z\"\n    }\n  ]\n}",
+              "raw": "{\n  \"driverId\": \"{{driverId}}\",\n  \"averageSpeedMph\": 55\n}",
               "options": {
-                "raw": { "language": "json" }
+                "raw": {
+                  "language": "json"
+                }
               }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/loads",
-              "host": ["{{baseUrl}}"],
-              "path": ["loads"]
             }
           },
           "response": []
@@ -413,43 +720,30 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"in_transit\",\n  \"notes\": \"Driver departed pickup location.\",\n  \"timeline\": [\n    {\n      \"title\": \"Load created\",\n      \"description\": \"Load entered through Postman.\",\n      \"dateTime\": \"2026-06-09T15:00:00.000Z\"\n    },\n    {\n      \"title\": \"In transit\",\n      \"description\": \"Driver departed pickup location.\",\n      \"dateTime\": \"2026-06-16T14:20:00.000Z\"\n    }\n  ]\n}",
-              "options": {
-                "raw": { "language": "json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
               }
-            },
+            ],
             "url": {
               "raw": "{{baseUrl}}/loads/{{loadId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["loads", "{{loadId}}"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Assign Driver",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "loads",
+                "{{loadId}}"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"driverId\": \"{{driverId}}\",\n  \"averageSpeedMph\": 55\n}",
+              "raw": "{\n  \"status\": \"in_transit\",\n  \"notes\": \"Loaded and departed from origin.\"\n}",
               "options": {
-                "raw": { "language": "json" }
+                "raw": {
+                  "language": "json"
+                }
               }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/loads/{{loadId}}/assign-driver",
-              "host": ["{{baseUrl}}"],
-              "path": ["loads", "{{loadId}}", "assign-driver"]
-            },
-            "description": "Assigns an available active driver with a truck and recalculates delivery ETA."
+            }
           },
           "response": []
         }
@@ -464,38 +758,109 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/incidents?page=1&limit=10&sortBy=occurredAt&sortOrder=desc",
-              "host": ["{{baseUrl}}"],
-              "path": ["incidents"],
+              "raw": "{{baseUrl}}/incidents?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidents"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" },
-                { "key": "sortBy", "value": "occurredAt" },
-                { "key": "sortOrder", "value": "desc" },
-                { "key": "search", "value": "delay", "disabled": true },
-                { "key": "type", "value": "delay", "disabled": true },
-                { "key": "priority", "value": "high", "disabled": true },
-                { "key": "status", "value": "open", "disabled": true },
-                { "key": "loadId", "value": "{{loadId}}", "disabled": true },
-                { "key": "driverId", "value": "{{driverId}}", "disabled": true },
                 {
-                  "key": "occurredFrom",
-                  "value": "2026-06-01T00:00:00.000Z",
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "open",
                   "disabled": true
                 },
                 {
-                  "key": "occurredTo",
-                  "value": "2026-06-30T23:59:59.999Z",
+                  "key": "priority",
+                  "value": "high",
+                  "disabled": true
+                },
+                {
+                  "key": "loadId",
+                  "value": "{{loadId}}",
                   "disabled": true
                 }
               ]
-            },
-            "description": "Lists incidents with search, type, priority, status, load, driver, occurrence period, sorting, and pagination filters."
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Incident Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidents/{{incidentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidents",
+                "{{incidentId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Incident Timeline Feed",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/incidents/{{incidentId}}/timeline",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidents",
+                "{{incidentId}}",
+                "timeline"
+              ]
+            }
           },
           "response": []
         },
         {
           "name": "Create Incident",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/incidents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidents"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"loadId\": \"{{loadId}}\",\n  \"title\": \"Unexpected maintenance stop\",\n  \"description\": \"Check-engine light appeared during transit.\",\n  \"location\": \"Tacoma, WA\",\n  \"photos\": [\n    \"https://example.com/incidents/check-engine.jpg\"\n  ],\n  \"timeline\": [\n    {\n      \"id\": \"evt-maint-001\",\n      \"title\": \"Driver reported issue\",\n      \"description\": \"Pulled over safely and contacted dispatch.\",\n      \"dateTime\": \"2026-06-19T10:15:00.000Z\",\n      \"type\": \"note\",\n      \"tone\": \"blue\"\n    }\n  ],\n  \"type\": \"maintenance\",\n  \"priority\": \"high\",\n  \"status\": \"open\",\n  \"occurredAt\": \"2026-06-19T10:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
           "event": [
             {
               "listen": "test",
@@ -509,75 +874,38 @@
                 "requests": {}
               }
             }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"loadId\": \"{{loadId}}\",\n  \"title\": \"Fuel system warning\",\n  \"description\": \"The driver reported an intermittent fuel pressure warning.\",\n  \"location\": \"Denver, CO\",\n  \"type\": \"fuel_issue\",\n  \"priority\": \"medium\",\n  \"status\": \"open\",\n  \"occurredAt\": \"2026-06-10T12:30:00.000Z\",\n  \"photos\": [],\n  \"timeline\": [\n    {\n      \"id\": \"warning-reported\",\n      \"dateTime\": \"2026-06-10T12:30:00.000Z\",\n      \"title\": \"Warning reported\",\n      \"description\": \"Fuel pressure warning appeared on the dashboard.\",\n      \"type\": \"Detection\",\n      \"tone\": \"blue\"\n    }\n  ]\n}",
-              "options": {
-                "raw": { "language": "json" }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/incidents",
-              "host": ["{{baseUrl}}"],
-              "path": ["incidents"]
-            }
-          },
-          "response": []
+          ]
         },
         {
           "name": "Update Incident",
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/incidents/{{incidentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidents",
+                "{{incidentId}}"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Fuel pressure warning under investigation\",\n  \"description\": \"Dispatch requested a diagnostic inspection at the next service stop.\",\n  \"priority\": \"high\",\n  \"status\": \"investigating\",\n  \"location\": \"I-70 near Denver, CO\"\n}",
+              "raw": "{\n  \"priority\": \"critical\",\n  \"location\": \"Tacoma service area\"\n}",
               "options": {
-                "raw": { "language": "json" }
+                "raw": {
+                  "language": "json"
+                }
               }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/incidents/{{incidentId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["incidents", "{{incidentId}}"]
             }
           },
-          "response": []
-        },
-        {
-          "name": "Incident Details",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/incidents/{{incidentId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["incidents", "{{incidentId}}"]
-            }
-          },
-          "description": "Returns a single incident with load, driver, and full timeline data.",
-          "response": []
-        },
-        {
-          "name": "Incident Timeline Feed",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/incidents/{{incidentId}}/timeline",
-              "host": ["{{baseUrl}}"],
-              "path": ["incidents", "{{incidentId}}", "timeline"]
-            }
-          },
-          "description": "Returns the compact timeline feed used by dashboard polling: incidentId, updatedAt, status, priority, and ordered items.",
           "response": []
         },
         {
@@ -585,21 +913,31 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"resolved\"\n}",
-              "options": {
-                "raw": { "language": "json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
               }
-            },
+            ],
             "url": {
               "raw": "{{baseUrl}}/incidents/{{incidentId}}/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["incidents", "{{incidentId}}", "status"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidents",
+                "{{incidentId}}",
+                "status"
+              ]
             },
-            "description": "Updates only the incident status. Resolved and closed statuses automatically set resolvedAt."
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"investigating\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "response": []
         },
@@ -608,21 +946,31 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"timeline\": [\n    {\n      \"id\": \"warning-reported\",\n      \"dateTime\": \"2026-06-10T12:30:00.000Z\",\n      \"title\": \"Warning reported\",\n      \"description\": \"Fuel pressure warning appeared on the dashboard.\",\n      \"type\": \"Detection\",\n      \"tone\": \"blue\"\n    },\n    {\n      \"id\": \"inspection-completed\",\n      \"dateTime\": \"2026-06-10T14:15:00.000Z\",\n      \"title\": \"Inspection completed\",\n      \"description\": \"A loose sensor connection was secured and tested.\",\n      \"type\": \"Action\",\n      \"tone\": \"green\"\n    }\n  ]\n}",
-              "options": {
-                "raw": { "language": "json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
               }
-            },
+            ],
             "url": {
               "raw": "{{baseUrl}}/incidents/{{incidentId}}/timeline",
-              "host": ["{{baseUrl}}"],
-              "path": ["incidents", "{{incidentId}}", "timeline"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "incidents",
+                "{{incidentId}}",
+                "timeline"
+              ]
             },
-            "description": "Replaces the complete ordered timeline for an incident."
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"timeline\": [\n    {\n      \"id\": \"evt-maint-001\",\n      \"title\": \"Driver reported issue\",\n      \"description\": \"Pulled over safely and contacted dispatch.\",\n      \"dateTime\": \"2026-06-19T10:15:00.000Z\",\n      \"type\": \"note\",\n      \"tone\": \"blue\"\n    },\n    {\n      \"id\": \"evt-maint-002\",\n      \"title\": \"Maintenance vendor assigned\",\n      \"description\": \"Roadside technician ETA 45 minutes.\",\n      \"dateTime\": \"2026-06-19T10:35:00.000Z\",\n      \"type\": \"status_change\",\n      \"tone\": \"green\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "response": []
         }
@@ -633,6 +981,35 @@
       "item": [
         {
           "name": "Create Assistant Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/assistant/jobs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "assistant",
+                "jobs"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Build a quick drivers availability report.\",\n  \"model\": \"gpt-4.1-mini\",\n  \"source\": \"web\",\n  \"operation\": \"drivers_report\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
           "event": [
             {
               "listen": "test",
@@ -646,27 +1023,7 @@
                 "requests": {}
               }
             }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"message\": \"List critical incidents and summarize the highest priority one.\",\n  \"model\": \"gpt-4.1-mini\",\n  \"source\": \"api\"\n}",
-              "options": {
-                "raw": { "language": "json" }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/assistant/jobs",
-              "host": ["{{baseUrl}}"],
-              "path": ["assistant", "jobs"]
-            },
-            "description": "Queues an async AI processing job so HTTP does not wait for the full OpenAI response."
-          },
-          "response": []
+          ]
         },
         {
           "name": "Get Assistant Job Status",
@@ -675,10 +1032,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/assistant/jobs/{{assistantJobId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["assistant", "jobs", "{{assistantJobId}}"]
-            },
-            "description": "Polls the async AI job status until it moves from waiting/active to completed or failed."
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "assistant",
+                "jobs",
+                "{{assistantJobId}}"
+              ]
+            }
           },
           "response": []
         }
@@ -689,29 +1051,29 @@
       "item": [
         {
           "name": "List Notifications",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const body = pm.response.json();",
-                  "if (body.data?.[0]?.id) pm.collectionVariables.set('notificationId', body.data[0].id);"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/notifications",
-              "host": ["{{baseUrl}}"],
-              "path": ["notifications"]
-            },
-            "description": "Returns the current user's notification inbox ordered by newest first."
+              "raw": "{{baseUrl}}/notifications?limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "cursor",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
           },
           "response": []
         },
@@ -722,10 +1084,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/notifications/unread-count",
-              "host": ["{{baseUrl}}"],
-              "path": ["notifications", "unread-count"]
-            },
-            "description": "Returns the unread notification badge count for the current user."
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "unread-count"
+              ]
+            }
           },
           "response": []
         },
@@ -736,10 +1102,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/notifications/preferences",
-              "host": ["{{baseUrl}}"],
-              "path": ["notifications", "preferences"]
-            },
-            "description": "Returns the current user's notification preference snapshot."
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "preferences"
+              ]
+            }
           },
           "response": []
         },
@@ -748,21 +1118,30 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"emailFrequency\": \"instant\",\n  \"loads\": {\n    \"inAppEnabled\": true,\n    \"emailEnabled\": false\n  },\n  \"drivers\": {\n    \"inAppEnabled\": true,\n    \"emailEnabled\": false\n  },\n  \"incidents\": {\n    \"inAppEnabled\": true,\n    \"emailEnabled\": true\n  },\n  \"documents\": {\n    \"inAppEnabled\": false,\n    \"emailEnabled\": false\n  },\n  \"ai\": {\n    \"inAppEnabled\": true,\n    \"emailEnabled\": false\n  },\n  \"system\": {\n    \"inAppEnabled\": false,\n    \"emailEnabled\": false\n  }\n}",
-              "options": {
-                "raw": { "language": "json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
               }
-            },
+            ],
             "url": {
               "raw": "{{baseUrl}}/notifications/preferences",
-              "host": ["{{baseUrl}}"],
-              "path": ["notifications", "preferences"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "preferences"
+              ]
             },
-            "description": "Updates in-app and email preferences. For the first realtime rollout, incident email is the main path to validate."
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emailFrequency\": \"instant\",\n  \"ai\": {\n    \"emailEnabled\": true,\n    \"inAppEnabled\": true\n  },\n  \"documents\": {\n    \"emailEnabled\": true,\n    \"inAppEnabled\": true\n  },\n  \"drivers\": {\n    \"emailEnabled\": false,\n    \"inAppEnabled\": true\n  },\n  \"incidents\": {\n    \"emailEnabled\": true,\n    \"inAppEnabled\": true\n  },\n  \"loads\": {\n    \"emailEnabled\": true,\n    \"inAppEnabled\": true\n  },\n  \"system\": {\n    \"emailEnabled\": false,\n    \"inAppEnabled\": true\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "response": []
         },
@@ -773,10 +1152,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/notifications/{{notificationId}}/read",
-              "host": ["{{baseUrl}}"],
-              "path": ["notifications", "{{notificationId}}", "read"]
-            },
-            "description": "Marks one notification as read and updates the unread count."
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "{{notificationId}}",
+                "read"
+              ]
+            }
           },
           "response": []
         },
@@ -787,10 +1171,653 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/notifications/read-all",
-              "host": ["{{baseUrl}}"],
-              "path": ["notifications", "read-all"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "read-all"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "API Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
             },
-            "description": "Marks all current user notifications as read and resets the unread count."
+            "description": "Public liveness check under the global /api prefix.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Database Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/db",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "db"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Redis Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/redis",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "redis"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Documents",
+      "item": [
+        {
+          "name": "List Documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/documents?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "needs_review",
+                  "disabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "bill_of_lading",
+                  "disabled": true
+                },
+                {
+                  "key": "driverId",
+                  "value": "{{driverId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "loadId",
+                  "value": "{{loadId}}",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Document Metadata",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"bol-3001.pdf\",\n  \"fileSize\": 245760,\n  \"mimeType\": \"application/pdf\",\n  \"type\": \"bill_of_lading\",\n  \"status\": \"processing\",\n  \"loadId\": \"{{loadId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data?.id) pm.collectionVariables.set('documentId', body.data.id);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload Document Multipart",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/documents/upload",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "upload"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "type",
+                  "value": "bill_of_lading",
+                  "type": "text"
+                },
+                {
+                  "key": "loadId",
+                  "value": "{{loadId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "analyzeWithVision",
+                  "value": "true",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "Attach a real file in Postman before sending."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data?.id) pm.collectionVariables.set('documentId', body.data.id);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ]
+        },
+        {
+          "name": "Initiate Direct Upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/uploads/initiate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "uploads",
+                "initiate"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"delivery-photo.jpg\",\n  \"fileSize\": 180432,\n  \"mimeType\": \"image/jpeg\",\n  \"type\": \"proof_of_delivery\",\n  \"loadId\": \"{{loadId}}\",\n  \"analyzeWithVision\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data?.uploadId) pm.collectionVariables.set('uploadId', body.data.uploadId);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ]
+        },
+        {
+          "name": "Complete Direct Upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/uploads/{{uploadId}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "uploads",
+                "{{uploadId}}",
+                "complete"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uploadId\": \"{{uploadId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.data?.id) pm.collectionVariables.set('documentId', body.data.id);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ]
+        },
+        {
+          "name": "Document Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{documentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{documentId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Document File Access",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{documentId}}/file-access",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{documentId}}",
+                "file-access"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Document File Stream",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{documentId}}/file",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{documentId}}",
+                "file"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Document",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{documentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{documentId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"complete\",\n  \"extractionModel\": \"gpt-4.1-mini\",\n  \"pageCount\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Replace Extracted Fields",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{documentId}}/extracted-fields",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{documentId}}",
+                "extracted-fields"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fields\": [\n    {\n      \"fieldKey\": \"bolNumber\",\n      \"label\": \"BOL Number\",\n      \"rawValue\": \"BOL-3001\",\n      \"normalizedValue\": \"BOL-3001\",\n      \"confidence\": 98,\n      \"status\": \"confirmed\"\n    },\n    {\n      \"fieldKey\": \"carrier\",\n      \"label\": \"Carrier\",\n      \"rawValue\": \"AI Logistics\",\n      \"normalizedValue\": \"AI Logistics\",\n      \"confidence\": 92,\n      \"status\": \"extracted\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Replace Audit Events",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{documentId}}/audit-events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{documentId}}",
+                "audit-events"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"events\": [\n    {\n      \"kind\": \"custom\",\n      \"label\": \"Validated extracted fields in Postman\",\n      \"actor\": \"Postman QA\",\n      \"actorBadge\": \"PQA\",\n      \"role\": \"dispatcher\",\n      \"tone\": \"green\",\n      \"timestamp\": \"2026-06-19T11:00:00.000Z\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Document",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/documents/{{documentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "documents",
+                "{{documentId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Assistant",
+      "item": [
+        {
+          "name": "Send Assistant Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/assistant",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "assistant"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Summarize open incidents that need immediate attention.\",\n  \"model\": \"gpt-4.1-mini\",\n  \"source\": \"web\",\n  \"operation\": \"dispatch_summary\",\n  \"conversationId\": \"postman-conversation-1\",\n  \"history\": [\n    {\n      \"role\": \"user\",\n      \"text\": \"What is happening in operations right now?\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "AI Logs",
+      "item": [
+        {
+          "name": "List AI Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ai-logs?limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ai-logs"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "success",
+                  "disabled": true
+                },
+                {
+                  "key": "operation",
+                  "value": "drivers_report",
+                  "disabled": true
+                },
+                {
+                  "key": "model",
+                  "value": "gpt-4.1-mini",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "AI Log Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ai-logs/metrics?limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ai-logs",
+                "metrics"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-06-01T00:00:00.000Z",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-06-19T23:59:59.999Z",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create AI Log",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ai-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ai-logs"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"operation\": \"postman_smoke_test\",\n  \"model\": \"gpt-4.1-mini\",\n  \"status\": \"success\",\n  \"latencyMs\": 842,\n  \"promptTokens\": 210,\n  \"completionTokens\": 96,\n  \"totalTokens\": 306,\n  \"estimatedCostUsd\": 0.001284,\n  \"userName\": \"Postman Runner\",\n  \"source\": \"api\",\n  \"provider\": \"openai\",\n  \"providerRequestId\": \"req_postman_001\",\n  \"requestInput\": \"{\\\"message\\\":\\\"Postman smoke test\\\"}\",\n  \"responseOutput\": \"{\\\"message\\\":\\\"OK\\\"}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "response": []
         }
@@ -857,6 +1884,10 @@
       "value": ""
     },
     {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
       "key": "driverId",
       "value": "10000000-0000-4000-8000-000000000001"
     },
@@ -879,6 +1910,14 @@
     {
       "key": "assistantJobId",
       "value": ""
+    },
+    {
+      "key": "uploadId",
+      "value": ""
+    },
+    {
+      "key": "sampleBase64Pdf",
+      "value": "JVBERi0xLjQKJcTl8uXrp..."
     }
   ]
 }
