@@ -70,9 +70,12 @@ const createUpdateService = (updateResult: unknown[]) => {
 
   return {
     client,
-    service: new LoadsService({
-      client,
-    } as unknown as ConstructorParameters<typeof LoadsService>[0], cacheService as never),
+    service: new LoadsService(
+      {
+        client,
+      } as unknown as ConstructorParameters<typeof LoadsService>[0],
+      cacheService as never,
+    ),
     updateChain,
   };
 };
@@ -136,9 +139,12 @@ describe("LoadsService", () => {
   });
 
   it("rejects delivery before pickup", async () => {
-    const service = new LoadsService({
-      client: {},
-    } as unknown as ConstructorParameters<typeof LoadsService>[0], cacheService as never);
+    const service = new LoadsService(
+      {
+        client: {},
+      } as unknown as ConstructorParameters<typeof LoadsService>[0],
+      cacheService as never,
+    );
 
     await expect(
       service.create({

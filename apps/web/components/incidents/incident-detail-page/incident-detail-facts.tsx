@@ -16,7 +16,10 @@ export const IncidentDetailFacts = ({
   return (
     <div className="space-y-6">
       <dl className="space-y-4">
-        <FactRow icon={<AlertTriangle className="size-4" />} label="Problem type">
+        <FactRow
+          icon={<AlertTriangle className="size-4" />}
+          label="Problem type"
+        >
           {incidentTypeLabels[incident.type]}
         </FactRow>
         <FactRow label="Description">{incident.description}</FactRow>
@@ -43,7 +46,9 @@ export const IncidentDetailFacts = ({
             </span>
           </span>
         </FactRow>
-        <FactRow label="Reported at">{formatDateTime(incident.occurredAt)}</FactRow>
+        <FactRow label="Reported at">
+          {formatDateTime(incident.occurredAt)}
+        </FactRow>
       </dl>
 
       {incident.photos.length > 0 ? (

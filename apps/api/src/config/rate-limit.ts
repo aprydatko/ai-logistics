@@ -149,7 +149,10 @@ const rateLimitEnvironmentSchema = z.object({
     .default(rateLimitDefaults.authSocketTokenTtlMinutes),
 });
 
-const createProfile = (limit: number, ttlMinutes: number): RateLimitProfile => ({
+const createProfile = (
+  limit: number,
+  ttlMinutes: number,
+): RateLimitProfile => ({
   limit,
   ttl: minutes(ttlMinutes),
 });

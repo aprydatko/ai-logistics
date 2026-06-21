@@ -48,9 +48,15 @@ export const useAiLogsWorkspace = (): UseAiLogsWorkspaceResult => {
   const [error, setError] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [metrics, setMetrics] = React.useState<AiLogMetricCard[]>([]);
-  const [model, setModel] = React.useState(() => searchParams.get("model") ?? "all");
-  const [status, setStatus] = React.useState(() => searchParams.get("status") ?? "all");
-  const [operation, setOperation] = React.useState(() => searchParams.get("operation") ?? "all");
+  const [model, setModel] = React.useState(
+    () => searchParams.get("model") ?? "all",
+  );
+  const [status, setStatus] = React.useState(
+    () => searchParams.get("status") ?? "all",
+  );
+  const [operation, setOperation] = React.useState(
+    () => searchParams.get("operation") ?? "all",
+  );
   const [from, setFrom] = React.useState(() => searchParams.get("from") ?? "");
   const [to, setTo] = React.useState(() => searchParams.get("to") ?? "");
   const [limit, setLimitState] = React.useState(DEFAULT_PAGE_SIZE);

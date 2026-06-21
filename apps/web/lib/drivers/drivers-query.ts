@@ -238,7 +238,9 @@ export const updateDriverInLists = (
 ): DriversResult | undefined => {
   if (!current) return current;
 
-  const hasExisting = current.data.some((driver) => driver.id === nextDriver.id);
+  const hasExisting = current.data.some(
+    (driver) => driver.id === nextDriver.id,
+  );
 
   return {
     ...current,
@@ -268,7 +270,8 @@ export const syncDriverListCache = (
 ): void => {
   queryClient.setQueriesData(
     { queryKey: driversQueryKeys.all },
-    (current: DriversResult | undefined) => updateDriverInLists(current, driver),
+    (current: DriversResult | undefined) =>
+      updateDriverInLists(current, driver),
   );
 };
 
@@ -278,7 +281,8 @@ export const removeDriverCache = (
 ): void => {
   queryClient.setQueriesData(
     { queryKey: driversQueryKeys.all },
-    (current: DriversResult | undefined) => removeDriverFromLists(current, driverId),
+    (current: DriversResult | undefined) =>
+      removeDriverFromLists(current, driverId),
   );
   queryClient.removeQueries({ queryKey: driversQueryKeys.detail(driverId) });
 };

@@ -1,4 +1,11 @@
-import { Bot, ChevronLeft, ChevronRight, Monitor, MoreHorizontal, Smartphone } from "lucide-react";
+import {
+  Bot,
+  ChevronLeft,
+  ChevronRight,
+  Monitor,
+  MoreHorizontal,
+  Smartphone,
+} from "lucide-react";
 
 import { Button } from "@repo/ui/components/button";
 import { StatusBadge } from "@repo/ui/components/status-badge";

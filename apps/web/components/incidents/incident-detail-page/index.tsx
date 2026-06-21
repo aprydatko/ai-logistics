@@ -39,7 +39,12 @@ export const IncidentDetailPage = ({
   if (incidentQuery.isError) {
     return (
       <main className="space-y-5">
-        <Button asChild className="-ml-3 text-primary-700" size="sm" variant="ghost">
+        <Button
+          asChild
+          className="-ml-3 text-primary-700"
+          size="sm"
+          variant="ghost"
+        >
           <Link href="/incidents">
             <ChevronDown className="size-4 rotate-90" />
             Back to incidents
@@ -65,7 +70,12 @@ export const IncidentDetailPage = ({
     <main className="space-y-5">
       <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-3">
-          <Button asChild className="-ml-3 text-primary-700" size="sm" variant="ghost">
+          <Button
+            asChild
+            className="-ml-3 text-primary-700"
+            size="sm"
+            variant="ghost"
+          >
             <Link href="/incidents">
               <ChevronDown className="size-4 rotate-90" />
               Back to incidents
@@ -111,7 +121,9 @@ export const IncidentDetailPage = ({
                 {incidentPriorityLabels[incident.priority]}
               </StatusBadge>
             </MetaRow>
-            <MetaRow label="Created">{formatDateTime(incident.createdAt)}</MetaRow>
+            <MetaRow label="Created">
+              {formatDateTime(incident.createdAt)}
+            </MetaRow>
             <MetaRow label="Last updated">
               {formatDateTime(incident.updatedAt)}
             </MetaRow>

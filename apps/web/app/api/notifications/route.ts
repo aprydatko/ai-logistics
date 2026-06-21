@@ -11,9 +11,4 @@ const allowedQueryParameters = new Set(["cursor", "limit"]);
  * user's notification feed with cursor pagination metadata.
  */
 export const GET = (_request: Request): Promise<NextResponse> =>
-  proxyWithAuth(
-    _request,
-    "notifications",
-    "GET",
-    allowedQueryParameters,
-  );
+  proxyWithAuth(_request, "notifications", "GET", allowedQueryParameters);

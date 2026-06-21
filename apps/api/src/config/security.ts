@@ -11,9 +11,7 @@ export const createCorsOptions = (): CorsOptions => ({
   origin: resolveWebOrigin(),
 });
 
-export const createHelmetOptions = (
-  isProduction: boolean,
-): HelmetOptions => ({
+export const createHelmetOptions = (isProduction: boolean): HelmetOptions => ({
   contentSecurityPolicy: {
     directives: {
       "base-uri": ["'self'"],

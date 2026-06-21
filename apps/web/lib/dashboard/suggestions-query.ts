@@ -1,7 +1,10 @@
 import { queryOptions } from "@tanstack/react-query";
 import type { AiLogsListResponse, AiLogsMetricsResponse } from "@repo/shared";
 
-import { DASHBOARD_QUERY_STALE_TIME, dashboardQueryKeys } from "./dashboard-query";
+import {
+  DASHBOARD_QUERY_STALE_TIME,
+  dashboardQueryKeys,
+} from "./dashboard-query";
 
 export type DashboardSuggestionItem = {
   detail: string;
@@ -79,7 +82,9 @@ const buildSuggestions = (
     });
   }
 
-  const slowestLog = [...logs].sort((left, right) => right.latencyMs - left.latencyMs)[0];
+  const slowestLog = [...logs].sort(
+    (left, right) => right.latencyMs - left.latencyMs,
+  )[0];
   if (slowestLog && slowestLog.latencyMs >= 10_000) {
     suggestions.push({
       detail: `${slowestLog.operation} took ${formatDuration(slowestLog.latencyMs)} on ${slowestLog.model}.`,

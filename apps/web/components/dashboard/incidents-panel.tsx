@@ -80,76 +80,76 @@ export function IncidentsPanel(): React.JSX.Element {
   return (
     <DashboardMotionItem transition={{ delay: 0.03 }}>
       <article className="rounded-xl border border-border bg-card p-4 shadow-xs">
-      <div className="flex items-center justify-between gap-4 px-2">
-        <h2 className="text-sm font-bold text-ink-900">Critical incidents</h2>
-        <Button
-          onClick={() => router.replace("/incidents")}
-          className="text-xs h-auto p-0 text-blue-600"
-          variant="link"
-        >
-          View all
-        </Button>
-      </div>
-      <div className="mt-3 divide-y divide-secondary border border-secondary rounded-sm">
-        {isLoading ? <DashboardListSkeleton /> : null}
-        {isError ? (
-          <p className="p-3 text-sm text-danger">
-            Unable to load incidents right now.
-          </p>
-        ) : null}
-        {!isLoading && !isError && incidents.length === 0 ? (
-          <div className="p-3">
-            <DashboardPanelMessageSkeleton />
-            <p className="mt-3 text-sm text-primary-700">
-              No critical incidents available.
+        <div className="flex items-center justify-between gap-4 px-2">
+          <h2 className="text-sm font-bold text-ink-900">Critical incidents</h2>
+          <Button
+            onClick={() => router.replace("/incidents")}
+            className="text-xs h-auto p-0 text-blue-600"
+            variant="link"
+          >
+            View all
+          </Button>
+        </div>
+        <div className="mt-3 divide-y divide-secondary border border-secondary rounded-sm">
+          {isLoading ? <DashboardListSkeleton /> : null}
+          {isError ? (
+            <p className="p-3 text-sm text-danger">
+              Unable to load incidents right now.
             </p>
-          </div>
-        ) : null}
-        {incidents.map((incident) => {
-          const {
-            icon: Icon,
-            severity,
-            style,
-          } = priorityStyles[incident.priority];
-          const description =
-            incident.location?.trim() ||
-            `Load #${incident.load.referenceNumber}`;
+          ) : null}
+          {!isLoading && !isError && incidents.length === 0 ? (
+            <div className="p-3">
+              <DashboardPanelMessageSkeleton />
+              <p className="mt-3 text-sm text-primary-700">
+                No critical incidents available.
+              </p>
+            </div>
+          ) : null}
+          {incidents.map((incident) => {
+            const {
+              icon: Icon,
+              severity,
+              style,
+            } = priorityStyles[incident.priority];
+            const description =
+              incident.location?.trim() ||
+              `Load #${incident.load.referenceNumber}`;
 
-          return (
-            <div className="flex items-center gap-4 p-3" key={incident.id}>
-              <span
-                className={cn(
-                  "grid size-9 place-items-center rounded-lg",
-                  style,
-                )}
-              >
-                <Icon className="size-4" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs leading-5 font-semibold text-ink-900">
-                  {incident.title}
-                </p>
-                <p className=" truncate text-xs leading-4 text-primary-700">
-                  {description}
-                </p>
-              </div>
-              <div className="text-right text-[0.65rem]">
-                <p className="leading-4 text-primary-700">
-                  {formatTime(incident.updatedAt)}
-                </p>
-                <p
+            return (
+              <div className="flex items-center gap-4 p-3" key={incident.id}>
+                <span
                   className={cn(
-                    "mt-0.5 leading-4 font-semibold",
-                    style.split(" ")[1],
+                    "grid size-9 place-items-center rounded-lg",
+                    style,
                   )}
                 >
-                  {severity}
-                </p>
+                  <Icon className="size-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs leading-5 font-semibold text-ink-900">
+                    {incident.title}
+                  </p>
+                  <p className=" truncate text-xs leading-4 text-primary-700">
+                    {description}
+                  </p>
+                </div>
+                <div className="text-right text-[0.65rem]">
+                  <p className="leading-4 text-primary-700">
+                    {formatTime(incident.updatedAt)}
+                  </p>
+                  <p
+                    className={cn(
+                      "mt-0.5 leading-4 font-semibold",
+                      style.split(" ")[1],
+                    )}
+                  >
+                    {severity}
+                  </p>
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
       </article>
     </DashboardMotionItem>
   );
