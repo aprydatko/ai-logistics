@@ -62,41 +62,45 @@ export class LoadsService {
       this.cacheService.getTtl("metrics"),
       async () => {
         const client = this.databaseService.client;
-        const metricStatuses: Array<LoadMetricsItem["title"] extends string ? typeof loads.$inferSelect.status : never> = [
-          "pending",
-          "assigned",
-          "in_transit",
-          "delivered",
-          "cancelled",
-        ];
-        const [recentLoads, pending, assigned, inTransit, delivered, cancelled] =
-          await Promise.all([
-            client
-              .select({ status: loads.status })
-              .from(loads)
-              .orderBy(desc(loads.updatedAt))
-              .limit(12),
-            client
-              .select({ total: count() })
-              .from(loads)
-              .where(eq(loads.status, "pending")),
-            client
-              .select({ total: count() })
-              .from(loads)
-              .where(eq(loads.status, "assigned")),
-            client
-              .select({ total: count() })
-              .from(loads)
-              .where(eq(loads.status, "in_transit")),
-            client
-              .select({ total: count() })
-              .from(loads)
-              .where(eq(loads.status, "delivered")),
-            client
-              .select({ total: count() })
-              .from(loads)
-              .where(eq(loads.status, "cancelled")),
-          ]);
+        const metricStatuses: Array<
+          LoadMetricsItem["title"] extends string
+            ? typeof loads.$inferSelect.status
+            : never
+        > = ["pending", "assigned", "in_transit", "delivered", "cancelled"];
+        const [
+          recentLoads,
+          pending,
+          assigned,
+          inTransit,
+          delivered,
+          cancelled,
+        ] = await Promise.all([
+          client
+            .select({ status: loads.status })
+            .from(loads)
+            .orderBy(desc(loads.updatedAt))
+            .limit(12),
+          client
+            .select({ total: count() })
+            .from(loads)
+            .where(eq(loads.status, "pending")),
+          client
+            .select({ total: count() })
+            .from(loads)
+            .where(eq(loads.status, "assigned")),
+          client
+            .select({ total: count() })
+            .from(loads)
+            .where(eq(loads.status, "in_transit")),
+          client
+            .select({ total: count() })
+            .from(loads)
+            .where(eq(loads.status, "delivered")),
+          client
+            .select({ total: count() })
+            .from(loads)
+            .where(eq(loads.status, "cancelled")),
+        ]);
 
         const counts = new Map<(typeof metricStatuses)[number], number>(
           metricStatuses.map((status) => [status, 0] as const),
@@ -210,17 +214,20 @@ export class LoadsService {
             minute: "2-digit",
           }).format(value);
 
-        const formatLoadStatus = (status: (typeof loads.$inferSelect.status)): string =>
-          status.replaceAll("_", " ");
+        const formatLoadStatus = (
+          status: typeof loads.$inferSelect.status,
+        ): string => status.replaceAll("_", " ");
 
-        const loadActivities: DashboardActivityItem[] = recentLoads.map((load) => ({
-          description: `${load.pickupAddress} -> ${load.deliveryAddress}`,
-          id: `load-${load.id}`,
-          label: "Load",
-          time: formatTime(load.updatedAt),
-          title: `Load #${load.referenceNumber} status is ${formatLoadStatus(load.status)}`,
-          updatedAt: load.updatedAt.toISOString(),
-        }));
+        const loadActivities: DashboardActivityItem[] = recentLoads.map(
+          (load) => ({
+            description: `${load.pickupAddress} -> ${load.deliveryAddress}`,
+            id: `load-${load.id}`,
+            label: "Load",
+            time: formatTime(load.updatedAt),
+            title: `Load #${load.referenceNumber} status is ${formatLoadStatus(load.status)}`,
+            updatedAt: load.updatedAt.toISOString(),
+          }),
+        );
 
         const incidentActivities: DashboardActivityItem[] = recentIncidents.map(
           ({ driver, incident, load }) => ({
@@ -331,7 +338,8 @@ export class LoadsService {
             ({ incident }) =>
               incident.status !== "resolved" &&
               incident.status !== "closed" &&
-              (incident.priority === "critical" || incident.priority === "high"),
+              (incident.priority === "critical" ||
+                incident.priority === "high"),
           )
           .map(({ driver, incident, load }) => ({
             detail: incident.location?.trim()
@@ -646,7 +654,7 @@ export class LoadsService {
           averageSpeedMph: dto.averageSpeedMph,
           estimatedDeliveryAt: deliveryDate.toISOString(),
         },
-        });
+      });
 
       await this.invalidateLoadReadCaches();
       return {

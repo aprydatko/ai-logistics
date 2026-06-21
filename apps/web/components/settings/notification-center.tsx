@@ -1,6 +1,11 @@
 "use client";
 
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import type { Notification } from "@repo/shared";
 import { CheckCheck, ChevronDown, ChevronRight, Search } from "lucide-react";
 import * as React from "react";
@@ -30,7 +35,9 @@ const categoryToneClasses: Record<Notification["category"], string> = {
 
 export const NotificationCenter = (): React.JSX.Element => {
   const queryClient = useQueryClient();
-  const notificationsQuery = useInfiniteQuery(notificationsInfiniteQueryOptions());
+  const notificationsQuery = useInfiniteQuery(
+    notificationsInfiniteQueryOptions(),
+  );
   const unreadCountQuery = useQuery(notificationUnreadCountQueryOptions());
   const [query, setQuery] = React.useState("");
   const [type, setType] = React.useState<Notification["category"] | "all">(
@@ -82,7 +89,10 @@ export const NotificationCenter = (): React.JSX.Element => {
   });
 
   const handleLoadMore = async (): Promise<void> => {
-    if (!notificationsQuery.hasNextPage || notificationsQuery.isFetchingNextPage) {
+    if (
+      !notificationsQuery.hasNextPage ||
+      notificationsQuery.isFetchingNextPage
+    ) {
       return;
     }
 

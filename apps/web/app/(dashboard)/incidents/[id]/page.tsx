@@ -1,21 +1,15 @@
-import { PageIntro } from "@/components/page-intro";
+import { IncidentDetailPage } from "@/components/incidents/incident-detail-page";
 
-type IncidentDetailPageProps = {
+type IncidentRoutePageProps = {
   params: Promise<{
     id: string;
   }>;
 };
 
-export default async function IncidentDetailPage({
+export default async function IncidentRoutePage({
   params,
-}: IncidentDetailPageProps) {
+}: IncidentRoutePageProps): Promise<React.JSX.Element> {
   const { id } = await params;
 
-  return (
-    <PageIntro
-      description={`Incident ${id}: AI classification, suggested response, ticket actions, and live timeline.`}
-      eyebrow="Incident detail"
-      title="Incident details"
-    />
-  );
+  return <IncidentDetailPage incidentId={id} />;
 }

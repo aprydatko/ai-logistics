@@ -1,6 +1,10 @@
 "use client";
 
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import type { Document } from "@repo/shared";
 import { toast } from "@repo/ui/components/toaster";
 import { useRouter } from "next/navigation";
@@ -31,7 +35,9 @@ export const RealtimeNotificationsProvider = ({
   const setPreferencesSnapshot = useNotificationsStore(
     (state) => state.setPreferencesSnapshot,
   );
-  const notificationsQuery = useInfiniteQuery(notificationsInfiniteQueryOptions());
+  const notificationsQuery = useInfiniteQuery(
+    notificationsInfiniteQueryOptions(),
+  );
   useQuery(notificationUnreadCountQueryOptions());
   const preferencesQuery = useQuery(notificationPreferencesQueryOptions());
 
@@ -60,7 +66,7 @@ export const RealtimeNotificationsProvider = ({
           queryClient.setQueryData(
             notificationsQueryKeys.unreadCount(),
             (current: number | undefined) =>
-              notification.readAt ? current ?? 0 : (current ?? 0) + 1,
+              notification.readAt ? (current ?? 0) : (current ?? 0) + 1,
           );
 
           if (notificationsQuery.data) {
@@ -111,11 +117,7 @@ export const RealtimeNotificationsProvider = ({
       cancelled = true;
       socket?.disconnect();
     };
-  }, [
-    notificationsQuery.data,
-    queryClient,
-    router,
-  ]);
+  }, [notificationsQuery.data, queryClient, router]);
 
   return <>{children}</>;
 };

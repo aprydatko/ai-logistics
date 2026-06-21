@@ -76,8 +76,14 @@ export const incidents = pgTable(
     index("incidents_status_idx").on(table.status),
     index("incidents_priority_idx").on(table.priority),
     index("incidents_occurred_at_idx").on(table.occurredAt),
-    index("incidents_status_occurred_at_idx").on(table.status, table.occurredAt),
-    index("incidents_load_id_occurred_at_idx").on(table.loadId, table.occurredAt),
+    index("incidents_status_occurred_at_idx").on(
+      table.status,
+      table.occurredAt,
+    ),
+    index("incidents_load_id_occurred_at_idx").on(
+      table.loadId,
+      table.occurredAt,
+    ),
   ],
 );
 

@@ -127,7 +127,11 @@ export const TruckTab = ({
               }
             : current,
       );
-      syncDriverTruckNumberInLists(queryClient, driverId, values.unitNumber || null);
+      syncDriverTruckNumberInLists(
+        queryClient,
+        driverId,
+        values.unitNumber || null,
+      );
 
       await queryClient.invalidateQueries({
         queryKey: driversQueryKeys.detail(driverId),

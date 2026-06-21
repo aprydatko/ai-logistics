@@ -16,14 +16,7 @@ type AllowedUploadMimeType = (typeof ALLOWED_UPLOAD_MIME_TYPES)[number];
 const WEBP_RIFF_SIGNATURE = "RIFF";
 const WEBP_FORMAT_SIGNATURE = "WEBP";
 const PNG_SIGNATURE = Buffer.from([
-  0x89,
-  0x50,
-  0x4e,
-  0x47,
-  0x0d,
-  0x0a,
-  0x1a,
-  0x0a,
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
 ]);
 const JPEG_START_MARKER = Buffer.from([0xff, 0xd8, 0xff]);
 const PDF_SIGNATURE = Buffer.from("%PDF-");

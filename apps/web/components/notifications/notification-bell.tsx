@@ -1,6 +1,11 @@
 "use client";
 
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Bell, CheckCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -37,7 +42,9 @@ export const NotificationBell = (): React.JSX.Element => {
   const queryClient = useQueryClient();
   const isPanelOpen = useNotificationsStore((state) => state.isPanelOpen);
   const setPanelOpen = useNotificationsStore((state) => state.setPanelOpen);
-  const notificationsQuery = useInfiniteQuery(notificationsInfiniteQueryOptions());
+  const notificationsQuery = useInfiniteQuery(
+    notificationsInfiniteQueryOptions(),
+  );
   const unreadCountQuery = useQuery(notificationUnreadCountQueryOptions());
   const items = flattenNotificationPages(notificationsQuery.data);
   const unreadCount = unreadCountQuery.data ?? 0;

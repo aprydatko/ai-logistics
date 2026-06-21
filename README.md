@@ -46,6 +46,36 @@ components.
 - **Operational reporting** — dashboards, metrics, notifications, and
   structured activity views.
 
+## AI Features
+
+AI capabilities in this repo are product features, not just demo integrations.
+The current implementation focuses on operational guidance, document analysis,
+and auditable usage data.
+
+- **Read-only logistics assistant** — the assistant can answer questions about
+  loads, drivers, and incidents using backend tools instead of static prompts.
+  It supports linked entity context, recent chat history, attachments, and
+  structured table results for list-style queries.
+- **Tool-based incident guidance** — assistant flows can fetch live record
+  details and generate recommended next steps for incidents while keeping v1
+  strictly read-only.
+- **Document AI extraction** — uploaded PDFs and images can be analyzed with
+  OpenAI vision to extract structured logistics fields, confidence values, and
+  review-ready metadata for document workflows.
+- **AI logs and cost visibility** — every assistant run can be persisted with
+  operation, model, status, latency, tokens, estimated cost, request/response
+  payloads, and linked entity context. The dashboard also exposes filtered AI
+  metrics and trend views.
+- **Async assistant execution** — the web app submits assistant jobs and polls
+  for completion so longer AI runs do not block the UI.
+- **Notifications around AI-driven flows** — document-processing and related
+  operational events feed the realtime notification system so teams can react
+  when AI-assisted review work changes state.
+
+Current default models in the repo are `gpt-4.1-mini` for the assistant and
+document analysis, with support for model configuration through environment
+variables.
+
 ## Technology
 
 | Layer   | Technologies                                                |

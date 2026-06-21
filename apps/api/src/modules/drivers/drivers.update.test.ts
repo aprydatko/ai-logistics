@@ -77,9 +77,12 @@ const createService = (updateResult: unknown[]) => {
       }),
     ),
   };
-  const service = new DriversService({
-    client,
-  } as unknown as ConstructorParameters<typeof DriversService>[0], cacheService as never);
+  const service = new DriversService(
+    {
+      client,
+    } as unknown as ConstructorParameters<typeof DriversService>[0],
+    cacheService as never,
+  );
 
   return { client, service, updateChain };
 };

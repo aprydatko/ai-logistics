@@ -18,7 +18,10 @@ export type DashboardLoadMapData = {
   route: Coordinates[];
 };
 
-const coordinatesSchema = z.tuple([z.number(), z.number()]) satisfies z.ZodType<Coordinates>;
+const coordinatesSchema = z.tuple([
+  z.number(),
+  z.number(),
+]) satisfies z.ZodType<Coordinates>;
 
 const routeMapMarkerSchema = z.object({
   coordinates: coordinatesSchema,

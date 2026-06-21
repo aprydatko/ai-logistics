@@ -101,9 +101,12 @@ describe("DriversService.findById", () => {
         .mockReturnValueOnce(createLimitedSelectChain([]))
         .mockReturnValueOnce(createLimitedSelectChain([])),
     };
-    const service = new DriversService({
-      client,
-    } as unknown as ConstructorParameters<typeof DriversService>[0], cacheService as never);
+    const service = new DriversService(
+      {
+        client,
+      } as unknown as ConstructorParameters<typeof DriversService>[0],
+      cacheService as never,
+    );
 
     await expect(service.findById(driver.id)).resolves.toEqual({
       success: true,
@@ -134,9 +137,12 @@ describe("DriversService.findById", () => {
     const client = {
       select: vi.fn().mockReturnValue(createSelectChain([])),
     };
-    const service = new DriversService({
-      client,
-    } as unknown as ConstructorParameters<typeof DriversService>[0], cacheService as never);
+    const service = new DriversService(
+      {
+        client,
+      } as unknown as ConstructorParameters<typeof DriversService>[0],
+      cacheService as never,
+    );
 
     await expect(service.findById(driver.id)).rejects.toThrow(
       NotFoundException,

@@ -32,7 +32,7 @@ export class AuthController {
    *
    * @param dto - User registration payload
    * @returns Created user without sensitive data
-  */
+   */
   @Post("register")
   @Throttle({ default: rateLimitConfig.authRegister })
   register(@Body() dto: RegisterDto): Promise<PublicUser> {

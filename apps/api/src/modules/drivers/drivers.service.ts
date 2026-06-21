@@ -561,66 +561,66 @@ export class DriversService {
       const result: UpsertDriverVehicleResponse = await client.transaction(
         async (tx) => {
           const [assignment] = await tx
-          .select({
-            vehicleId: driverVehicleAssignments.vehicleId,
-            assignedAt: driverVehicleAssignments.assignedAt,
-          })
-          .from(driverVehicleAssignments)
-          .where(
-            and(
-              eq(driverVehicleAssignments.driverId, driverId),
-              isNull(driverVehicleAssignments.unassignedAt),
-              eq(driverVehicleAssignments.isPrimary, true),
-            ),
-          )
-          .limit(1);
-        const vehicleValues = buildVehicleValues(dto);
-        let vehicle;
-        const assignedAt = assignment?.assignedAt ?? new Date();
+            .select({
+              vehicleId: driverVehicleAssignments.vehicleId,
+              assignedAt: driverVehicleAssignments.assignedAt,
+            })
+            .from(driverVehicleAssignments)
+            .where(
+              and(
+                eq(driverVehicleAssignments.driverId, driverId),
+                isNull(driverVehicleAssignments.unassignedAt),
+                eq(driverVehicleAssignments.isPrimary, true),
+              ),
+            )
+            .limit(1);
+          const vehicleValues = buildVehicleValues(dto);
+          let vehicle;
+          const assignedAt = assignment?.assignedAt ?? new Date();
 
-        if (assignment) {
-          [vehicle] = await tx
-            .update(vehicles)
-            .set(vehicleValues)
-            .where(eq(vehicles.id, assignment.vehicleId))
-            .returning();
-        } else {
-          [vehicle] = await tx
-            .insert(vehicles)
-            .values(vehicleValues)
-            .returning();
+          if (assignment) {
+            [vehicle] = await tx
+              .update(vehicles)
+              .set(vehicleValues)
+              .where(eq(vehicles.id, assignment.vehicleId))
+              .returning();
+          } else {
+            [vehicle] = await tx
+              .insert(vehicles)
+              .values(vehicleValues)
+              .returning();
 
-          if (vehicle) {
-            await tx.insert(driverVehicleAssignments).values({
-              driverId,
-              vehicleId: vehicle.id,
-              assignedAt,
-              isPrimary: true,
-            });
+            if (vehicle) {
+              await tx.insert(driverVehicleAssignments).values({
+                driverId,
+                vehicleId: vehicle.id,
+                assignedAt,
+                isPrimary: true,
+              });
+            }
           }
-        }
 
-        if (!vehicle) {
-          throw new InternalServerErrorException("Failed to save truck");
-        }
+          if (!vehicle) {
+            throw new InternalServerErrorException("Failed to save truck");
+          }
 
-        await tx
-          .update(drivers)
-          .set({ truckNumber: vehicle.unitNumber, updatedAt: new Date() })
-          .where(eq(drivers.id, driverId));
-        await tx.insert(driverActivity).values({
-          driverId,
-          type: assignment ? "updated" : "vehicle_assigned",
-          description: assignment
-            ? `Truck ${vehicle.unitNumber} was updated`
-            : `Truck ${vehicle.unitNumber} was assigned`,
-          metadata: { vehicleId: vehicle.id },
-        });
+          await tx
+            .update(drivers)
+            .set({ truckNumber: vehicle.unitNumber, updatedAt: new Date() })
+            .where(eq(drivers.id, driverId));
+          await tx.insert(driverActivity).values({
+            driverId,
+            type: assignment ? "updated" : "vehicle_assigned",
+            description: assignment
+              ? `Truck ${vehicle.unitNumber} was updated`
+              : `Truck ${vehicle.unitNumber} was assigned`,
+            metadata: { vehicleId: vehicle.id },
+          });
 
-        return {
-          success: true,
-          data: toDriverVehicleItem(vehicle, assignedAt),
-        };
+          return {
+            success: true,
+            data: toDriverVehicleItem(vehicle, assignedAt),
+          };
         },
       );
       await this.invalidateDriverReadCaches();

@@ -172,9 +172,7 @@ export type NotificationsInfiniteData = InfiniteData<
   unknown
 >;
 
-const dedupeNotifications = (
-  items: Notification[],
-): Notification[] => {
+const dedupeNotifications = (items: Notification[]): Notification[] => {
   const seen = new Set<string>();
 
   return items.filter((item) => {
@@ -214,10 +212,10 @@ export const appendNotificationPage = (
   };
 
   return {
-    pageParams: current?.pageParams.length
-      ? current.pageParams
-      : [null],
-    pages: current ? [nextFirstPage, ...current.pages.slice(1)] : [nextFirstPage],
+    pageParams: current?.pageParams.length ? current.pageParams : [null],
+    pages: current
+      ? [nextFirstPage, ...current.pages.slice(1)]
+      : [nextFirstPage],
   };
 };
 
